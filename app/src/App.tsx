@@ -17,16 +17,34 @@ function App() {
 
   useEffect(() => {
     if (currentPage === 'quiz' && questions.length === 0) {
-      setLoading(true)
-      fetchQuestions()
-        .then((data) => {
-          setQuestions(data)
-          setLoading(false)
+      let cancelled = false
+      
+      const loadQuestions = async () => {
+        queueMicrotask(() => {
+          if (!cancelled) {
+            setLoading(true)
+          }
         })
-        .catch((err) => {
-          setError(err.message || 'Failed to load questions')
-          setLoading(false)
-        })
+        
+        try {
+          const data = await fetchQuestions()
+          if (!cancelled) {
+            setQuestions(data)
+            setLoading(false)
+          }
+        } catch (err) {
+          if (!cancelled) {
+            setError(err instanceof Error ? err.message : 'Failed to load questions')
+            setLoading(false)
+          }
+        }
+      }
+      
+      loadQuestions()
+      
+      return () => {
+        cancelled = true
+      }
     }
   }, [currentPage, questions.length])
 
