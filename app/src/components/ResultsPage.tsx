@@ -1,64 +1,127 @@
+import { useState, useEffect } from "react";
 import { ArrowLeft, Star } from "lucide-react";
+import { analyzeAnswers, type CareerRecommendation } from "../lib/api";
+import type { Question } from "../types/question";
 
 interface ResultsPageProps {
   answers: number[];
+  questions: Question[];
+  additionalInfo?: string;
   onRestart: () => void;
   onBack: () => void;
 }
 
-// Career recommendation based on answers
-function getCareerRecommendation(answers: number[]): {
-  title: string;
-  description: string;
-  matchScore: number;
-  skills: string[];
-  salary: string;
-  growth: string;
-} {
-  // Simple algorithm based on answer patterns
-  const totalScore = answers.reduce((sum, ans) => sum + ans, 0);
-  
-  if (totalScore <= 2) {
-    return {
-      title: "Software Engineer",
-      description: "You thrive in structured environments and enjoy solving complex problems. A career in software engineering would allow you to work independently while contributing to meaningful projects.",
-      matchScore: 92,
-      skills: ["Problem Solving", "Logical Thinking", "Attention to Detail", "Technical Skills"],
-      salary: "$100,000 - $150,000",
-      growth: "22% growth expected"
-    };
-  } else if (totalScore <= 4) {
-    return {
-      title: "Product Manager",
-      description: "Your balanced approach to work and preference for collaborative environments makes you an ideal fit for product management. You excel at leading teams and making strategic decisions.",
-      matchScore: 88,
-      skills: ["Leadership", "Strategic Thinking", "Communication", "Team Collaboration"],
-      salary: "$120,000 - $180,000",
-      growth: "18% growth expected"
-    };
-  } else if (totalScore <= 6) {
-    return {
-      title: "UX Designer",
-      description: "Your creative mindset and focus on user impact align perfectly with UX design. You enjoy flexible work environments and making a meaningful difference in people's lives.",
-      matchScore: 95,
-      skills: ["Creativity", "User Empathy", "Design Thinking", "Problem Solving"],
-      salary: "$85,000 - $130,000",
-      growth: "15% growth expected"
-    };
-  } else {
-    return {
-      title: "Marketing Manager",
-      description: "Your dynamic personality and preference for fast-paced environments make you perfect for marketing. You excel at creative campaigns and thrive in adaptable settings.",
-      matchScore: 90,
-      skills: ["Creativity", "Communication", "Analytics", "Strategic Planning"],
-      salary: "$70,000 - $120,000",
-      growth: "10% growth expected"
-    };
-  }
-}
+export function ResultsPage({ answers, questions, additionalInfo, onBack }: ResultsPageProps) {
+  const [career, setCareer] = useState<CareerRecommendation | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-export function ResultsPage({ answers, onBack }: ResultsPageProps) {
-  const career = getCareerRecommendation(answers);
+  useEffect(() => {
+    const fetchRecommendation = async () => {
+      try {
+        setLoading(true);
+        const recommendation = await analyzeAnswers({
+          answers,
+          questions,
+          additionalInfo,
+        });
+        setCareer(recommendation);
+        setLoading(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to get recommendation");
+        setLoading(false);
+      }
+    };
+
+    if (answers.length > 0 && questions.length > 0) {
+      fetchRecommendation();
+    }
+  }, [answers, questions, additionalInfo]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] text-white">
+        <nav className="flex items-center justify-between p-4 md:p-6">
+          <button
+            onClick={onBack}
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            aria-label="Go back"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          
+          <div className="flex items-center gap-2">
+            <div className="flex items-center">
+              <div 
+                className="w-8 h-8 rounded-lg"
+                style={{
+                  background: 'linear-gradient(135deg, #fbbf24 0%, #f97316 25%, #10b981 50%, #3b82f6 75%, #a855f7 100%)',
+                  clipPath: 'polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%)'
+                }}
+              />
+              <span className="text-2xl font-bold ml-1">Quiz App</span>
+            </div>
+          </div>
+          
+          <div className="w-9"></div>
+        </nav>
+
+        <div className="max-w-3xl mx-auto px-4 md:px-6 pb-8">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <div className="text-xl mb-4">Analyzing your responses...</div>
+              <div className="text-gray-500">This may take a few moments</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !career) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] text-white">
+        <nav className="flex items-center justify-between p-4 md:p-6">
+          <button
+            onClick={onBack}
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            aria-label="Go back"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          
+          <div className="flex items-center gap-2">
+            <div className="flex items-center">
+              <div 
+                className="w-8 h-8 rounded-lg"
+                style={{
+                  background: 'linear-gradient(135deg, #fbbf24 0%, #f97316 25%, #10b981 50%, #3b82f6 75%, #a855f7 100%)',
+                  clipPath: 'polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%)'
+                }}
+              />
+              <span className="text-2xl font-bold ml-1">Quiz App</span>
+            </div>
+          </div>
+          
+          <div className="w-9"></div>
+        </nav>
+
+        <div className="max-w-3xl mx-auto px-4 md:px-6 pb-8">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <div className="text-xl mb-4 text-red-500">Error: {error || "Failed to load recommendation"}</div>
+              <button
+                onClick={onBack}
+                className="px-4 py-2 bg-purple-500 rounded-lg mt-4"
+              >
+                Go Back
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">

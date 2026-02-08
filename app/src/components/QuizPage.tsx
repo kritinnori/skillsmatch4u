@@ -1,21 +1,58 @@
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { ArrowLeft, Star } from "lucide-react";
-import type { Question } from "../data/questions";
+import type { Question } from "../types/question";
 
 interface QuizPageProps {
   questions: Question[];
-  onComplete: (answers: number[]) => void;
+  onComplete: (answers: number[], additionalInfo?: string) => void;
   onBack: () => void;
 }
+
+const SCALE_OPTIONS = [
+  { value: 1, label: "Strongly Disagree" },
+  { value: 2, label: "Disagree" },
+  { value: 3, label: "Neutral" },
+  { value: 4, label: "Agree" },
+  { value: 5, label: "Strongly Agree" },
+];
 
 export function QuizPage({ questions, onComplete, onBack }: QuizPageProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [answers, setAnswers] = useState<number[]>([]);
+  const [additionalInfo, setAdditionalInfo] = useState("");
+  const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
 
   const currentQuestion = questions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
+  const isFirstQuestion = currentQuestionIndex === 0;
+
+  const handleBack = () => {
+    if (showAdditionalInfo) {
+      // Go back from additional info screen to last question
+      setShowAdditionalInfo(false);
+      // Restore the answer for the last question
+      if (answers.length > 0) {
+        setSelectedAnswer(answers[answers.length - 1]);
+      }
+    } else if (isFirstQuestion) {
+      // Exit quiz if on first question
+      onBack();
+    } else {
+      // Go back to previous question
+      const previousIndex = currentQuestionIndex - 1;
+      setCurrentQuestionIndex(previousIndex);
+      // Restore the answer for the previous question
+      if (answers[previousIndex] !== undefined) {
+        setSelectedAnswer(answers[previousIndex]);
+        // Remove the last answer from the answers array
+        setAnswers(answers.slice(0, previousIndex));
+      } else {
+        setSelectedAnswer(null);
+      }
+    }
+  };
 
   const handleNext = () => {
     if (selectedAnswer === null) return;
@@ -24,11 +61,15 @@ export function QuizPage({ questions, onComplete, onBack }: QuizPageProps) {
     setAnswers(newAnswers);
 
     if (isLastQuestion) {
-      onComplete(newAnswers);
+      setShowAdditionalInfo(true);
     } else {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       setSelectedAnswer(null);
     }
+  };
+
+  const handleFinish = () => {
+    onComplete(answers, additionalInfo.trim() || undefined);
   };
 
   return (
@@ -36,7 +77,7 @@ export function QuizPage({ questions, onComplete, onBack }: QuizPageProps) {
       {/* Navigation Bar */}
       <nav className="flex items-center justify-between p-4 md:p-6">
         <button
-          onClick={onBack}
+          onClick={handleBack}
           className="p-2 hover:bg-white/10 rounded-lg transition-colors"
           aria-label="Go back"
         >
@@ -70,7 +111,9 @@ export function QuizPage({ questions, onComplete, onBack }: QuizPageProps) {
           <div 
             className="absolute top-1/2 left-0 h-1 -translate-y-1/2 bg-purple-500 rounded-full transition-all duration-300"
             style={{
-              width: `${(currentQuestionIndex / (questions.length - 1)) * 100}%`
+              width: showAdditionalInfo 
+                ? "100%" 
+                : `${((currentQuestionIndex + 1) / questions.length) * 100}%`
             }}
           ></div>
           
@@ -80,7 +123,7 @@ export function QuizPage({ questions, onComplete, onBack }: QuizPageProps) {
               <div
                 key={index}
                 className={`w-3 h-3 rotate-45 z-10 ${
-                  index <= currentQuestionIndex
+                  index <= currentQuestionIndex || showAdditionalInfo
                     ? "bg-purple-500"
                     : "bg-gray-600"
                 }`}
@@ -93,51 +136,83 @@ export function QuizPage({ questions, onComplete, onBack }: QuizPageProps) {
       {/* Main Content */}
       <div className="max-w-2xl mx-auto px-4 md:px-6 pb-8">
         <div className="space-y-8">
-          {/* Question */}
-          <h2 className="text-xl leading-tight">
-            {currentQuestion.question}
-          </h2>
+          {!showAdditionalInfo ? (
+            <>
+              {/* Question */}
+              <h2 className="text-xl leading-tight">
+                {currentQuestion.question}
+              </h2>
 
-          {/* Answer Options */}
-          <div className="space-y-3">
-            {currentQuestion.options.map((option, index) => (
-              <label
-                key={index}
-                className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all ${
-                  selectedAnswer === index
-                    ? "border-purple-500 bg-purple-500/10"
-                    : "border-gray-700 bg-gray-800 hover:border-gray-600"
-                }`}
-              >
-                <div className="relative flex items-center justify-center">
-                  <input
-                    type="radio"
-                    name="answer"
-                    value={index}
-                    checked={selectedAnswer === index}
-                    onChange={() => setSelectedAnswer(index)}
-                    className="w-5 h-5 appearance-none rounded-full border-2 border-gray-500 bg-transparent checked:border-purple-500 checked:bg-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-transparent"
-                  />
-                  {selectedAnswer === index && (
-                    <div className="absolute w-2 h-2 rounded-full bg-white" />
-                  )}
-                </div>
-                <span className="flex-1 text-gray-200">{option}</span>
-              </label>
-            ))}
-          </div>
+              {/* Answer Options - 1-5 Scale */}
+              <div className="space-y-3">
+                {SCALE_OPTIONS.map((option) => (
+                  <label
+                    key={option.value}
+                    className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all ${
+                      selectedAnswer === option.value
+                        ? "border-purple-500 bg-purple-500/10"
+                        : "border-gray-700 bg-gray-800 hover:border-gray-600"
+                    }`}
+                  >
+                    <div className="relative flex items-center justify-center">
+                      <input
+                        type="radio"
+                        name="answer"
+                        value={option.value}
+                        checked={selectedAnswer === option.value}
+                        onChange={() => setSelectedAnswer(option.value)}
+                        className="w-5 h-5 appearance-none rounded-full border-2 border-gray-500 bg-transparent checked:border-purple-500 checked:bg-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-transparent"
+                      />
+                      {selectedAnswer === option.value && (
+                        <div className="absolute w-2 h-2 rounded-full bg-white" />
+                      )}
+                    </div>
+                    <span className="flex-1 text-gray-200">{option.label}</span>
+                  </label>
+                ))}
+              </div>
 
-          {/* Next Button */}
-          <div className="flex justify-end pt-4">
-            <Button
-              onClick={handleNext}
-              disabled={selectedAnswer === null}
-              size="lg"
-              className="bg-purple-500 hover:bg-purple-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLastQuestion ? "Finish Quiz" : "Next"}
-            </Button>
-          </div>
+              {/* Next Button */}
+              <div className="flex justify-end pt-4">
+                <Button
+                  onClick={handleNext}
+                  disabled={selectedAnswer === null}
+                  size="lg"
+                  className="bg-purple-500 hover:bg-purple-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLastQuestion ? "Next" : "Next"}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Additional Info Section */}
+              <h2 className="text-xl leading-tight">
+                Is there anything else you'd like to add?
+              </h2>
+              <p className="text-gray-400 text-sm">
+                Share any additional information that might help us better understand your career preferences.
+              </p>
+
+              <textarea
+                value={additionalInfo}
+                onChange={(e) => setAdditionalInfo(e.target.value)}
+                placeholder="Type your thoughts here (optional)..."
+                className="w-full p-4 rounded-lg border border-gray-700 bg-gray-800 text-gray-200 placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-transparent min-h-[150px] resize-y"
+              />
+
+              {/* Finish Button */}
+              <div className="flex justify-end pt-4">
+                <Button
+                  onClick={handleFinish}
+                  size="lg"
+                  className="bg-purple-500 hover:bg-purple-600 text-white"
+                >
+                  Finish Quiz
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
