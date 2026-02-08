@@ -6,6 +6,7 @@ import OpenAI from "openai";
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL || "";
 const supabaseKey = process.env.SUPABASE_ANON_KEY || "";
+const PORT = process.env.PORT || 3000;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Initialize OpenAI client
@@ -125,7 +126,7 @@ Make the recommendation thoughtful and based on the patterns in their answers. T
       };
     }
   })
-  .listen(3000);
+  .listen(PORT);
 
 console.log(
   `🦊 Elysia is running at http://${app.server?.hostname}:${app.server?.port}`
