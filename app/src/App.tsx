@@ -117,7 +117,7 @@ function App() {
         onBack={() => setCurrentPage('home')}
       />
     )}
-  </>
-)
+   </>
+  )
 }
 export default App
