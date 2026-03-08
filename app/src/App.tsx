@@ -18,30 +18,31 @@ function App() {
   useEffect(() => {
     if (currentPage === 'quiz' && questions.length === 0) {
       let cancelled = false
-      
+
       const loadQuestions = async () => {
-        queueMicrotask(() => {
-          if (!cancelled) {
-            setLoading(true)
-          }
-        })
-        
+        setLoading(true)
+
         try {
           const data = await fetchQuestions()
+
           if (!cancelled) {
             setQuestions(data)
             setLoading(false)
           }
         } catch (err) {
           if (!cancelled) {
-            setError(err instanceof Error ? err.message : 'Failed to load questions')
+            setError(
+              err instanceof Error
+                ? err.message
+                : 'Failed to load questions'
+            )
             setLoading(false)
           }
         }
       }
-      
+
       loadQuestions()
-      
+
       return () => {
         cancelled = true
       }
@@ -49,6 +50,7 @@ function App() {
   }, [currentPage, questions.length])
 
   const handleStartQuiz = () => {
+    setLoading(true)
     setCurrentPage('quiz')
     setAnswers([])
     setAdditionalInfo('')
@@ -66,24 +68,30 @@ function App() {
     setAnswers([])
     setAdditionalInfo('')
     setQuestions([])
+    setError(null)
   }
 
   return (
     <>
-      {currentPage === 'home' && <HomePage onStartQuiz={handleStartQuiz} />}
+      {currentPage === 'home' && (
+        <HomePage onStartQuiz={handleStartQuiz} />
+      )}
+
       {currentPage === 'quiz' && (
         <>
           {loading && (
             <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-xl mb-4">Loading questions...</div>
-              </div>
+              <div className="text-xl">Loading questions...</div>
             </div>
           )}
-          {error && (
+
+          {!loading && error && (
             <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
               <div className="text-center">
-                <div className="text-xl mb-4 text-red-500">Error: {error}</div>
+                <div className="text-xl mb-4 text-red-500">
+                  Error: {error}
+                </div>
+
                 <button
                   onClick={() => {
                     setError(null)
@@ -96,15 +104,17 @@ function App() {
               </div>
             </div>
           )}
+
           {!loading && !error && questions.length > 0 && (
-            <QuizPage 
-              questions={questions} 
+            <QuizPage
+              questions={questions}
               onComplete={handleQuizComplete}
               onBack={() => setCurrentPage('home')}
             />
           )}
         </>
       )}
+
       {currentPage === 'results' && (
         <ResultsPage
           answers={answers}
