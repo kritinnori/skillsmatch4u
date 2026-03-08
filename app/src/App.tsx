@@ -71,84 +71,53 @@ function App() {
     setError(null)
   }
 
-  return (
-    <>
-      {currentPage === 'home' && (
-        <HomePage onStartQuiz={handleStartQuiz} />
-      )}
-
-      {currentPage === 'quiz' && (
+ return (
   <>
-    {error ? (
-      <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-xl mb-4 text-red-500">Error: {error}</div>
-          <button
-            onClick={() => {
-              setError(null)
-              setCurrentPage('home')
-            }}
-            className="px-4 py-2 bg-purple-500 rounded-lg"
-          >
-            Go Back
-          </button>
-        </div>
-      </div>
-    ) : questions.length > 0 ? (
-      <QuizPage
+    {currentPage === 'home' && (
+      <HomePage onStartQuiz={handleStartQuiz} />
+    )}
+
+    {currentPage === 'quiz' && (
+      <>
+        {error ? (
+          <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
+            <div className="text-center">
+              <div className="text-xl mb-4 text-red-500">Error: {error}</div>
+              <button
+                onClick={() => {
+                  setError(null)
+                  setCurrentPage('home')
+                }}
+                className="px-4 py-2 bg-purple-500 rounded-lg"
+              >
+                Go Back
+              </button>
+            </div>
+          </div>
+        ) : questions.length > 0 ? (
+          <QuizPage
+            questions={questions}
+            onComplete={handleQuizComplete}
+            onBack={() => setCurrentPage('home')}
+          />
+        ) : (
+          <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
+            <div className="text-xl">Loading questions...</div>
+          </div>
+        )}
+      </>
+    )}
+
+    {currentPage === 'results' && (
+      <ResultsPage
+        answers={answers}
         questions={questions}
-        onComplete={handleQuizComplete}
+        additionalInfo={additionalInfo}
+        onRestart={handleRestart}
         onBack={() => setCurrentPage('home')}
       />
-    ) : (
-      <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
-        <div className="text-xl">Loading questions...</div>
-      </div>
     )}
   </>
-)}
-
-          {!loading && error && (
-            <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-xl mb-4 text-red-500">
-                  Error: {error}
-                </div>
-
-                <button
-                  onClick={() => {
-                    setError(null)
-                    setCurrentPage('home')
-                  }}
-                  className="px-4 py-2 bg-purple-500 rounded-lg"
-                >
-                  Go Back
-                </button>
-              </div>
-            </div>
-          )}
-
-          {!loading && !error && questions.length > 0 && (
-            <QuizPage
-              questions={questions}
-              onComplete={handleQuizComplete}
-              onBack={() => setCurrentPage('home')}
-            />
-          )}
-        </>
-      )}
-
-      {currentPage === 'results' && (
-        <ResultsPage
-          answers={answers}
-          questions={questions}
-          additionalInfo={additionalInfo}
-          onRestart={handleRestart}
-          onBack={() => setCurrentPage('home')}
-        />
-      )}
-    </>
-  )
+)
 }
-
 export default App
