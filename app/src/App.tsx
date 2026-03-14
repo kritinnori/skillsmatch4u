@@ -15,34 +15,32 @@ function App() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (currentPage === 'quiz' && questions.length === 0) {
-      let cancelled = false
+  let cancelled = false
 
-      const loadQuestions = async () => {
-        try {
-          const data = await fetchQuestions()
+  const loadQuestions = async () => {
+    try {
+      const data = await fetchQuestions()
 
-          if (!cancelled) {
-            setQuestions(data)
-          }
-        } catch (err) {
-          if (!cancelled) {
-            setError(
-              err instanceof Error
-                ? err.message
-                : 'Failed to load questions'
-            )
-          }
-        }
+      if (!cancelled) {
+        setQuestions(data)
       }
-
-      loadQuestions()
-
-      return () => {
-        cancelled = true
+    } catch (err) {
+      if (!cancelled) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to load questions'
+        )
       }
     }
-  }, [currentPage, questions.length])
+  }
+
+  loadQuestions()
+
+  return () => {
+    cancelled = true
+  }
+}, [])
 
   const handleStartQuiz = () => {
     setCurrentPage('quiz')
