@@ -1,6 +1,6 @@
 import type { Question } from "../types/question";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://skillsmatch4u.onrender.com";
 
 export async function fetchQuestions(): Promise<Question[]> {
   const response = await fetch(`${API_BASE_URL}/questions`);
