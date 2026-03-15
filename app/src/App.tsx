@@ -12,35 +12,41 @@ function App() {
   const [answers, setAnswers] = useState<number[]>([])
   const [questions, setQuestions] = useState<Question[]>([])
   const [additionalInfo, setAdditionalInfo] = useState<string>('')
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // preload questions when site loads
   useEffect(() => {
-  let cancelled = false
+    let cancelled = false
 
-  const loadQuestions = async () => {
-    try {
-      const data = await fetchQuestions()
+    const loadQuestions = async () => {
+      try {
+        const data = await fetchQuestions()
 
-      if (!cancelled) {
-        setQuestions(data)
-      }
-    } catch (err) {
-      if (!cancelled) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : 'Failed to load questions'
-        )
+        if (!cancelled) {
+          setQuestions(data)
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : 'Failed to load questions'
+          )
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+        }
       }
     }
-  }
 
-  loadQuestions()
+    loadQuestions()
 
-  return () => {
-    cancelled = true
-  }
-}, [])
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const handleStartQuiz = () => {
     setCurrentPage('quiz')
@@ -71,7 +77,15 @@ function App() {
 
       {currentPage === 'quiz' && (
         <>
-          {error ? (
+          {loading && (
+            <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
+              <div className="text-xl">
+                Loading questions...
+              </div>
+            </div>
+          )}
+
+          {!loading && error && (
             <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
               <div className="text-center">
                 <div className="text-xl mb-4 text-red-500">Error: {error}</div>
@@ -86,16 +100,14 @@ function App() {
                 </button>
               </div>
             </div>
-          ) : questions.length > 0 ? (
+          )}
+
+          {!loading && !error && questions.length > 0 && (
             <QuizPage
               questions={questions}
               onComplete={handleQuizComplete}
               onBack={() => setCurrentPage('home')}
             />
-          ) : (
-            <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
-              <div className="text-xl">Loading questions...</div>
-            </div>
           )}
         </>
       )}
