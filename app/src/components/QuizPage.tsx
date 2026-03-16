@@ -239,7 +239,7 @@ export function QuizPage({ questions, onComplete, onBack }: QuizPageProps) {
               <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
             ))}
           </div>
-          <span>4.9 stars (1,500+ reviews)</span>
+          <span>Personalized career matching</span>
         </div>
 
         {/* Media Logos */}
