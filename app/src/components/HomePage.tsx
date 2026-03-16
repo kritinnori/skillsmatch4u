@@ -93,7 +93,7 @@ export function HomePage({ onStartQuiz }: HomePageProps) {
               />
             ))}
           </div>
-          <span>Trusted by 700,000+ people</span>
+          <span>Career clarity starts here</span>
         </div>
         
         <div className="flex items-center gap-2 text-sm text-gray-400">
