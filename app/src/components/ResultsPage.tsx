@@ -224,7 +224,7 @@ export function ResultsPage({ answers, questions, additionalInfo, onBack }: Resu
               <Star key={i} className="w-4 h-4 fill-gray-600 text-gray-600" />
             ))}
           </div>
-          <span>4.9 stars (1,500+ reviews)</span>
+          <span>Personalized career matching</span>
         </div>
 
         {/* Media Logos */}
