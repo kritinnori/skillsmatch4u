@@ -10,6 +10,67 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "",
 });
 
+type AnswerQuestion = { id: number; question: string };
+
+function answerLabel(answer: number): string {
+  if (answer === 1) return "Strongly Disagree";
+  if (answer === 2) return "Disagree";
+  if (answer === 3) return "Neutral";
+  if (answer === 4) return "Agree";
+  if (answer === 5) return "Strongly Agree";
+  return "Unknown";
+}
+
+function formatQuizResponses(
+  answers: number[],
+  questions: AnswerQuestion[],
+  additionalInfo?: string
+): string {
+  let section = `The user answered questions on a scale of 1-5 where:
+- 1 = Strongly Disagree
+- 2 = Disagree
+- 3 = Neutral
+- 4 = Agree
+- 5 = Strongly Agree
+
+Here are the questions and answers:\n\n`;
+
+  questions.forEach((q, index) => {
+    const answer = answers[index];
+    section += `Q${index + 1}: ${q.question}\nAnswer: ${answerLabel(answer)} (${answer}/5)\n\n`;
+  });
+
+  if (additionalInfo && additionalInfo.trim()) {
+    section += `\nAdditional Information provided by the user:\n${additionalInfo}\n\n`;
+  }
+
+  return section;
+}
+
+async function runJsonCompletion<T>(
+  systemPrompt: string,
+  userPrompt: string
+): Promise<T | null> {
+  const completion = await openai.chat.completions.create({
+    model: OPENAI_MODEL,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    response_format: { type: "json_object" },
+  });
+
+  const content = completion.choices[0]?.message?.content;
+  if (!content) return null;
+
+  try {
+    return JSON.parse(content) as T;
+  } catch (parseError) {
+    console.error("Error parsing OpenAI response:", parseError);
+    return null;
+  }
+}
+
 const app = new Elysia()
   .use(cors())
   .get("/", () => {
@@ -36,7 +97,7 @@ const app = new Elysia()
     try {
       const { answers, questions, additionalInfo } = body as {
         answers: number[];
-        questions: Array<{ id: number; question: string }>;
+        questions: AnswerQuestion[];
         additionalInfo?: string;
       };
 
@@ -44,125 +105,191 @@ const app = new Elysia()
         return { error: "Invalid request: answers and questions must match" };
       }
 
-      // Build the prompt for OpenAI
-      let prompt = `You are a career counselor analyzing a personality and career assessment quiz. Based on the user's responses, recommend the most suitable job profile.
+      const responses = formatQuizResponses(answers, questions, additionalInfo);
 
-The user answered questions on a scale of 1-5 where:
-- 1 = Strongly Disagree
-- 2 = Disagree
-- 3 = Neutral
-- 4 = Agree
-- 5 = Strongly Agree
+      const prompt = `You are a career counselor analyzing a personality and career assessment quiz. Based on the user's responses, recommend the most suitable job profile.
 
-Here are the questions and answers:\n\n`;
-
-      questions.forEach((q, index) => {
-        const answer = answers[index];
-        let answerText = "";
-        if (answer === 1) answerText = "Strongly Disagree";
-        else if (answer === 2) answerText = "Disagree";
-        else if (answer === 3) answerText = "Neutral";
-        else if (answer === 4) answerText = "Agree";
-        else if (answer === 5) answerText = "Strongly Agree";
-
-        prompt += `Q${index + 1}: ${q.question}\nAnswer: ${answerText} (${answer}/5)\n\n`;
-      });
-
-      if (additionalInfo && additionalInfo.trim()) {
-        prompt += `\nAdditional Information provided by the user:\n${additionalInfo}\n\n`;
-      }
-
-      prompt += `\nBased on these responses, provide a detailed career recommendation in JSON format with the following structure:
+${responses}
+Based on these responses, provide a career recommendation in JSON format with the following structure:
 {
   "title": "Job Title",
   "description": "Detailed description explaining why this career matches the user's personality and preferences (2-3 sentences)",
   "matchScore": 85,
   "skills": ["Skill 1", "Skill 2", "Skill 3", "Skill 4"],
   "salary": "Salary range (e.g., '$80,000 - $120,000')",
-  "growth": "Job growth projection (e.g., '15% growth expected')",
+  "growth": "Job growth projection (e.g., '15% growth expected')"
+}
+
+Keep the career recommendation thoughtful and based on the response patterns. The matchScore should be between 75-98. Provide 4-6 key skills.
+Always return valid JSON only. Do not include courses or jobs fields in this response.`;
+
+      const recommendation = await runJsonCompletion<{
+        title: string;
+        description: string;
+        matchScore: number;
+        skills: string[];
+        salary: string;
+        growth: string;
+      }>(
+        "You are an expert career counselor who analyzes personality assessments and provides thoughtful, personalized career recommendations. Always respond with valid JSON only.",
+        prompt
+      );
+
+      if (!recommendation) {
+        return { error: "Failed to generate recommendation" };
+      }
+
+      return { recommendation };
+    } catch (error) {
+      console.error("Error analyzing answers:", error);
+      return {
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  })
+  .post("/courses", async ({ body }) => {
+    try {
+      const { career, answers, questions, additionalInfo } = body as {
+        career: {
+          title: string;
+          description?: string;
+          skills?: string[];
+        };
+        answers?: number[];
+        questions?: AnswerQuestion[];
+        additionalInfo?: string;
+      };
+
+      if (!career || !career.title) {
+        return { error: "Invalid request: career.title is required" };
+      }
+
+      const responseContext =
+        answers && questions && answers.length === questions.length
+          ? formatQuizResponses(answers, questions, additionalInfo)
+          : "";
+
+      const prompt = `You are a career counselor recommending learning resources for a user who has been matched with the career: "${career.title}".
+
+${career.description ? `Career description: ${career.description}\n` : ""}${
+        career.skills && career.skills.length > 0
+          ? `Key skills for this role: ${career.skills.join(", ")}\n`
+          : ""
+      }
+${responseContext ? `For additional context, here is the user's quiz data:\n${responseContext}` : ""}
+Recommend 4 high-quality, practical courses that will help this user grow into the "${career.title}" role. Return JSON in this exact shape:
+{
   "courses": [
     {
       "title": "Course title",
-      "provider": "Platform or institution name",
-      "reason": "Why this course helps for this career",
-      "url": "Direct URL to the course on the provider's website (e.g., https://www.coursera.org/learn/...)"
+      "provider": "Platform or institution name (e.g., Coursera, edX, Udemy, LinkedIn Learning, MIT OCW)",
+      "reason": "Why this course helps for this career (1 sentence)",
+      "url": "Direct URL to the course page on the provider's website"
     }
-  ],
+  ]
+}
+
+For every course, include a real, working "url". Only use well-known, publicly reachable platforms (Coursera, edX, Udemy, LinkedIn Learning, official university pages, etc.). If you are not confident a specific course page exists, use a search URL on that platform instead (e.g., https://www.coursera.org/search?query=...).
+Always return valid JSON only.`;
+
+      const parsed = await runJsonCompletion<{
+        courses?: Array<{
+          title: string;
+          provider: string;
+          reason: string;
+          url?: string;
+        }>;
+      }>(
+        "You are an expert career counselor recommending concrete learning resources. Always respond with valid JSON only.",
+        prompt
+      );
+
+      if (!parsed) {
+        return { error: "Failed to generate course recommendations" };
+      }
+
+      const courses = Array.isArray(parsed.courses)
+        ? parsed.courses.slice(0, 4)
+        : [];
+
+      return { courses };
+    } catch (error) {
+      console.error("Error generating courses:", error);
+      return {
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  })
+  .post("/jobs", async ({ body }) => {
+    try {
+      const { career, answers, questions, additionalInfo } = body as {
+        career: {
+          title: string;
+          description?: string;
+          skills?: string[];
+        };
+        answers?: number[];
+        questions?: AnswerQuestion[];
+        additionalInfo?: string;
+      };
+
+      if (!career || !career.title) {
+        return { error: "Invalid request: career.title is required" };
+      }
+
+      const responseContext =
+        answers && questions && answers.length === questions.length
+          ? formatQuizResponses(answers, questions, additionalInfo)
+          : "";
+
+      const prompt = `You are a career counselor recommending job opportunities for a user who has been matched with the career: "${career.title}".
+
+${career.description ? `Career description: ${career.description}\n` : ""}${
+        career.skills && career.skills.length > 0
+          ? `Key skills for this role: ${career.skills.join(", ")}\n`
+          : ""
+      }
+${responseContext ? `For additional context, here is the user's quiz data:\n${responseContext}` : ""}
+Recommend 4 realistic job opportunities that match the "${career.title}" career and would be accessible to someone entering this path. Return JSON in this exact shape:
+{
   "jobs": [
     {
       "title": "Job role title",
       "company": "Company name",
       "location": "City, Country or Remote",
-      "reason": "Why this role is a strong fit",
-      "url": "URL to the job listing or the company's careers page (e.g., https://www.linkedin.com/jobs/view/... or https://careers.google.com/...)"
+      "reason": "Why this role is a strong fit (1 sentence)",
+      "url": "URL to the job listing or the company's careers page"
     }
   ]
 }
 
-Keep the career recommendation thoughtful and based on the response patterns. The matchScore should be between 75-98.
-For courses and jobs, provide 4 items each, realistic and practical options for someone starting this path.
-For every course and job, include a real, working "url" pointing to the course page or the job listing / company careers page. Only use well-known, publicly reachable platforms (Coursera, edX, Udemy, LinkedIn Learning, official company careers pages, LinkedIn Jobs, Indeed, etc.). If you are not confident a specific page exists, use a search URL on that platform instead (e.g., https://www.linkedin.com/jobs/search/?keywords=... or https://www.coursera.org/search?query=...).
+For every job, include a real, working "url". Only use well-known, publicly reachable platforms (LinkedIn Jobs, Indeed, official company careers pages, etc.). If you are not confident a specific listing exists, use a search URL on that platform instead (e.g., https://www.linkedin.com/jobs/search/?keywords=...).
 Always return valid JSON only.`;
 
-      const completion = await openai.chat.completions.create({
-        model: OPENAI_MODEL,
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are an expert career counselor who analyzes personality assessments and provides thoughtful, personalized career recommendations. Always respond with valid JSON only.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        // temperature: 0.7,
-        response_format: { type: "json_object" },
-      });
-
-      const responseContent = completion.choices[0]?.message?.content;
-      if (!responseContent) {
-        return { error: "Failed to generate recommendation" };
-      }
-
-      try {
-        const recommendation = JSON.parse(responseContent) as {
+      const parsed = await runJsonCompletion<{
+        jobs?: Array<{
           title: string;
-          description: string;
-          matchScore: number;
-          skills: string[];
-          salary: string;
-          growth: string;
-          courses?: Array<{
-            title: string;
-            provider: string;
-            reason: string;
-            url?: string;
-          }>;
-          jobs?: Array<{
-            title: string;
-            company: string;
-            location: string;
-            reason: string;
-            url?: string;
-          }>;
-        };
+          company: string;
+          location: string;
+          reason: string;
+          url?: string;
+        }>;
+      }>(
+        "You are an expert career counselor recommending concrete job opportunities. Always respond with valid JSON only.",
+        prompt
+      );
 
-        recommendation.courses = Array.isArray(recommendation.courses)
-          ? recommendation.courses.slice(0, 4)
-          : [];
-        recommendation.jobs = Array.isArray(recommendation.jobs)
-          ? recommendation.jobs.slice(0, 4)
-          : [];
-
-        return { recommendation };
-      } catch (parseError) {
-        console.error("Error parsing OpenAI response:", parseError);
-        return { error: "Failed to parse recommendation" };
+      if (!parsed) {
+        return { error: "Failed to generate job recommendations" };
       }
+
+      const jobs = Array.isArray(parsed.jobs) ? parsed.jobs.slice(0, 4) : [];
+
+      return { jobs };
     } catch (error) {
-      console.error("Error analyzing answers:", error);
+      console.error("Error generating jobs:", error);
       return {
         error: "Internal server error",
         details: error instanceof Error ? error.message : "Unknown error",

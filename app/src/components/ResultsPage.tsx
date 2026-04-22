@@ -1,6 +1,13 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, ExternalLink, Star } from "lucide-react";
-import { analyzeAnswers, type CareerRecommendation } from "../lib/api";
+import {
+  analyzeAnswers,
+  fetchCourseRecommendations,
+  fetchJobRecommendations,
+  type CareerCore,
+  type CourseRecommendation,
+  type JobRecommendation,
+} from "../lib/api";
 import type { Question } from "../types/question";
 
 function isValidHttpUrl(value: string | undefined): value is string {
@@ -41,34 +48,148 @@ interface ResultsPageProps {
   onBack: () => void;
 }
 
-export function ResultsPage({ answers, questions, additionalInfo, onBack }: ResultsPageProps) {
-  const [career, setCareer] = useState<CareerRecommendation | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const Logo = () => (
+  <div className="flex items-center gap-2">
+    <div className="flex items-center">
+      <div
+        className="w-8 h-8 rounded-lg"
+        style={{
+          background:
+            "linear-gradient(135deg, #fbbf24 0%, #f97316 25%, #10b981 50%, #3b82f6 75%, #a855f7 100%)",
+          clipPath: "polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%)",
+        }}
+      />
+      <span className="text-2xl font-bold ml-1">Quiz App</span>
+    </div>
+  </div>
+);
 
+const CardSkeleton = () => (
+  <div className="rounded-xl border border-gray-800 bg-gray-900/40 p-4 animate-pulse">
+    <div className="h-5 w-3/4 bg-gray-800 rounded" />
+    <div className="h-3 w-1/3 bg-gray-800 rounded mt-3" />
+    <div className="h-3 w-full bg-gray-800 rounded mt-3" />
+    <div className="h-3 w-5/6 bg-gray-800 rounded mt-2" />
+  </div>
+);
+
+export function ResultsPage({
+  answers,
+  questions,
+  additionalInfo,
+  onBack,
+}: ResultsPageProps) {
+  const [career, setCareer] = useState<CareerCore | null>(null);
+  const [careerLoading, setCareerLoading] = useState(true);
+  const [careerError, setCareerError] = useState<string | null>(null);
+
+  const [courses, setCourses] = useState<CourseRecommendation[] | null>(null);
+  const [coursesLoading, setCoursesLoading] = useState(false);
+  const [coursesError, setCoursesError] = useState<string | null>(null);
+
+  const [jobs, setJobs] = useState<JobRecommendation[] | null>(null);
+  const [jobsLoading, setJobsLoading] = useState(false);
+  const [jobsError, setJobsError] = useState<string | null>(null);
+
+  // Step 1: fetch the career recommendation as soon as we have answers.
   useEffect(() => {
-    const fetchRecommendation = async () => {
+    if (answers.length === 0 || questions.length === 0) return;
+
+    let cancelled = false;
+
+    const run = async () => {
       try {
-        setLoading(true);
+        setCareerLoading(true);
+        setCareerError(null);
         const recommendation = await analyzeAnswers({
           answers,
           questions,
           additionalInfo,
         });
+        if (cancelled) return;
         setCareer(recommendation);
-        setLoading(false);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to get recommendation");
-        setLoading(false);
+        if (cancelled) return;
+        setCareerError(
+          err instanceof Error ? err.message : "Failed to get recommendation"
+        );
+      } finally {
+        if (!cancelled) setCareerLoading(false);
       }
     };
 
-    if (answers.length > 0 && questions.length > 0) {
-      fetchRecommendation();
-    }
+    run();
+
+    return () => {
+      cancelled = true;
+    };
   }, [answers, questions, additionalInfo]);
 
-  if (loading) {
+  // Step 2: once career is available, fetch courses and jobs in parallel.
+  useEffect(() => {
+    if (!career) return;
+
+    let cancelled = false;
+
+    const careerContext = {
+      title: career.title,
+      description: career.description,
+      skills: career.skills,
+    };
+
+    const loadCourses = async () => {
+      try {
+        setCoursesLoading(true);
+        setCoursesError(null);
+        const result = await fetchCourseRecommendations({
+          answers,
+          questions,
+          additionalInfo,
+          career: careerContext,
+        });
+        if (cancelled) return;
+        setCourses(result);
+      } catch (err) {
+        if (cancelled) return;
+        setCoursesError(
+          err instanceof Error ? err.message : "Failed to load courses"
+        );
+      } finally {
+        if (!cancelled) setCoursesLoading(false);
+      }
+    };
+
+    const loadJobs = async () => {
+      try {
+        setJobsLoading(true);
+        setJobsError(null);
+        const result = await fetchJobRecommendations({
+          answers,
+          questions,
+          additionalInfo,
+          career: careerContext,
+        });
+        if (cancelled) return;
+        setJobs(result);
+      } catch (err) {
+        if (cancelled) return;
+        setJobsError(
+          err instanceof Error ? err.message : "Failed to load jobs"
+        );
+      } finally {
+        if (!cancelled) setJobsLoading(false);
+      }
+    };
+
+    loadCourses();
+    loadJobs();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [career, answers, questions, additionalInfo]);
+
+  if (careerLoading) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] text-white">
         <nav className="flex items-center justify-between p-4 md:p-6">
@@ -79,20 +200,7 @@ export function ResultsPage({ answers, questions, additionalInfo, onBack }: Resu
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          
-          <div className="flex items-center gap-2">
-            <div className="flex items-center">
-              <div 
-                className="w-8 h-8 rounded-lg"
-                style={{
-                  background: 'linear-gradient(135deg, #fbbf24 0%, #f97316 25%, #10b981 50%, #3b82f6 75%, #a855f7 100%)',
-                  clipPath: 'polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%)'
-                }}
-              />
-              <span className="text-2xl font-bold ml-1">Quiz App</span>
-            </div>
-          </div>
-          
+          <Logo />
           <div className="w-9"></div>
         </nav>
 
@@ -108,7 +216,7 @@ export function ResultsPage({ answers, questions, additionalInfo, onBack }: Resu
     );
   }
 
-  if (error || !career) {
+  if (careerError || !career) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] text-white">
         <nav className="flex items-center justify-between p-4 md:p-6">
@@ -119,27 +227,16 @@ export function ResultsPage({ answers, questions, additionalInfo, onBack }: Resu
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          
-          <div className="flex items-center gap-2">
-            <div className="flex items-center">
-              <div 
-                className="w-8 h-8 rounded-lg"
-                style={{
-                  background: 'linear-gradient(135deg, #fbbf24 0%, #f97316 25%, #10b981 50%, #3b82f6 75%, #a855f7 100%)',
-                  clipPath: 'polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%)'
-                }}
-              />
-              <span className="text-2xl font-bold ml-1">Quiz App</span>
-            </div>
-          </div>
-          
+          <Logo />
           <div className="w-9"></div>
         </nav>
 
         <div className="max-w-3xl mx-auto px-4 md:px-6 pb-8">
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center">
-              <div className="text-xl mb-4 text-red-500">Error: {error || "Failed to load recommendation"}</div>
+              <div className="text-xl mb-4 text-red-500">
+                Error: {careerError || "Failed to load recommendation"}
+              </div>
               <button
                 onClick={onBack}
                 className="px-4 py-2 bg-purple-500 rounded-lg mt-4"
@@ -155,7 +252,6 @@ export function ResultsPage({ answers, questions, additionalInfo, onBack }: Resu
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
-      {/* Navigation Bar */}
       <nav className="flex items-center justify-between p-4 md:p-6">
         <button
           onClick={onBack}
@@ -164,61 +260,49 @@ export function ResultsPage({ answers, questions, additionalInfo, onBack }: Resu
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        
-        {/* Logo */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center">
-            <div 
-              className="w-8 h-8 rounded-lg"
-              style={{
-                background: 'linear-gradient(135deg, #fbbf24 0%, #f97316 25%, #10b981 50%, #3b82f6 75%, #a855f7 100%)',
-                clipPath: 'polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%)'
-              }}
-            />
-            <span className="text-2xl font-bold ml-1">Quiz App</span>
-          </div>
-        </div>
-        
-        <div className="w-9"></div> {/* Spacer for centering */}
+        <Logo />
+        <div className="w-9"></div>
       </nav>
 
-      {/* Main Content */}
       <div className="max-w-3xl mx-auto px-4 md:px-6 pb-8">
         <div className="space-y-8 py-12">
-          {/* Header */}
           <div className="text-center space-y-1">
             <h1 className="text-xl font-bold tracking-tight">Your Career Match</h1>
             <p className="text-md text-gray-500">Based on your responses</p>
           </div>
 
-          {/* Career Title - Large */}
           <div className="text-center border-b border-gray-800 pb-8">
             <h2 className="text-5xl font-bold mb-4">{career.title}</h2>
-            <p className="text-xl text-gray-500 font-light">Match Score: {career.matchScore}%</p>
+            <p className="text-xl text-gray-500 font-light">
+              Match Score: {career.matchScore}%
+            </p>
           </div>
 
-          {/* Description */}
           <div className="max-w-2xl mx-auto">
             <p className="text-md text-gray-400 leading-relaxed text-center">
               {career.description}
             </p>
           </div>
 
-          {/* Career Details */}
           <div className="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto">
             <div className="text-center space-y-2">
-              <p className="text-sm uppercase tracking-wider text-gray-600 font-semibold">Salary Range</p>
+              <p className="text-sm uppercase tracking-wider text-gray-600 font-semibold">
+                Salary Range
+              </p>
               <p className="text-md font-bold">{career.salary}</p>
             </div>
             <div className="text-center space-y-2">
-              <p className="text-sm uppercase tracking-wider text-gray-600 font-semibold">Job Growth</p>
+              <p className="text-sm uppercase tracking-wider text-gray-600 font-semibold">
+                Job Growth
+              </p>
               <p className="text-md font-bold">{career.growth}</p>
             </div>
           </div>
 
-          {/* Skills */}
           <div className="max-w-2xl mx-auto space-y-6">
-            <h3 className="text-md uppercase tracking-wider text-gray-600 font-semibold text-center">Key Skills Required</h3>
+            <h3 className="text-md uppercase tracking-wider text-gray-600 font-semibold text-center">
+              Key Skills Required
+            </h3>
             <div className="flex flex-wrap justify-center gap-3">
               {career.skills.map((skill, index) => (
                 <span
@@ -237,8 +321,19 @@ export function ResultsPage({ answers, questions, additionalInfo, onBack }: Resu
               Courses You Can Do
             </h3>
             <div className="grid gap-4">
-              {career.courses.length > 0 ? (
-                career.courses.map((course, index) => (
+              {coursesLoading ? (
+                <>
+                  <CardSkeleton />
+                  <CardSkeleton />
+                  <CardSkeleton />
+                  <CardSkeleton />
+                </>
+              ) : coursesError ? (
+                <p className="text-center text-red-500 text-sm">
+                  {coursesError}
+                </p>
+              ) : courses && courses.length > 0 ? (
+                courses.map((course, index) => (
                   <a
                     key={`${course.title}-${index}`}
                     href={buildCourseUrl(course)}
@@ -252,7 +347,9 @@ export function ResultsPage({ answers, questions, additionalInfo, onBack }: Resu
                       </p>
                       <ExternalLink className="w-4 h-4 mt-1.5 shrink-0 text-gray-500 group-hover:text-gray-300" />
                     </div>
-                    <p className="text-sm text-gray-500 mt-1">{course.provider}</p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {course.provider}
+                    </p>
                     <p className="text-sm text-gray-400 mt-2">{course.reason}</p>
                   </a>
                 ))
@@ -270,8 +367,17 @@ export function ResultsPage({ answers, questions, additionalInfo, onBack }: Resu
               Jobs You Can Apply To
             </h3>
             <div className="grid gap-4">
-              {career.jobs.length > 0 ? (
-                career.jobs.map((job, index) => (
+              {jobsLoading ? (
+                <>
+                  <CardSkeleton />
+                  <CardSkeleton />
+                  <CardSkeleton />
+                  <CardSkeleton />
+                </>
+              ) : jobsError ? (
+                <p className="text-center text-red-500 text-sm">{jobsError}</p>
+              ) : jobs && jobs.length > 0 ? (
+                jobs.map((job, index) => (
                   <a
                     key={`${job.title}-${job.company}-${index}`}
                     href={buildJobUrl(job)}
@@ -286,7 +392,9 @@ export function ResultsPage({ answers, questions, additionalInfo, onBack }: Resu
                         </p>
                         <ExternalLink className="w-4 h-4 shrink-0 text-gray-500 group-hover:text-gray-300" />
                       </div>
-                      <span className="text-xs uppercase tracking-wide text-gray-500">{job.location}</span>
+                      <span className="text-xs uppercase tracking-wide text-gray-500">
+                        {job.location}
+                      </span>
                     </div>
                     <p className="text-sm text-gray-500 mt-1">{job.company}</p>
                     <p className="text-sm text-gray-400 mt-2">{job.reason}</p>
@@ -299,11 +407,9 @@ export function ResultsPage({ answers, questions, additionalInfo, onBack }: Resu
               )}
             </div>
           </div>
-
         </div>
       </div>
 
-      {/* Trust Indicators */}
       <div className="max-w-2xl justify-center items-center flex flex-col mx-auto px-4 md:px-6 pb-8 mt-0 space-y-6">
         <div className="flex items-center gap-2 border border-gray-800 rounded-lg py-2 px-4 text-sm text-gray-500">
           <div className="flex -space-x-2">
@@ -316,7 +422,7 @@ export function ResultsPage({ answers, questions, additionalInfo, onBack }: Resu
           </div>
           <span>Career clarity starts here</span>
         </div>
-        
+
         <div className="flex items-center gap-2 text-sm text-gray-500">
           <div className="flex items-center gap-1">
             {[...Array(5)].map((_, i) => (
@@ -326,7 +432,6 @@ export function ResultsPage({ answers, questions, additionalInfo, onBack }: Resu
           <span>Personalized career matching</span>
         </div>
 
-        {/* Media Logos */}
         <div className="flex items-center gap-6 text-xs text-gray-600 pt-2">
           <span>FOX</span>
           <span>CNN</span>

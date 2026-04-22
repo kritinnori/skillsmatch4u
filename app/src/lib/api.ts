@@ -17,15 +17,13 @@ export interface AnalyzeRequest {
   additionalInfo?: string;
 }
 
-export interface CareerRecommendation {
+export interface CareerCore {
   title: string;
   description: string;
   matchScore: number;
   skills: string[];
   salary: string;
   growth: string;
-  courses: CourseRecommendation[];
-  jobs: JobRecommendation[];
 }
 
 export interface CourseRecommendation {
@@ -43,9 +41,14 @@ export interface JobRecommendation {
   url?: string;
 }
 
+export interface CareerRecommendation extends CareerCore {
+  courses: CourseRecommendation[];
+  jobs: JobRecommendation[];
+}
+
 export async function analyzeAnswers(
   request: AnalyzeRequest
-): Promise<CareerRecommendation> {
+): Promise<CareerCore> {
   const response = await fetch(`${API_BASE_URL}/analyze`, {
     method: "POST",
     headers: {
@@ -55,10 +58,63 @@ export async function analyzeAnswers(
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.error || "Failed to analyze answers");
   }
 
   const data = await response.json();
+  if (data.error) {
+    throw new Error(data.error);
+  }
   return data.recommendation;
+}
+
+export interface RecommendationRequest extends AnalyzeRequest {
+  career: Pick<CareerCore, "title" | "description" | "skills">;
+}
+
+export async function fetchCourseRecommendations(
+  request: RecommendationRequest
+): Promise<CourseRecommendation[]> {
+  const response = await fetch(`${API_BASE_URL}/courses`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || "Failed to fetch course recommendations");
+  }
+
+  const data = await response.json();
+  if (data.error) {
+    throw new Error(data.error);
+  }
+  return Array.isArray(data.courses) ? data.courses : [];
+}
+
+export async function fetchJobRecommendations(
+  request: RecommendationRequest
+): Promise<JobRecommendation[]> {
+  const response = await fetch(`${API_BASE_URL}/jobs`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || "Failed to fetch job recommendations");
+  }
+
+  const data = await response.json();
+  if (data.error) {
+    throw new Error(data.error);
+  }
+  return Array.isArray(data.jobs) ? data.jobs : [];
 }
