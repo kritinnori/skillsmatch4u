@@ -32,6 +32,7 @@ export interface CourseRecommendation {
   title: string;
   provider: string;
   reason: string;
+  url?: string;
 }
 
 export interface JobRecommendation {
@@ -39,6 +40,7 @@ export interface JobRecommendation {
   company: string;
   location: string;
   reason: string;
+  url?: string;
 }
 
 export async function analyzeAnswers(

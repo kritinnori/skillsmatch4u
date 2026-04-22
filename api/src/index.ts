@@ -84,7 +84,8 @@ Here are the questions and answers:\n\n`;
     {
       "title": "Course title",
       "provider": "Platform or institution name",
-      "reason": "Why this course helps for this career"
+      "reason": "Why this course helps for this career",
+      "url": "Direct URL to the course on the provider's website (e.g., https://www.coursera.org/learn/...)"
     }
   ],
   "jobs": [
@@ -92,13 +93,15 @@ Here are the questions and answers:\n\n`;
       "title": "Job role title",
       "company": "Company name",
       "location": "City, Country or Remote",
-      "reason": "Why this role is a strong fit"
+      "reason": "Why this role is a strong fit",
+      "url": "URL to the job listing or the company's careers page (e.g., https://www.linkedin.com/jobs/view/... or https://careers.google.com/...)"
     }
   ]
 }
 
 Keep the career recommendation thoughtful and based on the response patterns. The matchScore should be between 75-98.
 For courses and jobs, provide 4 items each, realistic and practical options for someone starting this path.
+For every course and job, include a real, working "url" pointing to the course page or the job listing / company careers page. Only use well-known, publicly reachable platforms (Coursera, edX, Udemy, LinkedIn Learning, official company careers pages, LinkedIn Jobs, Indeed, etc.). If you are not confident a specific page exists, use a search URL on that platform instead (e.g., https://www.linkedin.com/jobs/search/?keywords=... or https://www.coursera.org/search?query=...).
 Always return valid JSON only.`;
 
       const completion = await openai.chat.completions.create({
@@ -131,12 +134,18 @@ Always return valid JSON only.`;
           skills: string[];
           salary: string;
           growth: string;
-          courses?: Array<{ title: string; provider: string; reason: string }>;
+          courses?: Array<{
+            title: string;
+            provider: string;
+            reason: string;
+            url?: string;
+          }>;
           jobs?: Array<{
             title: string;
             company: string;
             location: string;
             reason: string;
+            url?: string;
           }>;
         };
 

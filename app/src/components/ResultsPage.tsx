@@ -1,7 +1,37 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Star } from "lucide-react";
+import { ArrowLeft, ExternalLink, Star } from "lucide-react";
 import { analyzeAnswers, type CareerRecommendation } from "../lib/api";
 import type { Question } from "../types/question";
+
+function isValidHttpUrl(value: string | undefined): value is string {
+  if (!value) return false;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function buildCourseUrl(course: {
+  title: string;
+  provider: string;
+  url?: string;
+}): string {
+  if (isValidHttpUrl(course.url)) return course.url;
+  const query = encodeURIComponent(`${course.title} ${course.provider} course`);
+  return `https://www.google.com/search?q=${query}`;
+}
+
+function buildJobUrl(job: {
+  title: string;
+  company: string;
+  url?: string;
+}): string {
+  if (isValidHttpUrl(job.url)) return job.url;
+  const query = encodeURIComponent(`${job.title} ${job.company}`);
+  return `https://www.linkedin.com/jobs/search/?keywords=${query}`;
+}
 
 interface ResultsPageProps {
   answers: number[];
@@ -209,14 +239,22 @@ export function ResultsPage({ answers, questions, additionalInfo, onBack }: Resu
             <div className="grid gap-4">
               {career.courses.length > 0 ? (
                 career.courses.map((course, index) => (
-                  <div
+                  <a
                     key={`${course.title}-${index}`}
-                    className="rounded-xl border border-gray-800 bg-gray-900/40 p-4"
+                    href={buildCourseUrl(course)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group block rounded-xl border border-gray-800 bg-gray-900/40 p-4 transition-colors hover:border-gray-700 hover:bg-gray-900/70 focus:outline-none focus:ring-2 focus:ring-purple-500/60"
                   >
-                    <p className="text-lg font-semibold">{course.title}</p>
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-lg font-semibold group-hover:text-white">
+                        {course.title}
+                      </p>
+                      <ExternalLink className="w-4 h-4 mt-1.5 shrink-0 text-gray-500 group-hover:text-gray-300" />
+                    </div>
                     <p className="text-sm text-gray-500 mt-1">{course.provider}</p>
                     <p className="text-sm text-gray-400 mt-2">{course.reason}</p>
-                  </div>
+                  </a>
                 ))
               ) : (
                 <p className="text-center text-gray-500 text-sm">
@@ -234,17 +272,25 @@ export function ResultsPage({ answers, questions, additionalInfo, onBack }: Resu
             <div className="grid gap-4">
               {career.jobs.length > 0 ? (
                 career.jobs.map((job, index) => (
-                  <div
+                  <a
                     key={`${job.title}-${job.company}-${index}`}
-                    className="rounded-xl border border-gray-800 bg-gray-900/40 p-4"
+                    href={buildJobUrl(job)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group block rounded-xl border border-gray-800 bg-gray-900/40 p-4 transition-colors hover:border-gray-700 hover:bg-gray-900/70 focus:outline-none focus:ring-2 focus:ring-purple-500/60"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-lg font-semibold">{job.title}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-lg font-semibold group-hover:text-white">
+                          {job.title}
+                        </p>
+                        <ExternalLink className="w-4 h-4 shrink-0 text-gray-500 group-hover:text-gray-300" />
+                      </div>
                       <span className="text-xs uppercase tracking-wide text-gray-500">{job.location}</span>
                     </div>
                     <p className="text-sm text-gray-500 mt-1">{job.company}</p>
                     <p className="text-sm text-gray-400 mt-2">{job.reason}</p>
-                  </div>
+                  </a>
                 ))
               ) : (
                 <p className="text-center text-gray-500 text-sm">
