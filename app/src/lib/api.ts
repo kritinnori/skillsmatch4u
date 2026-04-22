@@ -2,8 +2,16 @@ import type { Question } from "../types/question";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "https://skillsmatch4u.onrender.com";
 
-export async function fetchQuestions(): Promise<Question[]> {
-  const response = await fetch(`${API_BASE_URL}/questions`);
+function withLanguageQuery(path: string, language?: string) {
+  if (!language) return path;
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}lang=${encodeURIComponent(language)}`;
+}
+
+export async function fetchQuestions(language?: string): Promise<Question[]> {
+  const response = await fetch(
+    `${API_BASE_URL}${withLanguageQuery("/questions", language)}`
+  );
   if (!response.ok) {
     throw new Error("Failed to fetch questions");
   }
@@ -15,6 +23,7 @@ export interface AnalyzeRequest {
   answers: number[];
   questions: Question[];
   additionalInfo?: string;
+  language?: string;
 }
 
 export interface CareerCore {
@@ -51,9 +60,7 @@ export async function analyzeAnswers(
 ): Promise<CareerCore> {
   const response = await fetch(`${API_BASE_URL}/analyze`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(request),
   });
 
@@ -63,9 +70,7 @@ export async function analyzeAnswers(
   }
 
   const data = await response.json();
-  if (data.error) {
-    throw new Error(data.error);
-  }
+  if (data.error) throw new Error(data.error);
   return data.recommendation;
 }
 
@@ -78,9 +83,7 @@ export async function fetchCourseRecommendations(
 ): Promise<CourseRecommendation[]> {
   const response = await fetch(`${API_BASE_URL}/courses`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(request),
   });
 
@@ -90,9 +93,7 @@ export async function fetchCourseRecommendations(
   }
 
   const data = await response.json();
-  if (data.error) {
-    throw new Error(data.error);
-  }
+  if (data.error) throw new Error(data.error);
   return Array.isArray(data.courses) ? data.courses : [];
 }
 
@@ -101,9 +102,7 @@ export async function fetchJobRecommendations(
 ): Promise<JobRecommendation[]> {
   const response = await fetch(`${API_BASE_URL}/jobs`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(request),
   });
 
@@ -113,8 +112,6 @@ export async function fetchJobRecommendations(
   }
 
   const data = await response.json();
-  if (data.error) {
-    throw new Error(data.error);
-  }
+  if (data.error) throw new Error(data.error);
   return Array.isArray(data.jobs) ? data.jobs : [];
 }

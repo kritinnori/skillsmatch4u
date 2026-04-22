@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, ExternalLink, Star } from "lucide-react";
 import {
   analyzeAnswers,
@@ -9,6 +10,7 @@ import {
   type JobRecommendation,
 } from "../lib/api";
 import type { Question } from "../types/question";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 function isValidHttpUrl(value: string | undefined): value is string {
   if (!value) return false;
@@ -48,7 +50,7 @@ interface ResultsPageProps {
   onBack: () => void;
 }
 
-const Logo = () => (
+const Logo = ({ label }: { label: string }) => (
   <div className="flex items-center gap-2">
     <div className="flex items-center">
       <div
@@ -59,7 +61,7 @@ const Logo = () => (
           clipPath: "polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%)",
         }}
       />
-      <span className="text-2xl font-bold ml-1">Quiz App</span>
+      <span className="text-2xl font-bold ml-1">{label}</span>
     </div>
   </div>
 );
@@ -79,6 +81,9 @@ export function ResultsPage({
   additionalInfo,
   onBack,
 }: ResultsPageProps) {
+  const { t, i18n } = useTranslation();
+  const language = i18n.resolvedLanguage || i18n.language || "en";
+
   const [career, setCareer] = useState<CareerCore | null>(null);
   const [careerLoading, setCareerLoading] = useState(true);
   const [careerError, setCareerError] = useState<string | null>(null);
@@ -91,7 +96,6 @@ export function ResultsPage({
   const [jobsLoading, setJobsLoading] = useState(false);
   const [jobsError, setJobsError] = useState<string | null>(null);
 
-  // Step 1: fetch the career recommendation as soon as we have answers.
   useEffect(() => {
     if (answers.length === 0 || questions.length === 0) return;
 
@@ -105,13 +109,14 @@ export function ResultsPage({
           answers,
           questions,
           additionalInfo,
+          language,
         });
         if (cancelled) return;
         setCareer(recommendation);
       } catch (err) {
         if (cancelled) return;
         setCareerError(
-          err instanceof Error ? err.message : "Failed to get recommendation"
+          err instanceof Error ? err.message : t("results.failedToLoad")
         );
       } finally {
         if (!cancelled) setCareerLoading(false);
@@ -123,9 +128,8 @@ export function ResultsPage({
     return () => {
       cancelled = true;
     };
-  }, [answers, questions, additionalInfo]);
+  }, [answers, questions, additionalInfo, language, t]);
 
-  // Step 2: once career is available, fetch courses and jobs in parallel.
   useEffect(() => {
     if (!career) return;
 
@@ -145,6 +149,7 @@ export function ResultsPage({
           answers,
           questions,
           additionalInfo,
+          language,
           career: careerContext,
         });
         if (cancelled) return;
@@ -152,7 +157,7 @@ export function ResultsPage({
       } catch (err) {
         if (cancelled) return;
         setCoursesError(
-          err instanceof Error ? err.message : "Failed to load courses"
+          err instanceof Error ? err.message : t("results.coursesError")
         );
       } finally {
         if (!cancelled) setCoursesLoading(false);
@@ -167,6 +172,7 @@ export function ResultsPage({
           answers,
           questions,
           additionalInfo,
+          language,
           career: careerContext,
         });
         if (cancelled) return;
@@ -174,7 +180,7 @@ export function ResultsPage({
       } catch (err) {
         if (cancelled) return;
         setJobsError(
-          err instanceof Error ? err.message : "Failed to load jobs"
+          err instanceof Error ? err.message : t("results.jobsError")
         );
       } finally {
         if (!cancelled) setJobsLoading(false);
@@ -187,7 +193,9 @@ export function ResultsPage({
     return () => {
       cancelled = true;
     };
-  }, [career, answers, questions, additionalInfo]);
+  }, [career, answers, questions, additionalInfo, language, t]);
+
+  const brand = t("common.brand");
 
   if (careerLoading) {
     return (
@@ -196,19 +204,19 @@ export function ResultsPage({
           <button
             onClick={onBack}
             className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-            aria-label="Go back"
+            aria-label={t("common.goBack")}
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <Logo />
-          <div className="w-9"></div>
+          <Logo label={brand} />
+          <LanguageSwitcher />
         </nav>
 
         <div className="max-w-3xl mx-auto px-4 md:px-6 pb-8">
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center">
-              <div className="text-xl mb-4">Analyzing your responses...</div>
-              <div className="text-gray-500">This may take a few moments</div>
+              <div className="text-xl mb-4">{t("results.analyzing")}</div>
+              <div className="text-gray-500">{t("results.analyzingHint")}</div>
             </div>
           </div>
         </div>
@@ -223,25 +231,26 @@ export function ResultsPage({
           <button
             onClick={onBack}
             className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-            aria-label="Go back"
+            aria-label={t("common.goBack")}
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <Logo />
-          <div className="w-9"></div>
+          <Logo label={brand} />
+          <LanguageSwitcher />
         </nav>
 
         <div className="max-w-3xl mx-auto px-4 md:px-6 pb-8">
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center">
               <div className="text-xl mb-4 text-red-500">
-                Error: {careerError || "Failed to load recommendation"}
+                {t("common.errorPrefix")}:{" "}
+                {careerError || t("results.failedToLoad")}
               </div>
               <button
                 onClick={onBack}
                 className="px-4 py-2 bg-purple-500 rounded-lg mt-4"
               >
-                Go Back
+                {t("common.goBackButton")}
               </button>
             </div>
           </div>
@@ -256,25 +265,29 @@ export function ResultsPage({
         <button
           onClick={onBack}
           className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-          aria-label="Go back"
+          aria-label={t("common.goBack")}
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <Logo />
-        <div className="w-9"></div>
+        <Logo label={brand} />
+        <LanguageSwitcher />
       </nav>
 
       <div className="max-w-3xl mx-auto px-4 md:px-6 pb-8">
         <div className="space-y-8 py-12">
           <div className="text-center space-y-1">
-            <h1 className="text-xl font-bold tracking-tight">Your Career Match</h1>
-            <p className="text-md text-gray-500">Based on your responses</p>
+            <h1 className="text-xl font-bold tracking-tight">
+              {t("results.heading")}
+            </h1>
+            <p className="text-md text-gray-500">
+              {t("results.headingSubtitle")}
+            </p>
           </div>
 
           <div className="text-center border-b border-gray-800 pb-8">
             <h2 className="text-5xl font-bold mb-4">{career.title}</h2>
             <p className="text-xl text-gray-500 font-light">
-              Match Score: {career.matchScore}%
+              {t("results.matchScore", { score: career.matchScore })}
             </p>
           </div>
 
@@ -287,13 +300,13 @@ export function ResultsPage({
           <div className="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto">
             <div className="text-center space-y-2">
               <p className="text-sm uppercase tracking-wider text-gray-600 font-semibold">
-                Salary Range
+                {t("results.salaryRange")}
               </p>
               <p className="text-md font-bold">{career.salary}</p>
             </div>
             <div className="text-center space-y-2">
               <p className="text-sm uppercase tracking-wider text-gray-600 font-semibold">
-                Job Growth
+                {t("results.jobGrowth")}
               </p>
               <p className="text-md font-bold">{career.growth}</p>
             </div>
@@ -301,7 +314,7 @@ export function ResultsPage({
 
           <div className="max-w-2xl mx-auto space-y-6">
             <h3 className="text-md uppercase tracking-wider text-gray-600 font-semibold text-center">
-              Key Skills Required
+              {t("results.keySkills")}
             </h3>
             <div className="flex flex-wrap justify-center gap-3">
               {career.skills.map((skill, index) => (
@@ -315,10 +328,9 @@ export function ResultsPage({
             </div>
           </div>
 
-          {/* Recommended Courses */}
           <div className="max-w-3xl mx-auto space-y-5">
             <h3 className="text-md uppercase tracking-wider text-gray-600 font-semibold text-center">
-              Courses You Can Do
+              {t("results.coursesTitle")}
             </h3>
             <div className="grid gap-4">
               {coursesLoading ? (
@@ -350,21 +362,22 @@ export function ResultsPage({
                     <p className="text-sm text-gray-500 mt-1">
                       {course.provider}
                     </p>
-                    <p className="text-sm text-gray-400 mt-2">{course.reason}</p>
+                    <p className="text-sm text-gray-400 mt-2">
+                      {course.reason}
+                    </p>
                   </a>
                 ))
               ) : (
                 <p className="text-center text-gray-500 text-sm">
-                  No course suggestions available right now.
+                  {t("results.noCourses")}
                 </p>
               )}
             </div>
           </div>
 
-          {/* Recommended Jobs */}
           <div className="max-w-3xl mx-auto space-y-5">
             <h3 className="text-md uppercase tracking-wider text-gray-600 font-semibold text-center">
-              Jobs You Can Apply To
+              {t("results.jobsTitle")}
             </h3>
             <div className="grid gap-4">
               {jobsLoading ? (
@@ -402,7 +415,7 @@ export function ResultsPage({
                 ))
               ) : (
                 <p className="text-center text-gray-500 text-sm">
-                  No job suggestions available right now.
+                  {t("results.noJobs")}
                 </p>
               )}
             </div>
@@ -420,7 +433,7 @@ export function ResultsPage({
               />
             ))}
           </div>
-          <span>Career clarity starts here</span>
+          <span>{t("common.trustBadge")}</span>
         </div>
 
         <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -429,7 +442,7 @@ export function ResultsPage({
               <Star key={i} className="w-4 h-4 fill-gray-600 text-gray-600" />
             ))}
           </div>
-          <span>Personalized career matching</span>
+          <span>{t("common.personalizedMatching")}</span>
         </div>
 
         <div className="flex items-center gap-6 text-xs text-gray-600 pt-2">

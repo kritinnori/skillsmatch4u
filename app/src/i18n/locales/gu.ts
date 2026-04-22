@@ -1,0 +1,63 @@
+import type { Translations } from "./en";
+
+const translations: Translations = {
+  common: {
+    brand: "ક્વિઝ એપ",
+    goBack: "પાછા જાઓ",
+    goBackButton: "પાછા જાઓ",
+    errorPrefix: "ભૂલ",
+    trustBadge: "કારકિર્દીની સ્પષ્ટતા અહીંથી શરૂ થાય છે",
+    personalizedMatching: "વ્યક્તિગત કારકિર્દી મેચિંગ",
+    language: "ભાષા",
+  },
+  home: {
+    title: "તમારો યોગ્ય કારકિર્દી માર્ગ શોધો",
+    subtitle:
+      "તમારા વ્યક્તિત્વ, કાર્યશૈલી અને મૂલ્યોના આધારે આદર્શ વ્યવસાય શોધવા માટે અમારી વ્યાપક કારકિર્દી મૂલ્યાંકન ક્વિઝ લો.",
+    feature1Title: "વ્યક્તિગત પરિણામો",
+    feature1Body:
+      "તમારા અનોખા વ્યક્તિત્વ અને પસંદગીઓ અનુસાર કારકિર્દી ભલામણો મેળવો.",
+    feature2Title: "ઝડપી અને સરળ",
+    feature2Body: "માત્ર થોડી મિનિટોમાં અમારું 5-પ્રશ્ન મૂલ્યાંકન પૂર્ણ કરો.",
+    feature3Title: "ડેટા-આધારિત",
+    feature3Body:
+      "અમારો અલ્ગોરિધમ તમારા જવાબોનું વિશ્લેષણ કરીને સચોટ માહિતી આપે છે.",
+    startCta: "તમારું કારકિર્દી મૂલ્યાંકન શરૂ કરો",
+  },
+  quiz: {
+    loading: "પ્રશ્નો લોડ થઈ રહ્યા છે...",
+    failedToLoad: "પ્રશ્નો લોડ કરવામાં નિષ્ફળ",
+    scale: {
+      stronglyDisagree: "સખત અસંમત",
+      disagree: "અસંમત",
+      neutral: "તટસ્થ",
+      agree: "સંમત",
+      stronglyAgree: "સખત સંમત",
+    },
+    next: "આગલું",
+    additionalInfoTitle: "શું તમે બીજું કંઈ ઉમેરવા માંગો છો?",
+    additionalInfoSubtitle:
+      "તમારી કારકિર્દી પસંદગીઓને વધુ સારી રીતે સમજવામાં મદદરૂપ થાય તેવી કોઈપણ વધારાની માહિતી શેર કરો.",
+    additionalInfoPlaceholder: "તમારા વિચારો અહીં ટાઇપ કરો (વૈકલ્પિક)...",
+    finish: "ક્વિઝ સમાપ્ત કરો",
+  },
+  results: {
+    analyzing: "તમારા જવાબોનું વિશ્લેષણ થઈ રહ્યું છે...",
+    analyzingHint: "આમાં થોડો સમય લાગી શકે છે",
+    failedToLoad: "ભલામણ લોડ કરવામાં નિષ્ફળ",
+    heading: "તમારી કારકિર્દી મેચ",
+    headingSubtitle: "તમારા જવાબોના આધારે",
+    matchScore: "મેચ સ્કોર: {{score}}%",
+    salaryRange: "પગાર શ્રેણી",
+    jobGrowth: "નોકરી વૃદ્ધિ",
+    keySkills: "જરૂરી મુખ્ય કૌશલ્યો",
+    coursesTitle: "તમે કરી શકો તેવા કોર્સ",
+    jobsTitle: "તમે અરજી કરી શકો તેવી નોકરીઓ",
+    noCourses: "હાલમાં કોઈ કોર્સ ભલામણ ઉપલબ્ધ નથી.",
+    noJobs: "હાલમાં કોઈ નોકરી ભલામણ ઉપલબ્ધ નથી.",
+    coursesError: "કોર્સ લોડ કરવામાં નિષ્ફળ",
+    jobsError: "નોકરીઓ લોડ કરવામાં નિષ્ફળ",
+  },
+};
+
+export default translations;
