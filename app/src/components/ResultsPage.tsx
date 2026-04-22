@@ -201,6 +201,59 @@ export function ResultsPage({ answers, questions, additionalInfo, onBack }: Resu
             </div>
           </div>
 
+          {/* Recommended Courses */}
+          <div className="max-w-3xl mx-auto space-y-5">
+            <h3 className="text-md uppercase tracking-wider text-gray-600 font-semibold text-center">
+              Courses You Can Do
+            </h3>
+            <div className="grid gap-4">
+              {career.courses.length > 0 ? (
+                career.courses.map((course, index) => (
+                  <div
+                    key={`${course.title}-${index}`}
+                    className="rounded-xl border border-gray-800 bg-gray-900/40 p-4"
+                  >
+                    <p className="text-lg font-semibold">{course.title}</p>
+                    <p className="text-sm text-gray-500 mt-1">{course.provider}</p>
+                    <p className="text-sm text-gray-400 mt-2">{course.reason}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-center text-gray-500 text-sm">
+                  No course suggestions available right now.
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Recommended Jobs */}
+          <div className="max-w-3xl mx-auto space-y-5">
+            <h3 className="text-md uppercase tracking-wider text-gray-600 font-semibold text-center">
+              Jobs You Can Apply To
+            </h3>
+            <div className="grid gap-4">
+              {career.jobs.length > 0 ? (
+                career.jobs.map((job, index) => (
+                  <div
+                    key={`${job.title}-${job.company}-${index}`}
+                    className="rounded-xl border border-gray-800 bg-gray-900/40 p-4"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-lg font-semibold">{job.title}</p>
+                      <span className="text-xs uppercase tracking-wide text-gray-500">{job.location}</span>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-1">{job.company}</p>
+                    <p className="text-sm text-gray-400 mt-2">{job.reason}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-center text-gray-500 text-sm">
+                  No job suggestions available right now.
+                </p>
+              )}
+            </div>
+          </div>
+
         </div>
       </div>
 

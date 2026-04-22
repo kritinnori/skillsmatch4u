@@ -1,15 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
-
-// Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL || "";
-const supabaseKey = process.env.SUPABASE_ANON_KEY || "";
-
-if (!supabaseUrl || !supabaseKey) {
-  console.error("Error: SUPABASE_URL and SUPABASE_ANON_KEY must be set in .env file");
-  process.exit(1);
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { closeDb, getQuestionsCollection, type QuestionDoc } from "./db";
 
 const questions = [
   // Interests
@@ -23,13 +12,13 @@ const questions = [
   "I like researching topics deeply before forming opinions.",
   "I enjoy presenting ideas or speaking in front of others.",
   "I prefer structured tasks over open-ended creative ones",
-  
+
   // Strengths
   "I learn new technologies or tools quickly.",
   "I am good at explaining complex ideas in simple ways.",
   "I can stay focused on difficult tasks for long periods of time.",
   "I usually notice patterns or trends that others miss.",
-  
+
   // Personality
   "I prefer working independently rather than in groups.",
   "I feel energized after interacting with many people.",
@@ -51,20 +40,16 @@ const questions = [
 
 async function seedQuestions() {
   console.log("Starting to seed questions...");
-  
+
   try {
-    // First, check if questions already exist
-    const { data: existingQuestions, error: fetchError } = await supabase
-      .from("questions")
-      .select("id");
+    const collection = await getQuestionsCollection();
 
-    if (fetchError) {
-      console.error("Error fetching existing questions:", fetchError);
-      throw fetchError;
-    }
+    await collection.createIndex({ id: 1 }, { unique: true });
 
-    if (existingQuestions && existingQuestions.length > 0) {
-      console.log(`Found ${existingQuestions.length} existing questions.`);
+    const existingCount = await collection.countDocuments();
+
+    if (existingCount > 0) {
+      console.log(`Found ${existingCount} existing questions.`);
       const response = await new Promise<string>((resolve) => {
         process.stdin.setEncoding("utf8");
         console.log("Do you want to delete existing questions and reseed? (yes/no): ");
@@ -74,48 +59,42 @@ async function seedQuestions() {
       });
 
       if (response === "yes" || response === "y") {
-        const { error: deleteError } = await supabase
-          .from("questions")
-          .delete()
-          .neq("id", 0); // Delete all rows
-
-        if (deleteError) {
-          console.error("Error deleting existing questions:", deleteError);
-          throw deleteError;
-        }
+        await collection.deleteMany({});
         console.log("Deleted existing questions.");
       } else {
         console.log("Skipping seed. Existing questions remain.");
+        await closeDb();
         process.exit(0);
       }
     }
 
-    // Insert questions
-    const { data, error } = await supabase
-      .from("questions")
-      .insert(questions.map((question) => ({ question })))
-      .select();
+    const now = new Date();
+    const docs: QuestionDoc[] = questions.map((question, index) => ({
+      id: index + 1,
+      question,
+      category: "General",
+      created_at: now,
+    }));
 
-    if (error) {
-      console.error("Error inserting questions:", error);
-      throw error;
-    }
+    const result = await collection.insertMany(docs);
 
-    console.log(`✅ Successfully seeded ${data?.length || 0} questions!`);
+    console.log(`✅ Successfully seeded ${result.insertedCount} questions!`);
     console.log("\nSample questions inserted:");
-    data?.slice(0, 3).forEach((q, i) => {
+    docs.slice(0, 3).forEach((q, i) => {
       console.log(`  ${i + 1}. ${q.question}`);
     });
-    if (data && data.length > 3) {
-      console.log(`  ... and ${data.length - 3} more`);
+    if (docs.length > 3) {
+      console.log(`  ... and ${docs.length - 3} more`);
     }
   } catch (error) {
     console.error("Failed to seed questions:", error);
+    await closeDb();
     process.exit(1);
   }
+
+  await closeDb();
 }
 
-// Run the seed function
 seedQuestions().then(() => {
   process.exit(0);
 });

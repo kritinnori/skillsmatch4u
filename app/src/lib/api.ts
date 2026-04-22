@@ -24,6 +24,21 @@ export interface CareerRecommendation {
   skills: string[];
   salary: string;
   growth: string;
+  courses: CourseRecommendation[];
+  jobs: JobRecommendation[];
+}
+
+export interface CourseRecommendation {
+  title: string;
+  provider: string;
+  reason: string;
+}
+
+export interface JobRecommendation {
+  title: string;
+  company: string;
+  location: string;
+  reason: string;
 }
 
 export async function analyzeAnswers(

@@ -1,15 +1,11 @@
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
-import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
+import { getQuestionsCollection } from "./db";
 
-// Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL || "";
-const supabaseKey = process.env.SUPABASE_ANON_KEY || "";
 const PORT = process.env.PORT || 3000;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5";
 
-// Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "",
 });
@@ -21,20 +17,19 @@ const app = new Elysia()
   })
   .get("/questions", async () => {
     try {
-      const { data, error } = await supabase
-        .from("questions")
-        .select("*")
-        .order("id", { ascending: true });
-
-      if (error) {
-        console.error("Supabase error:", error);
-        return { error: "Failed to fetch questions", details: error.message };
-      }
+      const collection = await getQuestionsCollection();
+      const data = await collection
+        .find({}, { projection: { _id: 0 } })
+        .sort({ id: 1 })
+        .toArray();
 
       return { questions: data || [] };
     } catch (error) {
       console.error("Error fetching questions:", error);
-      return { error: "Internal server error" };
+      return {
+        error: "Failed to fetch questions",
+        details: error instanceof Error ? error.message : "Unknown error",
+      };
     }
   })
   .post("/analyze", async ({ body }) => {
@@ -84,13 +79,30 @@ Here are the questions and answers:\n\n`;
   "matchScore": 85,
   "skills": ["Skill 1", "Skill 2", "Skill 3", "Skill 4"],
   "salary": "Salary range (e.g., '$80,000 - $120,000')",
-  "growth": "Job growth projection (e.g., '15% growth expected')"
+  "growth": "Job growth projection (e.g., '15% growth expected')",
+  "courses": [
+    {
+      "title": "Course title",
+      "provider": "Platform or institution name",
+      "reason": "Why this course helps for this career"
+    }
+  ],
+  "jobs": [
+    {
+      "title": "Job role title",
+      "company": "Company name",
+      "location": "City, Country or Remote",
+      "reason": "Why this role is a strong fit"
+    }
+  ]
 }
 
-Make the recommendation thoughtful and based on the patterns in their answers. The matchScore should be between 75-98.`;
+Keep the career recommendation thoughtful and based on the response patterns. The matchScore should be between 75-98.
+For courses and jobs, provide 4 items each, realistic and practical options for someone starting this path.
+Always return valid JSON only.`;
 
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: OPENAI_MODEL,
         messages: [
           {
             role: "system",
@@ -102,7 +114,7 @@ Make the recommendation thoughtful and based on the patterns in their answers. T
             content: prompt,
           },
         ],
-        temperature: 0.7,
+        // temperature: 0.7,
         response_format: { type: "json_object" },
       });
 
@@ -112,7 +124,29 @@ Make the recommendation thoughtful and based on the patterns in their answers. T
       }
 
       try {
-        const recommendation = JSON.parse(responseContent);
+        const recommendation = JSON.parse(responseContent) as {
+          title: string;
+          description: string;
+          matchScore: number;
+          skills: string[];
+          salary: string;
+          growth: string;
+          courses?: Array<{ title: string; provider: string; reason: string }>;
+          jobs?: Array<{
+            title: string;
+            company: string;
+            location: string;
+            reason: string;
+          }>;
+        };
+
+        recommendation.courses = Array.isArray(recommendation.courses)
+          ? recommendation.courses.slice(0, 4)
+          : [];
+        recommendation.jobs = Array.isArray(recommendation.jobs)
+          ? recommendation.jobs.slice(0, 4)
+          : [];
+
         return { recommendation };
       } catch (parseError) {
         console.error("Error parsing OpenAI response:", parseError);
