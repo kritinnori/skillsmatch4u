@@ -7,7 +7,8 @@
     "dev": "bun run --watch src/index.ts",
     "build": "bun build src/index.ts --outdir dist",
     "setup-db": "bun run src/setup-db.ts",
-    "seed": "bun run src/seed-auto.ts"
+    "seed": "bun run src/seed-auto.ts",
+    "seed-translations": "bun run src/seed-translations.ts"
   },
   "dependencies": {
     "mongodb": "^6.9.0",

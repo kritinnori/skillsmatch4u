@@ -21,6 +21,7 @@ interface QuestionRow {
   id: number;
   question: string;
   category: string;
+  translations?: Record<string, string>;
 }
 
 function answerLabel(answer: number): string {
@@ -90,90 +91,25 @@ async function runJsonCompletion<T>(
   }
 }
 
-/**
- * In-memory cache for translated questions, keyed by language code.
- * The English source is loaded fresh from MongoDB on each cache miss.
- */
-const questionCache = new Map<string, QuestionRow[]>();
-
-async function loadEnglishQuestions(): Promise<QuestionRow[]> {
-  const collection = await getQuestionsCollection();
-  const data = await collection
-    .find({}, { projection: { _id: 0 } })
-    .sort({ id: 1 })
-    .toArray();
-  return (data as unknown as QuestionRow[]) || [];
-}
-
-async function translateQuestions(
-  questions: QuestionRow[],
-  language: string
-): Promise<QuestionRow[]> {
-  if (questions.length === 0) return questions;
-
-  const languageName = getLanguageName(language);
-  const payload = questions.map((q) => ({
-    id: q.id,
-    category: q.category,
-    question: q.question,
-  }));
-
-  const prompt = `Translate the "question" field of each item below into ${languageName} (language code: ${language}).
-- Keep the original meaning and tone.
-- Do NOT translate the "id" or "category" fields — keep them exactly as-is.
-- Translate "question" naturally and conversationally in ${languageName}.
-- Return valid JSON only, in this exact shape:
-{
-  "items": [
-    { "id": <number>, "category": <original string>, "question": <translated string> }
-  ]
-}
-
-Items:
-${JSON.stringify(payload, null, 2)}`;
-
-  const parsed = await runJsonCompletion<{
-    items?: Array<{ id: number; category: string; question: string }>;
-  }>(
-    `You are a professional translator. You translate English survey questions into ${languageName} accurately, preserving intent. Always respond with valid JSON only.`,
-    prompt
-  );
-
-  if (!parsed || !Array.isArray(parsed.items)) {
-    console.warn(
-      `Translation to ${language} failed or returned an unexpected shape. Falling back to English.`
-    );
-    return questions;
-  }
-
-  const byId = new Map(parsed.items.map((item) => [item.id, item]));
-  return questions.map((q) => {
-    const translated = byId.get(q.id);
-    if (!translated || typeof translated.question !== "string") return q;
-    return { ...q, question: translated.question };
-  });
-}
-
 async function getQuestionsInLanguage(
   language: string
-): Promise<QuestionRow[]> {
-  const english = await loadEnglishQuestions();
+): Promise<Array<Pick<QuestionRow, "id" | "question" | "category">>> {
+  const collection = await getQuestionsCollection();
+  const rows = (await collection
+    .find({}, { projection: { _id: 0 } })
+    .sort({ id: 1 })
+    .toArray()) as unknown as QuestionRow[];
 
-  if (language === DEFAULT_LANGUAGE) return english;
-
-  const cached = questionCache.get(language);
-  if (cached && cached.length === english.length) {
-    return cached;
+  if (language === DEFAULT_LANGUAGE) {
+    return rows.map(({ id, question, category }) => ({ id, question, category }));
   }
 
-  try {
-    const translated = await translateQuestions(english, language);
-    questionCache.set(language, translated);
-    return translated;
-  } catch (error) {
-    console.error(`Failed to translate questions to ${language}:`, error);
-    return english;
-  }
+  return rows.map(({ id, question, category, translations }) => ({
+    id,
+    category,
+    question:
+      (translations && translations[language]) || question, // fallback to English if missing
+  }));
 }
 
 const app = new Elysia()
