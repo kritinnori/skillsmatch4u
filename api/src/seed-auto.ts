@@ -1,15 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
-
-// Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL || "";
-const supabaseKey = process.env.SUPABASE_ANON_KEY || "";
-
-if (!supabaseUrl || !supabaseKey) {
-  console.error("Error: SUPABASE_URL and SUPABASE_ANON_KEY must be set in .env file");
-  process.exit(1);
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { closeDb, getQuestionsCollection, type QuestionDoc } from "./db";
 
 const questions = [
   // Interests
@@ -23,13 +12,13 @@ const questions = [
   { question: "I like researching topics deeply before forming opinions.", category: "Interests" },
   { question: "I enjoy presenting ideas or speaking in front of others.", category: "Interests" },
   { question: "I prefer structured tasks over open-ended creative ones", category: "Interests" },
-  
+
   // Strengths
   { question: "I learn new technologies or tools quickly.", category: "Strengths" },
   { question: "I am good at explaining complex ideas in simple ways.", category: "Strengths" },
   { question: "I can stay focused on difficult tasks for long periods of time.", category: "Strengths" },
   { question: "I usually notice patterns or trends that others miss.", category: "Strengths" },
-  
+
   // Personality
   { question: "I prefer working independently rather than in groups.", category: "Personality" },
   { question: "I feel energized after interacting with many people.", category: "Personality" },
@@ -51,66 +40,48 @@ const questions = [
 
 async function seedQuestions() {
   console.log("Starting to seed questions...");
-  
+
   try {
-    // Check if questions already exist
-    const { data: existingQuestions, error: fetchError } = await supabase
-      .from("questions")
-      .select("id");
+    const collection = await getQuestionsCollection();
 
-    if (fetchError) {
-      // If table doesn't exist, provide helpful error message
-      if (fetchError.code === "PGRST205" || fetchError.message?.includes("Could not find the table")) {
-        console.error("\n❌ Error: The 'questions' table does not exist in your Supabase database.");
-        console.error("\nPlease set up the database first by running:\n");
-        console.error("  bun run setup-db\n");
-        console.error("Or manually run the SQL from 'api/supabase-schema.sql' in your Supabase SQL Editor.\n");
-        process.exit(1);
-      }
-      console.error("Error fetching existing questions:", fetchError);
-      throw fetchError;
-    }
+    // Ensure a unique index on the numeric `id` field
+    await collection.createIndex({ id: 1 }, { unique: true });
 
-    if (existingQuestions && existingQuestions.length > 0) {
-      console.log(`Found ${existingQuestions.length} existing questions. Deleting them...`);
-      const { error: deleteError } = await supabase
-        .from("questions")
-        .delete()
-        .neq("id", 0); // Delete all rows
+    const existingCount = await collection.countDocuments();
 
-      if (deleteError) {
-        console.error("Error deleting existing questions:", deleteError);
-        throw deleteError;
-      }
+    if (existingCount > 0) {
+      console.log(`Found ${existingCount} existing questions. Deleting them...`);
+      await collection.deleteMany({});
       console.log("Deleted existing questions.");
     }
 
-    // Insert questions
-    const { data, error } = await supabase
-      .from("questions")
-      .insert(questions.map((q) => ({ question: q.question, category: q.category })))
-      .select();
+    const now = new Date();
+    const docs: QuestionDoc[] = questions.map((q, index) => ({
+      id: index + 1,
+      question: q.question,
+      category: q.category,
+      created_at: now,
+    }));
 
-    if (error) {
-      console.error("Error inserting questions:", error);
-      throw error;
-    }
+    const result = await collection.insertMany(docs);
 
-    console.log(`✅ Successfully seeded ${data?.length || 0} questions!`);
+    console.log(`✅ Successfully seeded ${result.insertedCount} questions!`);
     console.log("\nSample questions inserted:");
-    data?.slice(0, 3).forEach((q, i) => {
+    docs.slice(0, 3).forEach((q, i) => {
       console.log(`  ${i + 1}. ${q.question}`);
     });
-    if (data && data.length > 3) {
-      console.log(`  ... and ${data.length - 3} more`);
+    if (docs.length > 3) {
+      console.log(`  ... and ${docs.length - 3} more`);
     }
   } catch (error) {
     console.error("Failed to seed questions:", error);
+    await closeDb();
     process.exit(1);
   }
+
+  await closeDb();
 }
 
-// Run the seed function
 seedQuestions().then(() => {
   process.exit(0);
 });

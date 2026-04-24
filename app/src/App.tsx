@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { HomePage } from './components/HomePage'
 import { QuizPage } from './components/QuizPage'
 import { ResultsPage } from './components/ResultsPage'
@@ -8,6 +9,7 @@ import type { Question } from './types/question'
 type Page = 'home' | 'quiz' | 'results'
 
 function App() {
+  const { t, i18n } = useTranslation()
   const [currentPage, setCurrentPage] = useState<Page>('home')
   const [answers, setAnswers] = useState<number[]>([])
   const [questions, setQuestions] = useState<Question[]>([])
@@ -15,13 +17,16 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // preload questions when site loads
+  const language = i18n.resolvedLanguage || i18n.language || 'en'
+
   useEffect(() => {
     let cancelled = false
 
     const loadQuestions = async () => {
+      setLoading(true)
+      setError(null)
       try {
-        const data = await fetchQuestions()
+        const data = await fetchQuestions(language)
 
         if (!cancelled) {
           setQuestions(data)
@@ -29,9 +34,7 @@ function App() {
       } catch (err) {
         if (!cancelled) {
           setError(
-            err instanceof Error
-              ? err.message
-              : 'Failed to load questions'
+            err instanceof Error ? err.message : t('quiz.failedToLoad')
           )
         }
       } finally {
@@ -46,7 +49,7 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [language, t])
 
   const handleStartQuiz = () => {
     setCurrentPage('quiz')
@@ -65,7 +68,6 @@ function App() {
     setCurrentPage('home')
     setAnswers([])
     setAdditionalInfo('')
-    setQuestions([])
     setError(null)
   }
 
@@ -79,16 +81,16 @@ function App() {
         <>
           {loading && (
             <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
-              <div className="text-xl">
-                Loading questions...
-              </div>
+              <div className="text-xl">{t('quiz.loading')}</div>
             </div>
           )}
 
           {!loading && error && (
             <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
               <div className="text-center">
-                <div className="text-xl mb-4 text-red-500">Error: {error}</div>
+                <div className="text-xl mb-4 text-red-500">
+                  {t('common.errorPrefix')}: {error}
+                </div>
                 <button
                   onClick={() => {
                     setError(null)
@@ -96,7 +98,7 @@ function App() {
                   }}
                   className="px-4 py-2 bg-purple-500 rounded-lg"
                 >
-                  Go Back
+                  {t('common.goBackButton')}
                 </button>
               </div>
             </div>

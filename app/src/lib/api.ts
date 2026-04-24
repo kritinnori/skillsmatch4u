@@ -2,8 +2,16 @@ import type { Question } from "../types/question";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "https://skillsmatch4u.onrender.com";
 
-export async function fetchQuestions(): Promise<Question[]> {
-  const response = await fetch(`${API_BASE_URL}/questions`);
+function withLanguageQuery(path: string, language?: string) {
+  if (!language) return path;
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}lang=${encodeURIComponent(language)}`;
+}
+
+export async function fetchQuestions(language?: string): Promise<Question[]> {
+  const response = await fetch(
+    `${API_BASE_URL}${withLanguageQuery("/questions", language)}`
+  );
   if (!response.ok) {
     throw new Error("Failed to fetch questions");
   }
@@ -15,9 +23,10 @@ export interface AnalyzeRequest {
   answers: number[];
   questions: Question[];
   additionalInfo?: string;
+  language?: string;
 }
 
-export interface CareerRecommendation {
+export interface CareerCore {
   title: string;
   description: string;
   matchScore: number;
@@ -26,22 +35,83 @@ export interface CareerRecommendation {
   growth: string;
 }
 
+export interface CourseRecommendation {
+  title: string;
+  provider: string;
+  reason: string;
+  url?: string;
+}
+
+export interface JobRecommendation {
+  title: string;
+  company: string;
+  location: string;
+  reason: string;
+  url?: string;
+}
+
+export interface CareerRecommendation extends CareerCore {
+  courses: CourseRecommendation[];
+  jobs: JobRecommendation[];
+}
+
 export async function analyzeAnswers(
   request: AnalyzeRequest
-): Promise<CareerRecommendation> {
+): Promise<CareerCore> {
   const response = await fetch(`${API_BASE_URL}/analyze`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(request),
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.error || "Failed to analyze answers");
   }
 
   const data = await response.json();
+  if (data.error) throw new Error(data.error);
   return data.recommendation;
+}
+
+export interface RecommendationRequest extends AnalyzeRequest {
+  career: Pick<CareerCore, "title" | "description" | "skills">;
+}
+
+export async function fetchCourseRecommendations(
+  request: RecommendationRequest
+): Promise<CourseRecommendation[]> {
+  const response = await fetch(`${API_BASE_URL}/courses`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || "Failed to fetch course recommendations");
+  }
+
+  const data = await response.json();
+  if (data.error) throw new Error(data.error);
+  return Array.isArray(data.courses) ? data.courses : [];
+}
+
+export async function fetchJobRecommendations(
+  request: RecommendationRequest
+): Promise<JobRecommendation[]> {
+  const response = await fetch(`${API_BASE_URL}/jobs`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || "Failed to fetch job recommendations");
+  }
+
+  const data = await response.json();
+  if (data.error) throw new Error(data.error);
+  return Array.isArray(data.jobs) ? data.jobs : [];
 }

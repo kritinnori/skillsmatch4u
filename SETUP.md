@@ -1,11 +1,11 @@
 # Quiz App Setup Guide
 
-This guide will help you set up the quiz app with Supabase and OpenAI integrations.
+This guide will help you set up the quiz app with MongoDB and OpenAI integrations.
 
 ## Prerequisites
 
 - Node.js and Bun installed
-- Supabase account (free tier works)
+- A MongoDB instance (local, Docker, or MongoDB Atlas free tier)
 - OpenAI API key
 
 ## Backend Setup
@@ -28,49 +28,36 @@ cp .env.example .env
 Edit `.env` and add your credentials:
 
 ```
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_ANON_KEY=your_supabase_anon_key
+MONGODB_URI=mongodb://localhost:27017
+MONGODB_DB=quiz_app
 OPENAI_API_KEY=your_openai_api_key
 ```
 
-### 3. Set Up Supabase Database
+If you're using MongoDB Atlas, `MONGODB_URI` will look like:
 
-**Important:** You must create the database table before running the seed script.
-
-1. Go to your Supabase project dashboard
-2. Navigate to **SQL Editor** (in the left sidebar)
-3. Click **"New query"** or the **"+"** button
-4. Copy and paste the SQL from `api/supabase-schema.sql` (or use the SQL below)
-5. Click **"Run"** or press `Cmd/Ctrl + Enter`
-
-```sql
--- Create questions table
-CREATE TABLE IF NOT EXISTS questions (
-  id SERIAL PRIMARY KEY,
-  question TEXT NOT NULL,
-  category TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
-);
-
--- Enable RLS
-ALTER TABLE questions ENABLE ROW LEVEL SECURITY;
-
--- Drop existing policy if it exists (to avoid errors on re-run)
-DROP POLICY IF EXISTS "Allow public read access" ON questions;
-
--- Create policy to allow public read access
-CREATE POLICY "Allow public read access" ON questions
-  FOR SELECT USING (true);
+```
+MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority
 ```
 
-6. After the table is created, seed the questions into the database:
+### 3. Set Up the MongoDB Database
+
+MongoDB is schemaless, so no SQL migration is required. Run the setup script to
+create the `questions` collection and a unique index on the numeric `id` field:
 
 ```bash
 cd api
+bun run setup-db
+```
+
+Then seed the questions:
+
+```bash
 bun run seed
 ```
 
-This will insert all 30 questions into your Supabase database. The script will automatically delete any existing questions and insert the new ones.
+This will insert all 30 questions into your `quiz_app.questions` collection.
+The script automatically clears any existing questions before inserting the
+new ones.
 
 ### 4. Run the Backend Server
 
@@ -110,7 +97,7 @@ The app will be available at `http://localhost:5173` (or the port Vite assigns)
 ## API Endpoints
 
 ### GET `/questions`
-Fetches all questions from Supabase.
+Fetches all questions from MongoDB.
 
 **Response:**
 ```json
@@ -118,7 +105,8 @@ Fetches all questions from Supabase.
   "questions": [
     {
       "id": 1,
-      "question": "I prefer working independently..."
+      "question": "I prefer working independently...",
+      "category": "Personality"
     }
   ]
 }
@@ -162,5 +150,5 @@ Analyzes user answers and returns AI-powered career recommendation.
   - 5 = Strongly Agree
 
 - After completing all questions, users can optionally add additional information
-- The AI analysis uses OpenAI's GPT-4o-mini model for cost efficiency
+- The AI analysis uses OpenAI's GPT model configured via `OPENAI_MODEL` (defaults to `gpt-5`)
 - Make sure your OpenAI API key has sufficient credits
