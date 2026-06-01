@@ -55,8 +55,18 @@ const translations: Translations = {
     keySkills: "ਲੋੜੀਂਦੇ ਮੁੱਖ ਹੁਨਰ",
     coursesTitle: "ਉਹ ਕੋਰਸ ਜੋ ਤੁਸੀਂ ਕਰ ਸਕਦੇ ਹੋ",
     jobsTitle: "ਉਹ ਨੌਕਰੀਆਂ ਜਿਨ੍ਹਾਂ ਲਈ ਤੁਸੀਂ ਅਰਜ਼ੀ ਦੇ ਸਕਦੇ ਹੋ",
-    noCourses: "ਇਸ ਸਮੇਂ ਕੋਈ ਕੋਰਸ ਸੁਝਾਅ ਉਪਲਬਧ ਨਹੀਂ ਹੈ।",
-    noJobs: "ਇਸ ਸਮੇਂ ਕੋਈ ਨੌਕਰੀ ਸੁਝਾਅ ਉਪਲਬਧ ਨਹੀਂ ਹੈ।",
+    noCoursesTitle: "ਦਿਖਾਉਣ ਲਈ ਕੋਈ ਕੋਰਸ ਨਹੀਂ",
+    noCoursesDescription:
+      "ਇਸ ਕਰੀਅਰ ਲਈ ਹੁਣੇ ਕੋਈ ਕੋਰਸ ਸੁਝਾਅ ਨਹੀਂ ਮਿਲੇ।",
+    coursesUnavailableTitle: "ਕੋਰਸ ਸੁਝਾਅ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕੇ",
+    coursesUnavailableDescription:
+      "ਕੋਰਸ ਲੱਭਦੇ ਸਮੇਂ ਕੋਈ ਸਮੱਸਿਆ ਆਈ। ਉੱਪਰਲਾ ਕਰੀਅਰ ਮੇਲ ਅਜੇ ਵੀ ਸਹੀ ਹੈ — ਥੋੜ੍ਹੀ ਦੇਰ ਬਾਅਦ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
+    noJobsTitle: "ਦਿਖਾਉਣ ਲਈ ਕੋਈ ਨੌਕਰੀ ਨਹੀਂ",
+    noJobsDescription:
+      "ਇਸ ਕਰੀਅਰ ਲਈ ਹੁਣੇ ਕੋਈ ਨੌਕਰੀ ਸੂਚੀ ਨਹੀਂ ਮਿਲੀ।",
+    jobsUnavailableTitle: "ਨੌਕਰੀ ਸੁਝਾਅ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕੇ",
+    jobsUnavailableDescription:
+      "ਨੌਕਰੀਆਂ ਲੱਭਦੇ ਸਮੇਂ ਕੋਈ ਸਮੱਸਿਆ ਆਈ। ਉੱਪਰਲਾ ਕਰੀਅਰ ਮੇਲ ਅਜੇ ਵੀ ਸਹੀ ਹੈ — ਥੋੜ੍ਹੀ ਦੇਰ ਬਾਅਦ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
     coursesError: "ਕੋਰਸ ਲੋਡ ਕਰਨ ਵਿੱਚ ਅਸਫਲ",
     jobsError: "ਨੌਕਰੀਆਂ ਲੋਡ ਕਰਨ ਵਿੱਚ ਅਸਫਲ",
   },

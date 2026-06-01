@@ -53,8 +53,18 @@ const translations: Translations = {
     keySkills: "જરૂરી મુખ્ય કૌશલ્યો",
     coursesTitle: "તમે કરી શકો તેવા કોર્સ",
     jobsTitle: "તમે અરજી કરી શકો તેવી નોકરીઓ",
-    noCourses: "હાલમાં કોઈ કોર્સ ભલામણ ઉપલબ્ધ નથી.",
-    noJobs: "હાલમાં કોઈ નોકરી ભલામણ ઉપલબ્ધ નથી.",
+    noCoursesTitle: "બતાવવા માટે કોઈ કોર્સ નથી",
+    noCoursesDescription:
+      "આ કારકિર્દી માટે હમણાં કોઈ કોર્સ સૂચનો મળ્યા નથી.",
+    coursesUnavailableTitle: "કોર્સ સૂચનો લોડ થઈ શક્યા નથી",
+    coursesUnavailableDescription:
+      "કોર્સ શોધતી વખતે સમસ્યા આવી. ઉપરનું કારકિર્દી મેળ હજુ પણ માન્ય છે — થોડી વાર પછી ફરી પ્રયાસ કરો.",
+    noJobsTitle: "બતાવવા માટે નોકરીઓ નથી",
+    noJobsDescription:
+      "આ કારકિર્દી માટે હમણાં નોકરીની સૂચિ મળી નથી.",
+    jobsUnavailableTitle: "નોકરી સૂચનો લોડ થઈ શક્યા નથી",
+    jobsUnavailableDescription:
+      "ભૂમિકાઓ શોધતી વખતે સમસ્યા આવી. ઉપરનું કારકિર્દી મેળ હજુ પણ માન્ય છે — થોડી વાર પછી ફરી પ્રયાસ કરો.",
     coursesError: "કોર્સ લોડ કરવામાં નિષ્ફળ",
     jobsError: "નોકરીઓ લોડ કરવામાં નિષ્ફળ",
   },

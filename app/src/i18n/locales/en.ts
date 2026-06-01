@@ -51,8 +51,18 @@ const translations = {
     keySkills: "Key Skills Required",
     coursesTitle: "Courses You Can Do",
     jobsTitle: "Jobs You Can Apply To",
-    noCourses: "No course suggestions available right now.",
-    noJobs: "No job suggestions available right now.",
+    noCoursesTitle: "No courses to show",
+    noCoursesDescription:
+      "We didn't find course suggestions for this career right now.",
+    coursesUnavailableTitle: "Couldn't load course suggestions",
+    coursesUnavailableDescription:
+      "Something went wrong while we looked for courses. Your career match above is still valid — please try again in a moment.",
+    noJobsTitle: "No jobs to show",
+    noJobsDescription:
+      "We didn't find job openings to list for this career right now.",
+    jobsUnavailableTitle: "Couldn't load job suggestions",
+    jobsUnavailableDescription:
+      "Something went wrong while we looked for roles. Your career match above is still valid — please try again in a moment.",
     coursesError: "Failed to load courses",
     jobsError: "Failed to load jobs",
   },

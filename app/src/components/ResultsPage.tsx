@@ -12,6 +12,7 @@ import {
 import type { Question } from "../types/question";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { ResultsPageSkeleton } from "./ResultsPageSkeleton";
+import { ResultsSectionEmptyState } from "./ResultsSectionEmptyState";
 
 function isValidHttpUrl(value: string | undefined): value is string {
   if (!value) return false;
@@ -343,11 +344,21 @@ export function ResultsPage({
                   <CardSkeleton />
                   <CardSkeleton />
                 </>
-              ) : coursesError ? (
-                <p className="text-center text-red-500 text-sm">
-                  {coursesError}
-                </p>
-              ) : courses && courses.length > 0 ? (
+              ) : coursesError || !courses?.length ? (
+                <ResultsSectionEmptyState
+                  kind="courses"
+                  title={
+                    coursesError
+                      ? t("results.coursesUnavailableTitle")
+                      : t("results.noCoursesTitle")
+                  }
+                  description={
+                    coursesError
+                      ? t("results.coursesUnavailableDescription")
+                      : t("results.noCoursesDescription")
+                  }
+                />
+              ) : (
                 courses.map((course, index) => (
                   <a
                     key={`${course.title}-${index}`}
@@ -370,10 +381,6 @@ export function ResultsPage({
                     </p>
                   </a>
                 ))
-              ) : (
-                <p className="text-center text-gray-500 text-sm">
-                  {t("results.noCourses")}
-                </p>
               )}
             </div>
           </div>
@@ -390,9 +397,21 @@ export function ResultsPage({
                   <CardSkeleton />
                   <CardSkeleton />
                 </>
-              ) : jobsError ? (
-                <p className="text-center text-red-500 text-sm">{jobsError}</p>
-              ) : jobs && jobs.length > 0 ? (
+              ) : jobsError || !jobs?.length ? (
+                <ResultsSectionEmptyState
+                  kind="jobs"
+                  title={
+                    jobsError
+                      ? t("results.jobsUnavailableTitle")
+                      : t("results.noJobsTitle")
+                  }
+                  description={
+                    jobsError
+                      ? t("results.jobsUnavailableDescription")
+                      : t("results.noJobsDescription")
+                  }
+                />
+              ) : (
                 jobs.map((job, index) => (
                   <a
                     key={`${job.title}-${job.company}-${index}`}
@@ -416,10 +435,6 @@ export function ResultsPage({
                     <p className="text-sm text-gray-400 mt-2">{job.reason}</p>
                   </a>
                 ))
-              ) : (
-                <p className="text-center text-gray-500 text-sm">
-                  {t("results.noJobs")}
-                </p>
               )}
             </div>
           </div>
