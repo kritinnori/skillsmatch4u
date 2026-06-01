@@ -11,6 +11,7 @@ import {
 } from "../lib/api";
 import type { Question } from "../types/question";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { ResultsPageSkeleton } from "./ResultsPageSkeleton";
 
 function isValidHttpUrl(value: string | undefined): value is string {
   if (!value) return false;
@@ -213,12 +214,14 @@ export function ResultsPage({
         </nav>
 
         <div className="max-w-3xl mx-auto px-4 md:px-6 pb-8">
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center">
-              <div className="text-xl mb-4">{t("results.analyzing")}</div>
-              <div className="text-gray-500">{t("results.analyzingHint")}</div>
-            </div>
-          </div>
+          <p className="text-center text-gray-500 text-sm mb-8 pt-8">
+            {t("results.analyzingHint")}
+          </p>
+          <ResultsPageSkeleton
+            coursesTitle={t("results.coursesTitle")}
+            jobsTitle={t("results.jobsTitle")}
+            keySkillsLabel={t("results.keySkills")}
+          />
         </div>
       </div>
     );
