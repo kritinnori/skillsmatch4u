@@ -27,7 +27,7 @@ async function setupDatabase() {
     console.log("✅ Ensured unique index on 'id'.");
 
     console.log("\n✅ Database setup complete!");
-    console.log("You can now run: bun run seed\n");
+    console.log("You can now run: npm run seed\n");
   } catch (error) {
     console.error("❌ Database setup failed:", error);
     console.error(

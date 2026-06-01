@@ -8,7 +8,7 @@ import {
  * Writes per-language translations onto the existing English question
  * documents in the `questions` collection.
  *
- * - English documents must already be seeded via `bun run seed`. This script
+ * - English documents must already be seeded via `npm run seed`. This script
  *   does NOT touch the English `question` text — it only adds a `translations`
  *   sub-document of the form:
  *     translations: { hi: "...", bn: "...", ... }
@@ -32,7 +32,7 @@ async function seedTranslations() {
 
     if (english.length === 0) {
       console.error(
-        "❌ No English questions found in the database. Run `bun run seed` first."
+        "❌ No English questions found in the database. Run `npm run seed` first."
       );
       await closeDb();
       process.exit(1);

@@ -1,5 +1,5 @@
-import { Elysia } from "elysia";
-import { cors } from "@elysiajs/cors";
+import express from "express";
+import cors from "cors";
 import OpenAI from "openai";
 import { getQuestionsCollection } from "./db";
 import {
@@ -8,7 +8,7 @@ import {
   normalizeLanguage,
 } from "./languages";
 
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5";
 
 const openai = new OpenAI({
@@ -108,47 +108,53 @@ async function getQuestionsInLanguage(
     id,
     category,
     question:
-      (translations && translations[language]) || question, // fallback to English if missing
+      (translations && translations[language]) || question,
   }));
 }
 
-const app = new Elysia()
-  .use(cors())
-  .get("/", () => {
-    return { message: "Quiz API is running" };
-  })
-  .get("/questions", async ({ query }) => {
-    try {
-      const language = normalizeLanguage(
-        (query as { lang?: string } | undefined)?.lang
-      );
-      const questions = await getQuestionsInLanguage(language);
-      return { questions, language };
-    } catch (error) {
-      console.error("Error fetching questions:", error);
-      return {
-        error: "Failed to fetch questions",
-        details: error instanceof Error ? error.message : "Unknown error",
-      };
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+app.get("/", (_req, res) => {
+  res.json({ message: "Quiz API is running" });
+});
+
+app.get("/questions", async (req, res) => {
+  try {
+    const language = normalizeLanguage(
+      typeof req.query.lang === "string" ? req.query.lang : undefined
+    );
+    const questions = await getQuestionsInLanguage(language);
+    res.json({ questions, language });
+  } catch (error) {
+    console.error("Error fetching questions:", error);
+    res.json({
+      error: "Failed to fetch questions",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+app.post("/analyze", async (req, res) => {
+  try {
+    const { answers, questions, additionalInfo, language } = req.body as {
+      answers: number[];
+      questions: AnswerQuestion[];
+      additionalInfo?: string;
+      language?: string;
+    };
+
+    if (!answers || !questions || answers.length !== questions.length) {
+      res.json({ error: "Invalid request: answers and questions must match" });
+      return;
     }
-  })
-  .post("/analyze", async ({ body }) => {
-    try {
-      const { answers, questions, additionalInfo, language } = body as {
-        answers: number[];
-        questions: AnswerQuestion[];
-        additionalInfo?: string;
-        language?: string;
-      };
 
-      if (!answers || !questions || answers.length !== questions.length) {
-        return { error: "Invalid request: answers and questions must match" };
-      }
+    const lang = normalizeLanguage(language);
+    const responses = formatQuizResponses(answers, questions, additionalInfo);
 
-      const lang = normalizeLanguage(language);
-      const responses = formatQuizResponses(answers, questions, additionalInfo);
-
-      const prompt = `You are a career counselor analyzing a personality and career assessment quiz. Based on the user's responses, recommend the most suitable job profile.
+    const prompt = `You are a career counselor analyzing a personality and career assessment quiz. Based on the user's responses, recommend the most suitable job profile.
 
 ${responses}
 Based on these responses, provide a career recommendation in JSON format with the following structure:
@@ -165,62 +171,65 @@ Keep the career recommendation thoughtful and based on the response patterns. Th
 ${languageInstruction(lang)}
 Always return valid JSON only. Do not include courses or jobs fields in this response.`;
 
-      const recommendation = await runJsonCompletion<{
-        title: string;
-        description: string;
-        matchScore: number;
-        skills: string[];
-        salary: string;
-        growth: string;
-      }>(
-        "You are an expert career counselor who analyzes personality assessments and provides thoughtful, personalized career recommendations. Always respond with valid JSON only.",
-        prompt
-      );
+    const recommendation = await runJsonCompletion<{
+      title: string;
+      description: string;
+      matchScore: number;
+      skills: string[];
+      salary: string;
+      growth: string;
+    }>(
+      "You are an expert career counselor who analyzes personality assessments and provides thoughtful, personalized career recommendations. Always respond with valid JSON only.",
+      prompt
+    );
 
-      if (!recommendation) {
-        return { error: "Failed to generate recommendation" };
-      }
-
-      return { recommendation };
-    } catch (error) {
-      console.error("Error analyzing answers:", error);
-      return {
-        error: "Internal server error",
-        details: error instanceof Error ? error.message : "Unknown error",
-      };
+    if (!recommendation) {
+      res.json({ error: "Failed to generate recommendation" });
+      return;
     }
-  })
-  .post("/courses", async ({ body }) => {
-    try {
-      const { career, answers, questions, additionalInfo, language } = body as {
-        career: {
-          title: string;
-          description?: string;
-          skills?: string[];
-        };
-        answers?: number[];
-        questions?: AnswerQuestion[];
-        additionalInfo?: string;
-        language?: string;
+
+    res.json({ recommendation });
+  } catch (error) {
+    console.error("Error analyzing answers:", error);
+    res.json({
+      error: "Internal server error",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+app.post("/courses", async (req, res) => {
+  try {
+    const { career, answers, questions, additionalInfo, language } = req.body as {
+      career: {
+        title: string;
+        description?: string;
+        skills?: string[];
       };
+      answers?: number[];
+      questions?: AnswerQuestion[];
+      additionalInfo?: string;
+      language?: string;
+    };
 
-      if (!career || !career.title) {
-        return { error: "Invalid request: career.title is required" };
-      }
+    if (!career || !career.title) {
+      res.json({ error: "Invalid request: career.title is required" });
+      return;
+    }
 
-      const lang = normalizeLanguage(language);
-      const responseContext =
-        answers && questions && answers.length === questions.length
-          ? formatQuizResponses(answers, questions, additionalInfo)
-          : "";
+    const lang = normalizeLanguage(language);
+    const responseContext =
+      answers && questions && answers.length === questions.length
+        ? formatQuizResponses(answers, questions, additionalInfo)
+        : "";
 
-      const prompt = `You are a career counselor recommending learning resources for a user who has been matched with the career: "${career.title}".
+    const prompt = `You are a career counselor recommending learning resources for a user who has been matched with the career: "${career.title}".
 
 ${career.description ? `Career description: ${career.description}\n` : ""}${
-        career.skills && career.skills.length > 0
-          ? `Key skills for this role: ${career.skills.join(", ")}\n`
-          : ""
-      }
+      career.skills && career.skills.length > 0
+        ? `Key skills for this role: ${career.skills.join(", ")}\n`
+        : ""
+    }
 ${responseContext ? `For additional context, here is the user's quiz data:\n${responseContext}` : ""}
 Recommend 4 high-quality, practical courses that will help this user grow into the "${career.title}" role. Return JSON in this exact shape:
 {
@@ -238,66 +247,69 @@ For every course, include a real, working "url". Only use well-known, publicly r
 ${languageInstruction(lang)}
 Always return valid JSON only.`;
 
-      const parsed = await runJsonCompletion<{
-        courses?: Array<{
-          title: string;
-          provider: string;
-          reason: string;
-          url?: string;
-        }>;
-      }>(
-        "You are an expert career counselor recommending concrete learning resources. Always respond with valid JSON only.",
-        prompt
-      );
+    const parsed = await runJsonCompletion<{
+      courses?: Array<{
+        title: string;
+        provider: string;
+        reason: string;
+        url?: string;
+      }>;
+    }>(
+      "You are an expert career counselor recommending concrete learning resources. Always respond with valid JSON only.",
+      prompt
+    );
 
-      if (!parsed) {
-        return { error: "Failed to generate course recommendations" };
-      }
-
-      const courses = Array.isArray(parsed.courses)
-        ? parsed.courses.slice(0, 4)
-        : [];
-
-      return { courses };
-    } catch (error) {
-      console.error("Error generating courses:", error);
-      return {
-        error: "Internal server error",
-        details: error instanceof Error ? error.message : "Unknown error",
-      };
+    if (!parsed) {
+      res.json({ error: "Failed to generate course recommendations" });
+      return;
     }
-  })
-  .post("/jobs", async ({ body }) => {
-    try {
-      const { career, answers, questions, additionalInfo, language } = body as {
-        career: {
-          title: string;
-          description?: string;
-          skills?: string[];
-        };
-        answers?: number[];
-        questions?: AnswerQuestion[];
-        additionalInfo?: string;
-        language?: string;
+
+    const courses = Array.isArray(parsed.courses)
+      ? parsed.courses.slice(0, 4)
+      : [];
+
+    res.json({ courses });
+  } catch (error) {
+    console.error("Error generating courses:", error);
+    res.json({
+      error: "Internal server error",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+app.post("/jobs", async (req, res) => {
+  try {
+    const { career, answers, questions, additionalInfo, language } = req.body as {
+      career: {
+        title: string;
+        description?: string;
+        skills?: string[];
       };
+      answers?: number[];
+      questions?: AnswerQuestion[];
+      additionalInfo?: string;
+      language?: string;
+    };
 
-      if (!career || !career.title) {
-        return { error: "Invalid request: career.title is required" };
-      }
+    if (!career || !career.title) {
+      res.json({ error: "Invalid request: career.title is required" });
+      return;
+    }
 
-      const lang = normalizeLanguage(language);
-      const responseContext =
-        answers && questions && answers.length === questions.length
-          ? formatQuizResponses(answers, questions, additionalInfo)
-          : "";
+    const lang = normalizeLanguage(language);
+    const responseContext =
+      answers && questions && answers.length === questions.length
+        ? formatQuizResponses(answers, questions, additionalInfo)
+        : "";
 
-      const prompt = `You are a career counselor recommending job opportunities for a user who has been matched with the career: "${career.title}".
+    const prompt = `You are a career counselor recommending job opportunities for a user who has been matched with the career: "${career.title}".
 
 ${career.description ? `Career description: ${career.description}\n` : ""}${
-        career.skills && career.skills.length > 0
-          ? `Key skills for this role: ${career.skills.join(", ")}\n`
-          : ""
-      }
+      career.skills && career.skills.length > 0
+        ? `Key skills for this role: ${career.skills.join(", ")}\n`
+        : ""
+    }
 ${responseContext ? `For additional context, here is the user's quiz data:\n${responseContext}` : ""}
 Recommend 4 realistic job opportunities that match the "${career.title}" career and would be accessible to someone entering this path. Return JSON in this exact shape:
 {
@@ -316,36 +328,36 @@ For every job, include a real, working "url". Only use well-known, publicly reac
 ${languageInstruction(lang)}
 Always return valid JSON only.`;
 
-      const parsed = await runJsonCompletion<{
-        jobs?: Array<{
-          title: string;
-          company: string;
-          location: string;
-          reason: string;
-          url?: string;
-        }>;
-      }>(
-        "You are an expert career counselor recommending concrete job opportunities. Always respond with valid JSON only.",
-        prompt
-      );
+    const parsed = await runJsonCompletion<{
+      jobs?: Array<{
+        title: string;
+        company: string;
+        location: string;
+        reason: string;
+        url?: string;
+      }>;
+    }>(
+      "You are an expert career counselor recommending concrete job opportunities. Always respond with valid JSON only.",
+      prompt
+    );
 
-      if (!parsed) {
-        return { error: "Failed to generate job recommendations" };
-      }
-
-      const jobs = Array.isArray(parsed.jobs) ? parsed.jobs.slice(0, 4) : [];
-
-      return { jobs };
-    } catch (error) {
-      console.error("Error generating jobs:", error);
-      return {
-        error: "Internal server error",
-        details: error instanceof Error ? error.message : "Unknown error",
-      };
+    if (!parsed) {
+      res.json({ error: "Failed to generate job recommendations" });
+      return;
     }
-  })
-  .listen(PORT);
 
-console.log(
-  `🦊 Elysia is running at http://${app.server?.hostname}:${app.server?.port}`
-);
+    const jobs = Array.isArray(parsed.jobs) ? parsed.jobs.slice(0, 4) : [];
+
+    res.json({ jobs });
+  } catch (error) {
+    console.error("Error generating jobs:", error);
+    res.json({
+      error: "Internal server error",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Quiz API running at http://localhost:${PORT}`);
+});
