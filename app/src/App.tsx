@@ -80,23 +80,28 @@ function App() {
       {currentPage === 'quiz' && (
         <>
           {loading && (
-            <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
-              <div className="text-xl">{t('quiz.loading')}</div>
+            <div className="page-shell flex items-center justify-center">
+              <div className="text-center bg-white rounded-xl border border-gray-200 px-10 py-8 shadow-sm">
+                <div className="w-10 h-10 border-4 border-primary-200 border-t-primary-800 rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-lg font-medium text-gray-900">
+                  {t('quiz.loading')}
+                </p>
+              </div>
             </div>
           )}
 
           {!loading && error && (
-            <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-xl mb-4 text-red-500">
+            <div className="page-shell flex items-center justify-center px-4">
+              <div className="text-center bg-white rounded-xl border border-gray-200 p-10 shadow-sm max-w-md">
+                <p className="text-lg mb-4 text-red-600 font-medium">
                   {t('common.errorPrefix')}: {error}
-                </div>
+                </p>
                 <button
                   onClick={() => {
                     setError(null)
                     setCurrentPage('home')
                   }}
-                  className="px-4 py-2 bg-purple-500 rounded-lg"
+                  className="px-6 py-2.5 bg-primary-800 hover:bg-primary-900 text-white font-semibold rounded-lg transition-colors"
                 >
                   {t('common.goBackButton')}
                 </button>

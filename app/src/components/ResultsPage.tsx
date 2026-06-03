@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, ExternalLink, Star } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import {
   analyzeAnswers,
   fetchCourseRecommendations,
@@ -10,9 +10,10 @@ import {
   type JobRecommendation,
 } from "../lib/api";
 import type { Question } from "../types/question";
-import { LanguageSwitcher } from "./LanguageSwitcher";
+import { PageHeader } from "./layout/PageHeader";
 import { ResultsPageSkeleton } from "./ResultsPageSkeleton";
 import { ResultsSectionEmptyState } from "./ResultsSectionEmptyState";
+import { Button } from "./ui/button";
 
 function isValidHttpUrl(value: string | undefined): value is string {
   if (!value) return false;
@@ -52,30 +53,41 @@ interface ResultsPageProps {
   onBack: () => void;
 }
 
-const Logo = ({ label }: { label: string }) => (
-  <div className="flex items-center gap-2">
-    <div className="flex items-center">
-      <div
-        className="w-8 h-8 rounded-lg"
-        style={{
-          background:
-            "linear-gradient(135deg, #fbbf24 0%, #f97316 25%, #10b981 50%, #3b82f6 75%, #a855f7 100%)",
-          clipPath: "polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%)",
-        }}
-      />
-      <span className="text-2xl font-bold ml-1">{label}</span>
-    </div>
+const CardSkeleton = () => (
+  <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="h-5 w-3/4 skeleton-shimmer rounded" />
+    <div className="h-3 w-1/3 skeleton-shimmer rounded mt-3" />
+    <div className="h-3 w-full skeleton-shimmer rounded mt-3" />
+    <div className="h-3 w-5/6 skeleton-shimmer rounded mt-2" />
   </div>
 );
 
-const CardSkeleton = () => (
-  <div className="rounded-xl border border-gray-800 bg-gray-900/40 p-4 animate-pulse">
-    <div className="h-5 w-3/4 bg-gray-800 rounded" />
-    <div className="h-3 w-1/3 bg-gray-800 rounded mt-3" />
-    <div className="h-3 w-full bg-gray-800 rounded mt-3" />
-    <div className="h-3 w-5/6 bg-gray-800 rounded mt-2" />
-  </div>
-);
+function ResultsShell({
+  children,
+  brand,
+  onBack,
+  backLabel,
+  title,
+}: {
+  children: ReactNode;
+  brand: string;
+  onBack: () => void;
+  backLabel: string;
+  title?: string;
+}) {
+  return (
+    <div className="page-shell">
+      <PageHeader
+        brand={brand}
+        onBack={onBack}
+        backLabel={backLabel}
+        title={title}
+        sticky
+      />
+      <main className="max-w-5xl mx-auto px-4 md:px-8 py-8 pb-16">{children}</main>
+    </div>
+  );
+}
 
 export function ResultsPage({
   answers,
@@ -195,276 +207,231 @@ export function ResultsPage({
 
   if (careerLoading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] text-white">
-        <nav className="flex items-center justify-between p-4 md:p-6">
-          <button
-            onClick={onBack}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-            aria-label={t("common.goBack")}
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <Logo label={brand} />
-          <LanguageSwitcher />
-        </nav>
-
-        <div className="max-w-3xl mx-auto px-4 md:px-6 pb-8">
-          <p className="text-center text-gray-500 text-sm mb-8 pt-8">
-            {t("results.analyzingHint")}
-          </p>
-          <ResultsPageSkeleton
-            coursesTitle={t("results.coursesTitle")}
-            jobsTitle={t("results.jobsTitle")}
-            keySkillsLabel={t("results.keySkills")}
-          />
-        </div>
-      </div>
+      <ResultsShell
+        brand={brand}
+        onBack={onBack}
+        backLabel={t("common.goBack")}
+        title={t("results.pageTitle")}
+      >
+        <p className="text-center text-gray-600 text-body-sm mb-8">
+          {t("results.analyzingHint")}
+        </p>
+        <ResultsPageSkeleton
+          coursesTitle={t("results.coursesTitle")}
+          jobsTitle={t("results.jobsTitle")}
+          keySkillsLabel={t("results.keySkills")}
+        />
+      </ResultsShell>
     );
   }
 
   if (careerError || !career) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] text-white">
-        <nav className="flex items-center justify-between p-4 md:p-6">
-          <button
-            onClick={onBack}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-            aria-label={t("common.goBack")}
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <Logo label={brand} />
-          <LanguageSwitcher />
-        </nav>
-
-        <div className="max-w-3xl mx-auto px-4 md:px-6 pb-8">
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center">
-              <div className="text-xl mb-4 text-red-500">
-                {t("common.errorPrefix")}:{" "}
-                {careerError || t("results.failedToLoad")}
-              </div>
-              <button
-                onClick={onBack}
-                className="px-4 py-2 bg-purple-500 rounded-lg mt-4"
-              >
-                {t("common.goBackButton")}
-              </button>
-            </div>
+      <ResultsShell
+        brand={brand}
+        onBack={onBack}
+        backLabel={t("common.goBack")}
+      >
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="text-center bg-white rounded-xl border border-gray-200 p-10 shadow-sm max-w-md">
+            <p className="text-lg mb-4 text-red-600 font-medium">
+              {t("common.errorPrefix")}:{" "}
+              {careerError || t("results.failedToLoad")}
+            </p>
+            <Button
+              onClick={onBack}
+              className="bg-primary-800 hover:bg-primary-900 text-white"
+            >
+              {t("common.goBackButton")}
+            </Button>
           </div>
         </div>
-      </div>
+      </ResultsShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <nav className="flex items-center justify-between p-4 md:p-6">
-        <button
-          onClick={onBack}
-          className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-          aria-label={t("common.goBack")}
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <Logo label={brand} />
-        <LanguageSwitcher />
-      </nav>
-
-      <div className="max-w-3xl mx-auto px-4 md:px-6 pb-8">
-        <div className="space-y-8 py-12">
-          <div className="text-center space-y-1">
-            <h1 className="text-xl font-bold tracking-tight">
-              {t("results.heading")}
-            </h1>
-            <p className="text-md text-gray-500">
-              {t("results.headingSubtitle")}
+    <ResultsShell
+      brand={brand}
+      onBack={onBack}
+      backLabel={t("common.goBack")}
+      title={t("results.pageTitle")}
+    >
+      <div className="space-y-10">
+        <div className="bg-white rounded-xl overflow-hidden shadow-lg border border-gray-200">
+          <div className="bg-gradient-to-r from-primary-800 to-primary-900 px-6 md:px-10 py-10 text-white">
+            <p className="text-body-sm font-semibold opacity-90 mb-2 uppercase tracking-wide">
+              {t("results.idealCareer")}
             </p>
-          </div>
-
-          <div className="text-center border-b border-gray-800 pb-8">
-            <h2 className="text-5xl font-bold mb-4">{career.title}</h2>
-            <p className="text-xl text-gray-500 font-light">
-              {t("results.matchScore", { score: career.matchScore })}
-            </p>
-          </div>
-
-          <div className="max-w-2xl mx-auto">
-            <p className="text-md text-gray-400 leading-relaxed text-center">
-              {career.description}
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto">
-            <div className="text-center space-y-2">
-              <p className="text-sm uppercase tracking-wider text-gray-600 font-semibold">
-                {t("results.salaryRange")}
-              </p>
-              <p className="text-md font-bold">{career.salary}</p>
-            </div>
-            <div className="text-center space-y-2">
-              <p className="text-sm uppercase tracking-wider text-gray-600 font-semibold">
-                {t("results.jobGrowth")}
-              </p>
-              <p className="text-md font-bold">{career.growth}</p>
-            </div>
-          </div>
-
-          <div className="max-w-2xl mx-auto space-y-6">
-            <h3 className="text-md uppercase tracking-wider text-gray-600 font-semibold text-center">
-              {t("results.keySkills")}
-            </h3>
-            <div className="flex flex-wrap justify-center gap-3">
-              {career.skills.map((skill, index) => (
-                <span
-                  key={index}
-                  className="px-6 py-2 rounded-full border border-gray-800 bg-gray-900/50 text-base text-gray-300"
-                >
-                  {skill}
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">{career.title}</h2>
+            <div className="flex flex-wrap items-end gap-4">
+              <div>
+                <p className="text-body-sm opacity-90 mb-1">
+                  {t("results.heading")}
+                </p>
+                <span className="text-4xl md:text-5xl font-bold">
+                  {career.matchScore}%
                 </span>
-              ))}
+              </div>
+              <div className="flex-1 min-w-[120px] max-w-md">
+                <div className="w-full h-2.5 bg-white/30 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-white rounded-full transition-all duration-700"
+                    style={{ width: `${career.matchScore}%` }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="max-w-3xl mx-auto space-y-5">
-            <h3 className="text-md uppercase tracking-wider text-gray-600 font-semibold text-center">
-              {t("results.coursesTitle")}
-            </h3>
-            <div className="grid gap-4">
-              {coursesLoading ? (
-                <>
-                  <CardSkeleton />
-                  <CardSkeleton />
-                  <CardSkeleton />
-                  <CardSkeleton />
-                </>
-              ) : coursesError || !courses?.length ? (
-                <ResultsSectionEmptyState
-                  kind="courses"
-                  title={
-                    coursesError
-                      ? t("results.coursesUnavailableTitle")
-                      : t("results.noCoursesTitle")
-                  }
-                  description={
-                    coursesError
-                      ? t("results.coursesUnavailableDescription")
-                      : t("results.noCoursesDescription")
-                  }
-                />
-              ) : (
-                courses.map((course, index) => (
-                  <a
-                    key={`${course.title}-${index}`}
-                    href={buildCourseUrl(course)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group block rounded-xl border border-gray-800 bg-gray-900/40 p-4 transition-colors hover:border-gray-700 hover:bg-gray-900/70 focus:outline-none focus:ring-2 focus:ring-purple-500/60"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="text-lg font-semibold group-hover:text-white">
-                        {course.title}
-                      </p>
-                      <ExternalLink className="w-4 h-4 mt-1.5 shrink-0 text-gray-500 group-hover:text-gray-300" />
-                    </div>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {course.provider}
-                    </p>
-                    <p className="text-sm text-gray-400 mt-2">
-                      {course.reason}
-                    </p>
-                  </a>
-                ))
-              )}
+          <div className="px-6 md:px-10 py-8 space-y-8">
+            <div>
+              <h3 className="text-h4 font-bold text-gray-900 mb-3">
+                {t("results.aboutRole")}
+              </h3>
+              <p className="text-body-sm text-gray-700 leading-relaxed">
+                {career.description}
+              </p>
             </div>
-          </div>
 
-          <div className="max-w-3xl mx-auto space-y-5">
-            <h3 className="text-md uppercase tracking-wider text-gray-600 font-semibold text-center">
-              {t("results.jobsTitle")}
-            </h3>
-            <div className="grid gap-4">
-              {jobsLoading ? (
-                <>
-                  <CardSkeleton />
-                  <CardSkeleton />
-                  <CardSkeleton />
-                  <CardSkeleton />
-                </>
-              ) : jobsError || !jobs?.length ? (
-                <ResultsSectionEmptyState
-                  kind="jobs"
-                  title={
-                    jobsError
-                      ? t("results.jobsUnavailableTitle")
-                      : t("results.noJobsTitle")
-                  }
-                  description={
-                    jobsError
-                      ? t("results.jobsUnavailableDescription")
-                      : t("results.noJobsDescription")
-                  }
-                />
-              ) : (
-                jobs.map((job, index) => (
-                  <a
-                    key={`${job.title}-${job.company}-${index}`}
-                    href={buildJobUrl(job)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group block rounded-xl border border-gray-800 bg-gray-900/40 p-4 transition-colors hover:border-gray-700 hover:bg-gray-900/70 focus:outline-none focus:ring-2 focus:ring-purple-500/60"
+            <div className="grid sm:grid-cols-2 gap-6">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-5">
+                <p className="text-body-xs font-semibold text-gray-500 uppercase mb-1">
+                  {t("results.salaryRange")}
+                </p>
+                <p className="text-lg font-bold text-gray-900">{career.salary}</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-5">
+                <p className="text-body-xs font-semibold text-gray-500 uppercase mb-1">
+                  {t("results.jobGrowth")}
+                </p>
+                <p className="text-lg font-bold text-gray-900">{career.growth}</p>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-body-sm font-semibold text-gray-500 uppercase mb-4 text-center">
+                {t("results.keySkills")}
+              </h3>
+              <div className="flex flex-wrap justify-center gap-2">
+                {career.skills.map((skill, index) => (
+                  <span
+                    key={index}
+                    className="px-4 py-2 bg-primary-50 text-primary-800 rounded-lg text-body-sm font-medium border border-primary-200"
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <p className="text-lg font-semibold group-hover:text-white">
-                          {job.title}
-                        </p>
-                        <ExternalLink className="w-4 h-4 shrink-0 text-gray-500 group-hover:text-gray-300" />
-                      </div>
-                      <span className="text-xs uppercase tracking-wide text-gray-500">
-                        {job.location}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-500 mt-1">{job.company}</p>
-                    <p className="text-sm text-gray-400 mt-2">{job.reason}</p>
-                  </a>
-                ))
-              )}
+                    {skill}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-2xl justify-center items-center flex flex-col mx-auto px-4 md:px-6 pb-8 mt-0 space-y-6">
-        <div className="flex items-center gap-2 border border-gray-800 rounded-lg py-2 px-4 text-sm text-gray-500">
-          <div className="flex -space-x-2">
-            {[...Array(3)].map((_, i) => (
-              <div
-                key={i}
-                className="w-6 h-6 rounded-full border-2 border-[#0a0a0a] bg-gray-700"
+        <section className="space-y-4">
+          <h3 className="text-h4 font-bold text-gray-900 text-center">
+            {t("results.coursesTitle")}
+          </h3>
+          <div className="grid gap-4">
+            {coursesLoading ? (
+              <>
+                <CardSkeleton />
+                <CardSkeleton />
+                <CardSkeleton />
+              </>
+            ) : coursesError || !courses?.length ? (
+              <ResultsSectionEmptyState
+                kind="courses"
+                title={
+                  coursesError
+                    ? t("results.coursesUnavailableTitle")
+                    : t("results.noCoursesTitle")
+                }
+                description={
+                  coursesError
+                    ? t("results.coursesUnavailableDescription")
+                    : t("results.noCoursesDescription")
+                }
               />
-            ))}
+            ) : (
+              courses.map((course, index) => (
+                <a
+                  key={`${course.title}-${index}`}
+                  href={buildCourseUrl(course)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group block rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:border-primary-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-500/40"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-lg font-semibold text-gray-900 group-hover:text-primary-800">
+                      {course.title}
+                    </p>
+                    <ExternalLink className="w-4 h-4 mt-1 shrink-0 text-gray-400 group-hover:text-primary-600" />
+                  </div>
+                  <p className="text-body-sm text-gray-500 mt-1">
+                    {course.provider}
+                  </p>
+                  <p className="text-body-sm text-gray-600 mt-2">
+                    {course.reason}
+                  </p>
+                </a>
+              ))
+            )}
           </div>
-          <span>{t("common.trustBadge")}</span>
-        </div>
+        </section>
 
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <div className="flex items-center gap-1">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} className="w-4 h-4 fill-gray-600 text-gray-600" />
-            ))}
+        <section className="space-y-4">
+          <h3 className="text-h4 font-bold text-gray-900 text-center">
+            {t("results.jobsTitle")}
+          </h3>
+          <div className="grid gap-4">
+            {jobsLoading ? (
+              <>
+                <CardSkeleton />
+                <CardSkeleton />
+                <CardSkeleton />
+              </>
+            ) : jobsError || !jobs?.length ? (
+              <ResultsSectionEmptyState
+                kind="jobs"
+                title={
+                  jobsError
+                    ? t("results.jobsUnavailableTitle")
+                    : t("results.noJobsTitle")
+                }
+                description={
+                  jobsError
+                    ? t("results.jobsUnavailableDescription")
+                    : t("results.noJobsDescription")
+                }
+              />
+            ) : (
+              jobs.map((job, index) => (
+                <a
+                  key={`${job.title}-${job.company}-${index}`}
+                  href={buildJobUrl(job)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group block rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:border-primary-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-500/40"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <p className="text-lg font-semibold text-gray-900 group-hover:text-primary-800">
+                        {job.title}
+                      </p>
+                      <ExternalLink className="w-4 h-4 shrink-0 text-gray-400 group-hover:text-primary-600" />
+                    </div>
+                    <span className="text-body-xs uppercase tracking-wide text-gray-500">
+                      {job.location}
+                    </span>
+                  </div>
+                  <p className="text-body-sm text-gray-500 mt-1">{job.company}</p>
+                  <p className="text-body-sm text-gray-600 mt-2">{job.reason}</p>
+                </a>
+              ))
+            )}
           </div>
-          <span>{t("common.personalizedMatching")}</span>
-        </div>
-
-        <div className="flex items-center gap-6 text-xs text-gray-600 pt-2">
-          <span>FOX</span>
-          <span>CNN</span>
-          <span>WSJ</span>
-          <span>TechCrunch</span>
-          <span>MSNBC</span>
-        </div>
+        </section>
       </div>
-    </div>
+    </ResultsShell>
   );
 }
