@@ -31,8 +31,24 @@ function buildCourseUrl(course: {
   url?: string;
 }): string {
   if (isValidHttpUrl(course.url)) return course.url;
-  const query = encodeURIComponent(`${course.title} ${course.provider} course`);
-  return `https://www.google.com/search?q=${query}`;
+  const query = encodeURIComponent(`${course.title} ${course.provider}`);
+  const provider = course.provider.toLowerCase();
+  if (provider.includes("nptel")) {
+    return `https://nptel.ac.in/courses?search=${query}`;
+  }
+  if (provider.includes("swayam")) {
+    return `https://swayam.gov.in/search?searchText=${query}`;
+  }
+  if (provider.includes("coursera")) {
+    return `https://www.coursera.org/search?query=${query}`;
+  }
+  if (provider.includes("edx")) {
+    return `https://www.edx.org/search?q=${query}`;
+  }
+  if (provider.includes("udemy")) {
+    return `https://www.udemy.com/courses/search/?src=ukw&q=${query}`;
+  }
+  return `https://www.google.com/search?q=${encodeURIComponent(`${course.title} ${course.provider} online course India`)}`;
 }
 
 function buildJobUrl(job: {
@@ -42,7 +58,7 @@ function buildJobUrl(job: {
 }): string {
   if (isValidHttpUrl(job.url)) return job.url;
   const query = encodeURIComponent(`${job.title} ${job.company}`);
-  return `https://www.linkedin.com/jobs/search/?keywords=${query}`;
+  return `https://www.linkedin.com/jobs/search/?keywords=${query}&location=India`;
 }
 
 interface ResultsPageProps {

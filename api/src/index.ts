@@ -251,7 +251,7 @@ app.post("/analyze", async (req, res) => {
     const lang = normalizeLanguage(language);
     const responses = formatQuizResponses(answers, questions, additionalInfo);
 
-    const prompt = `You are a career counselor analyzing a personality and career assessment quiz. Based on the user's responses, recommend the most suitable job profile.
+    const prompt = `You are a career counselor in India analyzing a personality and career assessment quiz. Based on the user's responses, recommend the most suitable job profile for the Indian job market.
 
 ${responses}
 Based on these responses, provide a career recommendation in JSON format with the following structure:
@@ -260,8 +260,8 @@ Based on these responses, provide a career recommendation in JSON format with th
   "description": "Detailed description explaining why this career matches the user's personality and preferences (2-3 sentences)",
   "matchScore": 85,
   "skills": ["Skill 1", "Skill 2", "Skill 3", "Skill 4"],
-  "salary": "Salary range (e.g., '$80,000 - $120,000')",
-  "growth": "Job growth projection (e.g., '15% growth expected')"
+  "salary": "Typical annual salary range in India in INR (e.g., '₹6 LPA - ₹12 LPA' or '₹8,00,000 - ₹15,00,000 per year')",
+  "growth": "Job growth outlook in India (e.g., 'Strong demand in Indian tech and services sectors')"
 }
 
 Keep the career recommendation thoughtful and based on the response patterns. The matchScore should be between 75-98. Provide 4-6 key skills.
@@ -277,7 +277,7 @@ Always return valid JSON only. Do not include courses or jobs fields in this res
       growth: string;
     }>(
       "POST /analyze",
-      "You are an expert career counselor who analyzes personality assessments and provides thoughtful, personalized career recommendations. Always respond with valid JSON only.",
+      "You are an expert career counselor in India who analyzes personality assessments and provides thoughtful, personalized career recommendations for the Indian job market. Always respond with valid JSON only.",
       prompt
     );
 
@@ -321,22 +321,32 @@ app.post("/courses", async (req, res) => {
     const lang = normalizeLanguage(language);
     const careerContext = formatCareerContext(career);
 
-    const prompt = `You are a career counselor recommending learning resources based on this career match:
+    const prompt = `You are a career counselor in India recommending learning resources based on this career match:
 
 ${careerContext}
-Recommend 4 high-quality, practical courses that will help this user grow into the "${career.title}" role. Return JSON in this exact shape:
+Recommend 4 high-quality, practical courses that will help this user grow into the "${career.title}" role in the Indian job market. Return JSON in this exact shape:
 {
   "courses": [
     {
       "title": "Course title",
-      "provider": "Platform or institution name (e.g., Coursera, edX, Udemy, LinkedIn Learning, MIT OCW)",
-      "reason": "Why this course helps for this career (1 sentence)",
+      "provider": "Platform or institution name",
+      "reason": "Why this course helps for this career in India (1 sentence; mention affordability, Hindi/regional language, or India-relevant skills where applicable)",
       "url": "Direct URL to the course page on the provider's website"
     }
   ]
 }
 
-For every course, include a real, working "url". Only use well-known, publicly reachable platforms (Coursera, edX, Udemy, LinkedIn Learning, official university pages, etc.). If you are not confident a specific course page exists, use a search URL on that platform instead (e.g., https://www.coursera.org/search?query=...).
+India-specific requirements:
+- Prioritize resources accessible and valuable to learners in India: affordable pricing (INR), India-relevant examples, and skills demanded by Indian employers.
+- Prefer a mix of these providers where relevant:
+  - Free/government: NPTEL (https://nptel.ac.in), SWAYAM (https://swayam.gov.in)
+  - Indian platforms: upGrad, Unacademy, Great Learning, Scaler, Simplilearn, NIIT, Internshala Trainings
+  - Global platforms widely used in India: Coursera, edX, Udemy, LinkedIn Learning (mention if financial aid or India pricing applies in reason when relevant)
+  - Indian universities and IITs/IIMs: official course pages on institute sites
+- Include at least 2 courses from India-based platforms or NPTEL/SWAYAM when suitable for the career.
+- Reasons should note relevance to Indian industry, hiring trends, or entry-level paths in India where natural.
+
+For every course, include a real, working "url". Only use well-known, publicly reachable platforms. If you are not confident a specific course page exists, use a search URL on that platform instead (e.g., https://www.coursera.org/search?query=..., https://nptel.ac.in/courses, https://swayam.gov.in/search?searchText=...).
 ${languageInstruction(lang)}
 Always return valid JSON only.`;
 
@@ -349,7 +359,7 @@ Always return valid JSON only.`;
       }>;
     }>(
       "POST /courses",
-      "You are an expert career counselor recommending concrete learning resources. Always respond with valid JSON only.",
+      "You are an expert career counselor specializing in upskilling for the Indian job market. Recommend concrete, practical learning resources for candidates in India. Always respond with valid JSON only.",
       prompt
     );
 
@@ -397,23 +407,34 @@ app.post("/jobs", async (req, res) => {
     const lang = normalizeLanguage(language);
     const careerContext = formatCareerContext(career);
 
-    const prompt = `You are a career counselor recommending job opportunities based on this career match:
+    const prompt = `You are a career counselor in India recommending job opportunities based on this career match:
 
 ${careerContext}
-Recommend 4 realistic job opportunities that match the "${career.title}" career and would be accessible to someone entering this path. Return JSON in this exact shape:
+Recommend 4 realistic job opportunities in India that match the "${career.title}" career and would be accessible to someone entering this path in the Indian job market. Return JSON in this exact shape:
 {
   "jobs": [
     {
-      "title": "Job role title",
+      "title": "Job role title (use titles common in India, e.g. Analyst, Associate, Executive)",
       "company": "Company name",
-      "location": "City, Country or Remote",
-      "reason": "Why this role is a strong fit (1 sentence)",
-      "url": "URL to the job listing or the company's careers page"
+      "location": "Indian city and state, or Remote (India)",
+      "reason": "Why this role is a strong fit for a candidate in India (1 sentence)",
+      "url": "URL to the job listing or careers page"
     }
   ]
 }
 
-For every job, include a real, working "url". Only use well-known, publicly reachable platforms (LinkedIn Jobs, Indeed, official company careers pages, etc.). If you are not confident a specific listing exists, use a search URL on that platform instead (e.g., https://www.linkedin.com/jobs/search/?keywords=...).
+India-specific requirements:
+- All roles must be based in India: use cities such as Bengaluru, Mumbai, Delhi NCR, Hyderabad, Pune, Chennai, Kolkata, Ahmedabad, or Remote (India).
+- Prefer employers active in India: Indian companies (e.g. TCS, Infosys, Wipro, HCL, Flipkart, Swiggy, Zomato, Razorpay, BYJU'S), startups, and India offices of global firms (e.g. Amazon India, Google India, Microsoft India).
+- Mix entry-level and early-career roles where appropriate for someone new to the field.
+- Location must always include India (never US-only or generic "Remote" without India context).
+
+For every job, include a real, working "url". Prefer India-focused job platforms and careers pages:
+- Naukri.com (https://www.naukri.com/...)
+- LinkedIn Jobs India (https://www.linkedin.com/jobs/search/?keywords=...&location=India)
+- Indeed India (https://in.indeed.com/jobs?q=...&l=...)
+- Foundit / Monster India, Instahyre, or official company India careers pages
+If you are not confident a specific listing exists, use a search URL on one of these platforms filtered for India.
 ${languageInstruction(lang)}
 Always return valid JSON only.`;
 
@@ -427,7 +448,7 @@ Always return valid JSON only.`;
       }>;
     }>(
       "POST /jobs",
-      "You are an expert career counselor recommending concrete job opportunities. Always respond with valid JSON only.",
+      "You are an expert career counselor specializing in the Indian job market. Recommend concrete, realistic opportunities for candidates in India. Always respond with valid JSON only.",
       prompt
     );
 
