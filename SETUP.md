@@ -4,7 +4,7 @@ This guide will help you set up the quiz app with MongoDB and OpenAI integration
 
 ## Prerequisites
 
-- Node.js and Bun installed
+- Node.js 18+ installed
 - A MongoDB instance (local, Docker, or MongoDB Atlas free tier)
 - OpenAI API key
 
@@ -14,7 +14,7 @@ This guide will help you set up the quiz app with MongoDB and OpenAI integration
 
 ```bash
 cd api
-bun install
+npm install
 ```
 
 ### 2. Set Up Environment Variables
@@ -46,13 +46,13 @@ create the `questions` collection and a unique index on the numeric `id` field:
 
 ```bash
 cd api
-bun run setup-db
+npm run setup-db
 ```
 
 Then seed the questions:
 
 ```bash
-bun run seed
+npm run seed
 ```
 
 This will insert all 30 questions into your `quiz_app.questions` collection.
@@ -63,7 +63,7 @@ new ones.
 
 ```bash
 cd api
-bun run dev
+npm run dev
 ```
 
 The API will be available at `http://localhost:3000`

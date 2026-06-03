@@ -148,9 +148,6 @@ export function ResultsPage({
         setCoursesLoading(true);
         setCoursesError(null);
         const result = await fetchCourseRecommendations({
-          answers,
-          questions,
-          additionalInfo,
           language,
           career: careerContext,
         });
@@ -171,9 +168,6 @@ export function ResultsPage({
         setJobsLoading(true);
         setJobsError(null);
         const result = await fetchJobRecommendations({
-          answers,
-          questions,
-          additionalInfo,
           language,
           career: careerContext,
         });
@@ -195,7 +189,7 @@ export function ResultsPage({
     return () => {
       cancelled = true;
     };
-  }, [career, answers, questions, additionalInfo, language, t]);
+  }, [career, language, t]);
 
   const brand = t("common.brand");
 

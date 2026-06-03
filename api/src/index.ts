@@ -67,26 +67,122 @@ function languageInstruction(language: string): string {
   return `Respond fully in ${name} (language code: ${language}). All human-readable string values in the JSON (titles, descriptions, reasons, skill names, salary, growth, location) must be written naturally in ${name}. URLs must remain in their original form. Do not mix languages.`;
 }
 
+function formatCareerContext(career: {
+  title: string;
+  description?: string;
+  skills?: string[];
+}): string {
+  let section = `Career match: ${career.title}\n`;
+  if (career.description?.trim()) {
+    section += `Description: ${career.description.trim()}\n`;
+  }
+  if (career.skills && career.skills.length > 0) {
+    section += `Key skills: ${career.skills.join(", ")}\n`;
+  }
+  return section;
+}
+
+function formatMs(ms: number): string {
+  return `${ms.toFixed(0)}ms`;
+}
+
+function logBenchmark(
+  label: string,
+  timings: {
+    aiMs: number;
+    parseMs?: number;
+    requestMs?: number;
+    promptTokens?: number;
+    completionTokens?: number;
+  }
+): void {
+  const parts = [
+    `[benchmark] ${label}`,
+    `ai=${formatMs(timings.aiMs)}`,
+  ];
+
+  if (timings.parseMs !== undefined) {
+    parts.push(`parse=${formatMs(timings.parseMs)}`);
+  }
+  if (timings.requestMs !== undefined) {
+    parts.push(`request=${formatMs(timings.requestMs)}`);
+  }
+  if (
+    timings.promptTokens !== undefined &&
+    timings.completionTokens !== undefined
+  ) {
+    parts.push(
+      `tokens=${timings.promptTokens}+${timings.completionTokens}=${timings.promptTokens + timings.completionTokens}`
+    );
+  }
+
+  parts.push(`model=${OPENAI_MODEL}`);
+  console.log(parts.join(" "));
+}
+
+function logRequestTotal(label: string, requestStarted: number): void {
+  console.log(
+    `[benchmark] ${label} request=${formatMs(performance.now() - requestStarted)}`
+  );
+}
+
 async function runJsonCompletion<T>(
+  label: string,
   systemPrompt: string,
   userPrompt: string
 ): Promise<T | null> {
-  const completion = await openai.chat.completions.create({
-    model: OPENAI_MODEL,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
-    response_format: { type: "json_object" },
-  });
+  const aiStarted = performance.now();
+
+  let completion;
+  try {
+    completion = await openai.chat.completions.create({
+      model: OPENAI_MODEL,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      response_format: { type: "json_object" },
+    });
+  } catch (error) {
+    console.error(
+      `[benchmark] ${label} ai=failed after ${formatMs(performance.now() - aiStarted)} model=${OPENAI_MODEL}`,
+      error
+    );
+    throw error;
+  }
+
+  const aiMs = performance.now() - aiStarted;
+  const usage = completion.usage;
 
   const content = completion.choices[0]?.message?.content;
-  if (!content) return null;
+  if (!content) {
+    logBenchmark(label, {
+      aiMs,
+      promptTokens: usage?.prompt_tokens,
+      completionTokens: usage?.completion_tokens,
+    });
+    console.warn(`[benchmark] ${label} empty content from OpenAI`);
+    return null;
+  }
 
+  const parseStarted = performance.now();
   try {
-    return JSON.parse(content) as T;
+    const parsed = JSON.parse(content) as T;
+    logBenchmark(label, {
+      aiMs,
+      parseMs: performance.now() - parseStarted,
+      promptTokens: usage?.prompt_tokens,
+      completionTokens: usage?.completion_tokens,
+    });
+    return parsed;
   } catch (parseError) {
-    console.error("Error parsing OpenAI response:", parseError);
+    logBenchmark(label, {
+      aiMs,
+      parseMs: performance.now() - parseStarted,
+      promptTokens: usage?.prompt_tokens,
+      completionTokens: usage?.completion_tokens,
+    });
+    console.error(`[benchmark] ${label} JSON parse error:`, parseError);
     return null;
   }
 }
@@ -138,6 +234,7 @@ app.get("/questions", async (req, res) => {
 });
 
 app.post("/analyze", async (req, res) => {
+  const requestStarted = performance.now();
   try {
     const { answers, questions, additionalInfo, language } = req.body as {
       answers: number[];
@@ -179,17 +276,23 @@ Always return valid JSON only. Do not include courses or jobs fields in this res
       salary: string;
       growth: string;
     }>(
+      "POST /analyze",
       "You are an expert career counselor who analyzes personality assessments and provides thoughtful, personalized career recommendations. Always respond with valid JSON only.",
       prompt
     );
 
     if (!recommendation) {
+      logRequestTotal("POST /analyze", requestStarted);
       res.json({ error: "Failed to generate recommendation" });
       return;
     }
 
+    logRequestTotal("POST /analyze", requestStarted);
     res.json({ recommendation });
   } catch (error) {
+    console.error(
+      `[benchmark] POST /analyze request=failed after ${formatMs(performance.now() - requestStarted)}`
+    );
     console.error("Error analyzing answers:", error);
     res.json({
       error: "Internal server error",
@@ -199,16 +302,14 @@ Always return valid JSON only. Do not include courses or jobs fields in this res
 });
 
 app.post("/courses", async (req, res) => {
+  const requestStarted = performance.now();
   try {
-    const { career, answers, questions, additionalInfo, language } = req.body as {
+    const { career, language } = req.body as {
       career: {
         title: string;
         description?: string;
         skills?: string[];
       };
-      answers?: number[];
-      questions?: AnswerQuestion[];
-      additionalInfo?: string;
       language?: string;
     };
 
@@ -218,19 +319,11 @@ app.post("/courses", async (req, res) => {
     }
 
     const lang = normalizeLanguage(language);
-    const responseContext =
-      answers && questions && answers.length === questions.length
-        ? formatQuizResponses(answers, questions, additionalInfo)
-        : "";
+    const careerContext = formatCareerContext(career);
 
-    const prompt = `You are a career counselor recommending learning resources for a user who has been matched with the career: "${career.title}".
+    const prompt = `You are a career counselor recommending learning resources based on this career match:
 
-${career.description ? `Career description: ${career.description}\n` : ""}${
-      career.skills && career.skills.length > 0
-        ? `Key skills for this role: ${career.skills.join(", ")}\n`
-        : ""
-    }
-${responseContext ? `For additional context, here is the user's quiz data:\n${responseContext}` : ""}
+${careerContext}
 Recommend 4 high-quality, practical courses that will help this user grow into the "${career.title}" role. Return JSON in this exact shape:
 {
   "courses": [
@@ -255,11 +348,13 @@ Always return valid JSON only.`;
         url?: string;
       }>;
     }>(
+      "POST /courses",
       "You are an expert career counselor recommending concrete learning resources. Always respond with valid JSON only.",
       prompt
     );
 
     if (!parsed) {
+      logRequestTotal("POST /courses", requestStarted);
       res.json({ error: "Failed to generate course recommendations" });
       return;
     }
@@ -268,8 +363,12 @@ Always return valid JSON only.`;
       ? parsed.courses.slice(0, 4)
       : [];
 
+    logRequestTotal("POST /courses", requestStarted);
     res.json({ courses });
   } catch (error) {
+    console.error(
+      `[benchmark] POST /courses request=failed after ${formatMs(performance.now() - requestStarted)}`
+    );
     console.error("Error generating courses:", error);
     res.json({
       error: "Internal server error",
@@ -279,16 +378,14 @@ Always return valid JSON only.`;
 });
 
 app.post("/jobs", async (req, res) => {
+  const requestStarted = performance.now();
   try {
-    const { career, answers, questions, additionalInfo, language } = req.body as {
+    const { career, language } = req.body as {
       career: {
         title: string;
         description?: string;
         skills?: string[];
       };
-      answers?: number[];
-      questions?: AnswerQuestion[];
-      additionalInfo?: string;
       language?: string;
     };
 
@@ -298,19 +395,11 @@ app.post("/jobs", async (req, res) => {
     }
 
     const lang = normalizeLanguage(language);
-    const responseContext =
-      answers && questions && answers.length === questions.length
-        ? formatQuizResponses(answers, questions, additionalInfo)
-        : "";
+    const careerContext = formatCareerContext(career);
 
-    const prompt = `You are a career counselor recommending job opportunities for a user who has been matched with the career: "${career.title}".
+    const prompt = `You are a career counselor recommending job opportunities based on this career match:
 
-${career.description ? `Career description: ${career.description}\n` : ""}${
-      career.skills && career.skills.length > 0
-        ? `Key skills for this role: ${career.skills.join(", ")}\n`
-        : ""
-    }
-${responseContext ? `For additional context, here is the user's quiz data:\n${responseContext}` : ""}
+${careerContext}
 Recommend 4 realistic job opportunities that match the "${career.title}" career and would be accessible to someone entering this path. Return JSON in this exact shape:
 {
   "jobs": [
@@ -337,19 +426,25 @@ Always return valid JSON only.`;
         url?: string;
       }>;
     }>(
+      "POST /jobs",
       "You are an expert career counselor recommending concrete job opportunities. Always respond with valid JSON only.",
       prompt
     );
 
     if (!parsed) {
+      logRequestTotal("POST /jobs", requestStarted);
       res.json({ error: "Failed to generate job recommendations" });
       return;
     }
 
     const jobs = Array.isArray(parsed.jobs) ? parsed.jobs.slice(0, 4) : [];
 
+    logRequestTotal("POST /jobs", requestStarted);
     res.json({ jobs });
   } catch (error) {
+    console.error(
+      `[benchmark] POST /jobs request=failed after ${formatMs(performance.now() - requestStarted)}`
+    );
     console.error("Error generating jobs:", error);
     res.json({
       error: "Internal server error",

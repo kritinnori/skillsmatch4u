@@ -74,8 +74,9 @@ export async function analyzeAnswers(
   return data.recommendation;
 }
 
-export interface RecommendationRequest extends AnalyzeRequest {
+export interface RecommendationRequest {
   career: Pick<CareerCore, "title" | "description" | "skills">;
+  language?: string;
 }
 
 export async function fetchCourseRecommendations(
