@@ -1,5 +1,5 @@
-import { Elysia } from "elysia";
-import { cors } from "@elysiajs/cors";
+import express from "express";
+import cors from "cors";
 import OpenAI from "openai";
 import { getQuestionsCollection } from "./db";
 import {
@@ -8,7 +8,7 @@ import {
   normalizeLanguage,
 } from "./languages";
 
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5";
 
 const openai = new OpenAI({
@@ -67,26 +67,122 @@ function languageInstruction(language: string): string {
   return `Respond fully in ${name} (language code: ${language}). All human-readable string values in the JSON (titles, descriptions, reasons, skill names, salary, growth, location) must be written naturally in ${name}. URLs must remain in their original form. Do not mix languages.`;
 }
 
+function formatCareerContext(career: {
+  title: string;
+  description?: string;
+  skills?: string[];
+}): string {
+  let section = `Career match: ${career.title}\n`;
+  if (career.description?.trim()) {
+    section += `Description: ${career.description.trim()}\n`;
+  }
+  if (career.skills && career.skills.length > 0) {
+    section += `Key skills: ${career.skills.join(", ")}\n`;
+  }
+  return section;
+}
+
+function formatMs(ms: number): string {
+  return `${ms.toFixed(0)}ms`;
+}
+
+function logBenchmark(
+  label: string,
+  timings: {
+    aiMs: number;
+    parseMs?: number;
+    requestMs?: number;
+    promptTokens?: number;
+    completionTokens?: number;
+  }
+): void {
+  const parts = [
+    `[benchmark] ${label}`,
+    `ai=${formatMs(timings.aiMs)}`,
+  ];
+
+  if (timings.parseMs !== undefined) {
+    parts.push(`parse=${formatMs(timings.parseMs)}`);
+  }
+  if (timings.requestMs !== undefined) {
+    parts.push(`request=${formatMs(timings.requestMs)}`);
+  }
+  if (
+    timings.promptTokens !== undefined &&
+    timings.completionTokens !== undefined
+  ) {
+    parts.push(
+      `tokens=${timings.promptTokens}+${timings.completionTokens}=${timings.promptTokens + timings.completionTokens}`
+    );
+  }
+
+  parts.push(`model=${OPENAI_MODEL}`);
+  console.log(parts.join(" "));
+}
+
+function logRequestTotal(label: string, requestStarted: number): void {
+  console.log(
+    `[benchmark] ${label} request=${formatMs(performance.now() - requestStarted)}`
+  );
+}
+
 async function runJsonCompletion<T>(
+  label: string,
   systemPrompt: string,
   userPrompt: string
 ): Promise<T | null> {
-  const completion = await openai.chat.completions.create({
-    model: OPENAI_MODEL,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
-    response_format: { type: "json_object" },
-  });
+  const aiStarted = performance.now();
+
+  let completion;
+  try {
+    completion = await openai.chat.completions.create({
+      model: OPENAI_MODEL,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      response_format: { type: "json_object" },
+    });
+  } catch (error) {
+    console.error(
+      `[benchmark] ${label} ai=failed after ${formatMs(performance.now() - aiStarted)} model=${OPENAI_MODEL}`,
+      error
+    );
+    throw error;
+  }
+
+  const aiMs = performance.now() - aiStarted;
+  const usage = completion.usage;
 
   const content = completion.choices[0]?.message?.content;
-  if (!content) return null;
+  if (!content) {
+    logBenchmark(label, {
+      aiMs,
+      promptTokens: usage?.prompt_tokens,
+      completionTokens: usage?.completion_tokens,
+    });
+    console.warn(`[benchmark] ${label} empty content from OpenAI`);
+    return null;
+  }
 
+  const parseStarted = performance.now();
   try {
-    return JSON.parse(content) as T;
+    const parsed = JSON.parse(content) as T;
+    logBenchmark(label, {
+      aiMs,
+      parseMs: performance.now() - parseStarted,
+      promptTokens: usage?.prompt_tokens,
+      completionTokens: usage?.completion_tokens,
+    });
+    return parsed;
   } catch (parseError) {
-    console.error("Error parsing OpenAI response:", parseError);
+    logBenchmark(label, {
+      aiMs,
+      parseMs: performance.now() - parseStarted,
+      promptTokens: usage?.prompt_tokens,
+      completionTokens: usage?.completion_tokens,
+    });
+    console.error(`[benchmark] ${label} JSON parse error:`, parseError);
     return null;
   }
 }
@@ -108,47 +204,54 @@ async function getQuestionsInLanguage(
     id,
     category,
     question:
-      (translations && translations[language]) || question, // fallback to English if missing
+      (translations && translations[language]) || question,
   }));
 }
 
-const app = new Elysia()
-  .use(cors())
-  .get("/", () => {
-    return { message: "Quiz API is running" };
-  })
-  .get("/questions", async ({ query }) => {
-    try {
-      const language = normalizeLanguage(
-        (query as { lang?: string } | undefined)?.lang
-      );
-      const questions = await getQuestionsInLanguage(language);
-      return { questions, language };
-    } catch (error) {
-      console.error("Error fetching questions:", error);
-      return {
-        error: "Failed to fetch questions",
-        details: error instanceof Error ? error.message : "Unknown error",
-      };
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+app.get("/", (_req, res) => {
+  res.json({ message: "Quiz API is running" });
+});
+
+app.get("/questions", async (req, res) => {
+  try {
+    const language = normalizeLanguage(
+      typeof req.query.lang === "string" ? req.query.lang : undefined
+    );
+    const questions = await getQuestionsInLanguage(language);
+    res.json({ questions, language });
+  } catch (error) {
+    console.error("Error fetching questions:", error);
+    res.json({
+      error: "Failed to fetch questions",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+app.post("/analyze", async (req, res) => {
+  const requestStarted = performance.now();
+  try {
+    const { answers, questions, additionalInfo, language } = req.body as {
+      answers: number[];
+      questions: AnswerQuestion[];
+      additionalInfo?: string;
+      language?: string;
+    };
+
+    if (!answers || !questions || answers.length !== questions.length) {
+      res.json({ error: "Invalid request: answers and questions must match" });
+      return;
     }
-  })
-  .post("/analyze", async ({ body }) => {
-    try {
-      const { answers, questions, additionalInfo, language } = body as {
-        answers: number[];
-        questions: AnswerQuestion[];
-        additionalInfo?: string;
-        language?: string;
-      };
 
-      if (!answers || !questions || answers.length !== questions.length) {
-        return { error: "Invalid request: answers and questions must match" };
-      }
+    const lang = normalizeLanguage(language);
+    const responses = formatQuizResponses(answers, questions, additionalInfo);
 
-      const lang = normalizeLanguage(language);
-      const responses = formatQuizResponses(answers, questions, additionalInfo);
-
-      const prompt = `You are a career counselor analyzing a personality and career assessment quiz. Based on the user's responses, recommend the most suitable job profile.
+    const prompt = `You are a career counselor in India analyzing a personality and career assessment quiz. Based on the user's responses, recommend the most suitable job profile for the Indian job market.
 
 ${responses}
 Based on these responses, provide a career recommendation in JSON format with the following structure:
@@ -157,195 +260,220 @@ Based on these responses, provide a career recommendation in JSON format with th
   "description": "Detailed description explaining why this career matches the user's personality and preferences (2-3 sentences)",
   "matchScore": 85,
   "skills": ["Skill 1", "Skill 2", "Skill 3", "Skill 4"],
-  "salary": "Salary range (e.g., '$80,000 - $120,000')",
-  "growth": "Job growth projection (e.g., '15% growth expected')"
+  "salary": "Typical annual salary range in India in INR (e.g., '₹6 LPA - ₹12 LPA' or '₹8,00,000 - ₹15,00,000 per year')",
+  "growth": "Job growth outlook in India (e.g., 'Strong demand in Indian tech and services sectors')"
 }
 
 Keep the career recommendation thoughtful and based on the response patterns. The matchScore should be between 75-98. Provide 4-6 key skills.
 ${languageInstruction(lang)}
 Always return valid JSON only. Do not include courses or jobs fields in this response.`;
 
-      const recommendation = await runJsonCompletion<{
-        title: string;
-        description: string;
-        matchScore: number;
-        skills: string[];
-        salary: string;
-        growth: string;
-      }>(
-        "You are an expert career counselor who analyzes personality assessments and provides thoughtful, personalized career recommendations. Always respond with valid JSON only.",
-        prompt
-      );
+    const recommendation = await runJsonCompletion<{
+      title: string;
+      description: string;
+      matchScore: number;
+      skills: string[];
+      salary: string;
+      growth: string;
+    }>(
+      "POST /analyze",
+      "You are an expert career counselor in India who analyzes personality assessments and provides thoughtful, personalized career recommendations for the Indian job market. Always respond with valid JSON only.",
+      prompt
+    );
 
-      if (!recommendation) {
-        return { error: "Failed to generate recommendation" };
-      }
-
-      return { recommendation };
-    } catch (error) {
-      console.error("Error analyzing answers:", error);
-      return {
-        error: "Internal server error",
-        details: error instanceof Error ? error.message : "Unknown error",
-      };
+    if (!recommendation) {
+      logRequestTotal("POST /analyze", requestStarted);
+      res.json({ error: "Failed to generate recommendation" });
+      return;
     }
-  })
-  .post("/courses", async ({ body }) => {
-    try {
-      const { career, answers, questions, additionalInfo, language } = body as {
-        career: {
-          title: string;
-          description?: string;
-          skills?: string[];
-        };
-        answers?: number[];
-        questions?: AnswerQuestion[];
-        additionalInfo?: string;
-        language?: string;
+
+    logRequestTotal("POST /analyze", requestStarted);
+    res.json({ recommendation });
+  } catch (error) {
+    console.error(
+      `[benchmark] POST /analyze request=failed after ${formatMs(performance.now() - requestStarted)}`
+    );
+    console.error("Error analyzing answers:", error);
+    res.json({
+      error: "Internal server error",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+app.post("/courses", async (req, res) => {
+  const requestStarted = performance.now();
+  try {
+    const { career, language } = req.body as {
+      career: {
+        title: string;
+        description?: string;
+        skills?: string[];
       };
+      language?: string;
+    };
 
-      if (!career || !career.title) {
-        return { error: "Invalid request: career.title is required" };
-      }
+    if (!career || !career.title) {
+      res.json({ error: "Invalid request: career.title is required" });
+      return;
+    }
 
-      const lang = normalizeLanguage(language);
-      const responseContext =
-        answers && questions && answers.length === questions.length
-          ? formatQuizResponses(answers, questions, additionalInfo)
-          : "";
+    const lang = normalizeLanguage(language);
+    const careerContext = formatCareerContext(career);
 
-      const prompt = `You are a career counselor recommending learning resources for a user who has been matched with the career: "${career.title}".
+    const prompt = `You are a career counselor in India recommending learning resources based on this career match:
 
-${career.description ? `Career description: ${career.description}\n` : ""}${
-        career.skills && career.skills.length > 0
-          ? `Key skills for this role: ${career.skills.join(", ")}\n`
-          : ""
-      }
-${responseContext ? `For additional context, here is the user's quiz data:\n${responseContext}` : ""}
-Recommend 4 high-quality, practical courses that will help this user grow into the "${career.title}" role. Return JSON in this exact shape:
+${careerContext}
+Recommend 4 high-quality, practical courses that will help this user grow into the "${career.title}" role in the Indian job market. Return JSON in this exact shape:
 {
   "courses": [
     {
       "title": "Course title",
-      "provider": "Platform or institution name (e.g., Coursera, edX, Udemy, LinkedIn Learning, MIT OCW)",
-      "reason": "Why this course helps for this career (1 sentence)",
+      "provider": "Platform or institution name",
+      "reason": "Why this course helps for this career in India (1 sentence; mention affordability, Hindi/regional language, or India-relevant skills where applicable)",
       "url": "Direct URL to the course page on the provider's website"
     }
   ]
 }
 
-For every course, include a real, working "url". Only use well-known, publicly reachable platforms (Coursera, edX, Udemy, LinkedIn Learning, official university pages, etc.). If you are not confident a specific course page exists, use a search URL on that platform instead (e.g., https://www.coursera.org/search?query=...).
+India-specific requirements:
+- Prioritize resources accessible and valuable to learners in India: affordable pricing (INR), India-relevant examples, and skills demanded by Indian employers.
+- Prefer a mix of these providers where relevant:
+  - Free/government: NPTEL (https://nptel.ac.in), SWAYAM (https://swayam.gov.in)
+  - Indian platforms: upGrad, Unacademy, Great Learning, Scaler, Simplilearn, NIIT, Internshala Trainings
+  - Global platforms widely used in India: Coursera, edX, Udemy, LinkedIn Learning (mention if financial aid or India pricing applies in reason when relevant)
+  - Indian universities and IITs/IIMs: official course pages on institute sites
+- Include at least 2 courses from India-based platforms or NPTEL/SWAYAM when suitable for the career.
+- Reasons should note relevance to Indian industry, hiring trends, or entry-level paths in India where natural.
+
+For every course, include a real, working "url". Only use well-known, publicly reachable platforms. If you are not confident a specific course page exists, use a search URL on that platform instead (e.g., https://www.coursera.org/search?query=..., https://nptel.ac.in/courses, https://swayam.gov.in/search?searchText=...).
 ${languageInstruction(lang)}
 Always return valid JSON only.`;
 
-      const parsed = await runJsonCompletion<{
-        courses?: Array<{
-          title: string;
-          provider: string;
-          reason: string;
-          url?: string;
-        }>;
-      }>(
-        "You are an expert career counselor recommending concrete learning resources. Always respond with valid JSON only.",
-        prompt
-      );
+    const parsed = await runJsonCompletion<{
+      courses?: Array<{
+        title: string;
+        provider: string;
+        reason: string;
+        url?: string;
+      }>;
+    }>(
+      "POST /courses",
+      "You are an expert career counselor specializing in upskilling for the Indian job market. Recommend concrete, practical learning resources for candidates in India. Always respond with valid JSON only.",
+      prompt
+    );
 
-      if (!parsed) {
-        return { error: "Failed to generate course recommendations" };
-      }
-
-      const courses = Array.isArray(parsed.courses)
-        ? parsed.courses.slice(0, 4)
-        : [];
-
-      return { courses };
-    } catch (error) {
-      console.error("Error generating courses:", error);
-      return {
-        error: "Internal server error",
-        details: error instanceof Error ? error.message : "Unknown error",
-      };
+    if (!parsed) {
+      logRequestTotal("POST /courses", requestStarted);
+      res.json({ error: "Failed to generate course recommendations" });
+      return;
     }
-  })
-  .post("/jobs", async ({ body }) => {
-    try {
-      const { career, answers, questions, additionalInfo, language } = body as {
-        career: {
-          title: string;
-          description?: string;
-          skills?: string[];
-        };
-        answers?: number[];
-        questions?: AnswerQuestion[];
-        additionalInfo?: string;
-        language?: string;
+
+    const courses = Array.isArray(parsed.courses)
+      ? parsed.courses.slice(0, 4)
+      : [];
+
+    logRequestTotal("POST /courses", requestStarted);
+    res.json({ courses });
+  } catch (error) {
+    console.error(
+      `[benchmark] POST /courses request=failed after ${formatMs(performance.now() - requestStarted)}`
+    );
+    console.error("Error generating courses:", error);
+    res.json({
+      error: "Internal server error",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+app.post("/jobs", async (req, res) => {
+  const requestStarted = performance.now();
+  try {
+    const { career, language } = req.body as {
+      career: {
+        title: string;
+        description?: string;
+        skills?: string[];
       };
+      language?: string;
+    };
 
-      if (!career || !career.title) {
-        return { error: "Invalid request: career.title is required" };
-      }
+    if (!career || !career.title) {
+      res.json({ error: "Invalid request: career.title is required" });
+      return;
+    }
 
-      const lang = normalizeLanguage(language);
-      const responseContext =
-        answers && questions && answers.length === questions.length
-          ? formatQuizResponses(answers, questions, additionalInfo)
-          : "";
+    const lang = normalizeLanguage(language);
+    const careerContext = formatCareerContext(career);
 
-      const prompt = `You are a career counselor recommending job opportunities for a user who has been matched with the career: "${career.title}".
+    const prompt = `You are a career counselor in India recommending job opportunities based on this career match:
 
-${career.description ? `Career description: ${career.description}\n` : ""}${
-        career.skills && career.skills.length > 0
-          ? `Key skills for this role: ${career.skills.join(", ")}\n`
-          : ""
-      }
-${responseContext ? `For additional context, here is the user's quiz data:\n${responseContext}` : ""}
-Recommend 4 realistic job opportunities that match the "${career.title}" career and would be accessible to someone entering this path. Return JSON in this exact shape:
+${careerContext}
+Recommend 4 realistic job opportunities in India that match the "${career.title}" career and would be accessible to someone entering this path in the Indian job market. Return JSON in this exact shape:
 {
   "jobs": [
     {
-      "title": "Job role title",
+      "title": "Job role title (use titles common in India, e.g. Analyst, Associate, Executive)",
       "company": "Company name",
-      "location": "City, Country or Remote",
-      "reason": "Why this role is a strong fit (1 sentence)",
-      "url": "URL to the job listing or the company's careers page"
+      "location": "Indian city and state, or Remote (India)",
+      "reason": "Why this role is a strong fit for a candidate in India (1 sentence)",
+      "url": "URL to the job listing or careers page"
     }
   ]
 }
 
-For every job, include a real, working "url". Only use well-known, publicly reachable platforms (LinkedIn Jobs, Indeed, official company careers pages, etc.). If you are not confident a specific listing exists, use a search URL on that platform instead (e.g., https://www.linkedin.com/jobs/search/?keywords=...).
+India-specific requirements:
+- All roles must be based in India: use cities such as Bengaluru, Mumbai, Delhi NCR, Hyderabad, Pune, Chennai, Kolkata, Ahmedabad, or Remote (India).
+- Prefer employers active in India: Indian companies (e.g. TCS, Infosys, Wipro, HCL, Flipkart, Swiggy, Zomato, Razorpay, BYJU'S), startups, and India offices of global firms (e.g. Amazon India, Google India, Microsoft India).
+- Mix entry-level and early-career roles where appropriate for someone new to the field.
+- Location must always include India (never US-only or generic "Remote" without India context).
+
+For every job, include a real, working "url". Prefer India-focused job platforms and careers pages:
+- Naukri.com (https://www.naukri.com/...)
+- LinkedIn Jobs India (https://www.linkedin.com/jobs/search/?keywords=...&location=India)
+- Indeed India (https://in.indeed.com/jobs?q=...&l=...)
+- Foundit / Monster India, Instahyre, or official company India careers pages
+If you are not confident a specific listing exists, use a search URL on one of these platforms filtered for India.
 ${languageInstruction(lang)}
 Always return valid JSON only.`;
 
-      const parsed = await runJsonCompletion<{
-        jobs?: Array<{
-          title: string;
-          company: string;
-          location: string;
-          reason: string;
-          url?: string;
-        }>;
-      }>(
-        "You are an expert career counselor recommending concrete job opportunities. Always respond with valid JSON only.",
-        prompt
-      );
+    const parsed = await runJsonCompletion<{
+      jobs?: Array<{
+        title: string;
+        company: string;
+        location: string;
+        reason: string;
+        url?: string;
+      }>;
+    }>(
+      "POST /jobs",
+      "You are an expert career counselor specializing in the Indian job market. Recommend concrete, realistic opportunities for candidates in India. Always respond with valid JSON only.",
+      prompt
+    );
 
-      if (!parsed) {
-        return { error: "Failed to generate job recommendations" };
-      }
-
-      const jobs = Array.isArray(parsed.jobs) ? parsed.jobs.slice(0, 4) : [];
-
-      return { jobs };
-    } catch (error) {
-      console.error("Error generating jobs:", error);
-      return {
-        error: "Internal server error",
-        details: error instanceof Error ? error.message : "Unknown error",
-      };
+    if (!parsed) {
+      logRequestTotal("POST /jobs", requestStarted);
+      res.json({ error: "Failed to generate job recommendations" });
+      return;
     }
-  })
-  .listen(PORT);
 
-console.log(
-  `🦊 Elysia is running at http://${app.server?.hostname}:${app.server?.port}`
-);
+    const jobs = Array.isArray(parsed.jobs) ? parsed.jobs.slice(0, 4) : [];
+
+    logRequestTotal("POST /jobs", requestStarted);
+    res.json({ jobs });
+  } catch (error) {
+    console.error(
+      `[benchmark] POST /jobs request=failed after ${formatMs(performance.now() - requestStarted)}`
+    );
+    console.error("Error generating jobs:", error);
+    res.json({
+      error: "Internal server error",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Quiz API running at http://localhost:${PORT}`);
+});

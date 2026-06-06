@@ -1,9 +1,15 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
-import { ArrowLeft, Star } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Zap,
+  BarChart3,
+} from "lucide-react";
 import type { Question } from "../types/question";
-import { LanguageSwitcher } from "./LanguageSwitcher";
+import { PageHeader } from "./layout/PageHeader";
 
 interface QuizPageProps {
   questions: Question[];
@@ -34,6 +40,10 @@ export function QuizPage({ questions, onComplete, onBack }: QuizPageProps) {
   const currentQuestion = questions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
   const isFirstQuestion = currentQuestionIndex === 0;
+  const progress = showAdditionalInfo
+    ? 100
+    : ((currentQuestionIndex + 1) / questions.length) * 100;
+  const answeredCount = answers.length;
 
   const handleBack = () => {
     if (showAdditionalInfo) {
@@ -73,176 +83,258 @@ export function QuizPage({ questions, onComplete, onBack }: QuizPageProps) {
     onComplete(answers, additionalInfo.trim() || undefined);
   };
 
+  const jumpToQuestion = (index: number) => {
+    if (index > answers.length) return;
+    setShowAdditionalInfo(false);
+    setCurrentQuestionIndex(index);
+    if (index < answers.length) {
+      setSelectedAnswer(answers[index]);
+      setAnswers(answers.slice(0, index));
+    } else {
+      setSelectedAnswer(null);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <nav className="flex items-center justify-between p-4 md:p-6">
-        <button
-          onClick={handleBack}
-          className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-          aria-label={t("common.goBack")}
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-
-        <div className="flex items-center gap-2">
-          <div className="flex items-center">
+    <div className="page-shell">
+      <PageHeader
+        brand={t("common.brand")}
+        onBack={handleBack}
+        backLabel={t("common.goBack")}
+        title={t("quiz.quizTitle")}
+        sticky
+      >
+        <div className="mt-4 space-y-2">
+          <div className="flex justify-between text-body-sm">
+            <span className="text-gray-600">{t("quiz.progress")}</span>
+            <span className="font-semibold text-primary-800">
+              {showAdditionalInfo
+                ? questions.length
+                : currentQuestionIndex + 1}{" "}
+              {t("quiz.of")} {questions.length}
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
             <div
-              className="w-8 h-8 rounded-lg"
-              style={{
-                background:
-                  "linear-gradient(135deg, #fbbf24 0%, #f97316 25%, #10b981 50%, #3b82f6 75%, #a855f7 100%)",
-                clipPath: "polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%)",
-              }}
+              className="bg-primary-800 h-full transition-all duration-500 ease-out rounded-full"
+              style={{ width: `${progress}%` }}
             />
-            <span className="text-2xl font-bold ml-1">{t("common.brand")}</span>
           </div>
         </div>
+      </PageHeader>
 
-        <LanguageSwitcher />
-      </nav>
-
-      <div className="px-4 md:px-8 pb-6">
-        <div className="max-w-2xl mx-auto relative h-4 flex items-center">
-          <div className="absolute top-1/2 left-0 right-0 h-1 -translate-y-1/2 bg-purple-900/30 rounded-full"></div>
-
-          <div
-            className="absolute top-1/2 left-0 h-1 -translate-y-1/2 bg-purple-500 rounded-full transition-all duration-300"
-            style={{
-              width: showAdditionalInfo
-                ? "100%"
-                : `${((currentQuestionIndex + 1) / questions.length) * 100}%`,
-            }}
-          ></div>
-
-          <div className="relative w-full flex justify-between items-center">
-            {questions.map((_, index) => (
-              <div
-                key={index}
-                className={`w-3 h-3 rotate-45 z-10 ${
-                  index <= currentQuestionIndex || showAdditionalInfo
-                    ? "bg-purple-500"
-                    : "bg-gray-600"
-                }`}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-2xl mx-auto px-4 md:px-6 pb-8">
-        <div className="space-y-8">
-          {!showAdditionalInfo ? (
-            <>
-              <h2 className="text-xl leading-tight">
-                {currentQuestion.question}
-              </h2>
-
-              <div className="space-y-3">
-                {SCALE_OPTIONS.map((option) => (
-                  <label
-                    key={option.value}
-                    className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all ${
-                      selectedAnswer === option.value
-                        ? "border-purple-500 bg-purple-500/10"
-                        : "border-gray-700 bg-gray-800 hover:border-gray-600"
-                    }`}
-                  >
-                    <div className="relative flex items-center justify-center">
-                      <input
-                        type="radio"
-                        name="answer"
-                        value={option.value}
-                        checked={selectedAnswer === option.value}
-                        onChange={() => setSelectedAnswer(option.value)}
-                        className="w-5 h-5 appearance-none rounded-full border-2 border-gray-500 bg-transparent checked:border-purple-500 checked:bg-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-transparent"
-                      />
-                      {selectedAnswer === option.value && (
-                        <div className="absolute w-2 h-2 rounded-full bg-white" />
-                      )}
-                    </div>
-                    <span className="flex-1 text-gray-200">{option.label}</span>
-                  </label>
-                ))}
+      <main className="max-w-5xl mx-auto px-4 md:px-8 py-8 md:py-12">
+        <div className="grid md:grid-cols-3 gap-8">
+          <aside className="md:col-span-1 space-y-4 order-2 md:order-1">
+            <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+              <h3 className="text-body-xs font-semibold text-gray-500 uppercase mb-4">
+                {t("quiz.progress")}
+              </h3>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Clock className="w-5 h-5 text-primary-800 shrink-0" />
+                  <div>
+                    <p className="text-body-xs text-gray-500">
+                      {t("quiz.estimatedTime")}
+                    </p>
+                    <p className="font-semibold text-gray-900 text-sm">
+                      {t("quiz.estimatedTimeValue")}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Zap className="w-5 h-5 text-primary-800 shrink-0" />
+                  <div>
+                    <p className="text-body-xs text-gray-500">
+                      {t("quiz.questionsAnswered")}
+                    </p>
+                    <p className="font-semibold text-gray-900 text-sm">
+                      {answeredCount} {t("quiz.of")} {questions.length}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <BarChart3 className="w-5 h-5 text-primary-800 shrink-0" />
+                  <div>
+                    <p className="text-body-xs text-gray-500">
+                      {t("quiz.completion")}
+                    </p>
+                    <p className="font-semibold text-gray-900 text-sm">
+                      {Math.round(progress)}%
+                    </p>
+                  </div>
+                </div>
               </div>
+            </div>
 
-              <div className="flex justify-end pt-4">
-                <Button
-                  onClick={handleNext}
-                  disabled={selectedAnswer === null}
-                  size="lg"
-                  className="bg-purple-500 hover:bg-purple-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {t("quiz.next")}
-                </Button>
+            {!showAdditionalInfo && currentQuestion?.category && (
+              <div className="bg-primary-50 rounded-xl p-6 border border-primary-200">
+                <p className="text-body-xs font-semibold text-primary-800 uppercase mb-1">
+                  {t("quiz.currentCategory")}
+                </p>
+                <p className="text-lg font-bold text-primary-900">
+                  {currentQuestion.category}
+                </p>
               </div>
-            </>
-          ) : (
-            <>
-              <h2 className="text-xl leading-tight">
-                {t("quiz.additionalInfoTitle")}
-              </h2>
-              <p className="text-gray-400 text-sm">
-                {t("quiz.additionalInfoSubtitle")}
+            )}
+
+            <div className="bg-amber-50 rounded-xl p-5 border border-amber-200 hidden md:block">
+              <p className="text-body-xs font-semibold text-amber-800 uppercase mb-2">
+                {t("quiz.tipsTitle")}
               </p>
+              <ul className="space-y-1.5 text-body-xs text-amber-900">
+                <li>• {t("quiz.tip1")}</li>
+                <li>• {t("quiz.tip2")}</li>
+                <li>• {t("quiz.tip3")}</li>
+              </ul>
+            </div>
+          </aside>
 
-              <textarea
-                value={additionalInfo}
-                onChange={(e) => setAdditionalInfo(e.target.value)}
-                placeholder={t("quiz.additionalInfoPlaceholder")}
-                className="w-full p-4 rounded-lg border border-gray-700 bg-gray-800 text-gray-200 placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-transparent min-h-[150px] resize-y"
-              />
+          <div className="md:col-span-2 order-1 md:order-2 space-y-6">
+            <div className="bg-white rounded-xl p-6 md:p-10 border border-gray-200 shadow-md">
+              {!showAdditionalInfo ? (
+                <div className="space-y-8">
+                  <div>
+                    <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 leading-snug">
+                      {currentQuestion.question}
+                    </h2>
+                    <p className="text-body-sm text-gray-600">
+                      {t("quiz.selectHint")}
+                    </p>
+                  </div>
 
-              <div className="flex justify-end pt-4">
-                <Button
-                  onClick={handleFinish}
-                  size="lg"
-                  className="bg-purple-500 hover:bg-purple-600 text-white"
-                >
-                  {t("quiz.finish")}
-                </Button>
+                  <div className="space-y-3">
+                    {SCALE_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setSelectedAnswer(option.value)}
+                        className={`w-full text-left px-5 py-4 rounded-lg border-2 transition-all duration-200 ${
+                          selectedAnswer === option.value
+                            ? "border-primary-800 bg-primary-50 shadow-sm"
+                            : "border-gray-200 bg-white hover:border-gray-300"
+                        }`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div
+                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                              selectedAnswer === option.value
+                                ? "border-primary-800 bg-primary-800"
+                                : "border-gray-300"
+                            }`}
+                          >
+                            {selectedAnswer === option.value && (
+                              <span className="w-2 h-2 bg-white rounded-full" />
+                            )}
+                          </div>
+                          <span
+                            className={`text-body-sm font-medium ${
+                              selectedAnswer === option.value
+                                ? "text-primary-900"
+                                : "text-gray-700"
+                            }`}
+                          >
+                            {option.label}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-3 pt-4 border-t border-gray-200">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleBack}
+                      disabled={isFirstQuestion}
+                      className="border-gray-300"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      {t("quiz.previous")}
+                    </Button>
+                    <Button
+                      onClick={handleNext}
+                      disabled={selectedAnswer === null}
+                      className="flex-1 bg-primary-800 hover:bg-primary-900 text-white font-semibold"
+                    >
+                      {t("quiz.next")}
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
+                      {t("quiz.additionalInfoTitle")}
+                    </h2>
+                    <p className="text-body-sm text-gray-600">
+                      {t("quiz.additionalInfoSubtitle")}
+                    </p>
+                  </div>
+
+                  <textarea
+                    value={additionalInfo}
+                    onChange={(e) => setAdditionalInfo(e.target.value)}
+                    placeholder={t("quiz.additionalInfoPlaceholder")}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-primary-800 focus:ring-2 focus:ring-primary-100 min-h-[150px] resize-y"
+                  />
+
+                  <div className="flex justify-end pt-2">
+                    <Button
+                      onClick={handleFinish}
+                      className="bg-primary-800 hover:bg-primary-900 text-white font-semibold px-8"
+                    >
+                      {t("quiz.finish")}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {!showAdditionalInfo && questions.length <= 30 && (
+              <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+                <p className="text-body-xs font-semibold text-gray-500 uppercase mb-3">
+                  {t("quiz.questionNavigator")}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {questions.map((_, index) => {
+                    const answered = index < answers.length;
+                    const current = index === currentQuestionIndex;
+                    const reachable = index <= answers.length;
+                    return (
+                      <button
+                        key={index}
+                        type="button"
+                        disabled={!reachable}
+                        onClick={() => reachable && jumpToQuestion(index)}
+                        className={`w-9 h-9 rounded-lg text-body-xs font-bold transition-all ${
+                          current
+                            ? "bg-primary-800 text-white shadow-sm"
+                            : answered
+                              ? "bg-green-100 text-green-800 border border-green-300"
+                              : reachable
+                                ? "bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200"
+                                : "bg-gray-50 text-gray-400 border border-gray-100 cursor-not-allowed"
+                        }`}
+                        title={`${index + 1}`}
+                      >
+                        {answered && !current ? "✓" : index + 1}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="max-w-2xl justify-center items-center flex flex-col mx-auto px-4 md:px-6 pb-8 mt-6 space-y-4">
-        <div className="flex items-center gap-2 border-2 border-gray-800 rounded-2xl py-1 px-2 text-sm text-gray-400">
-          <div className="flex -space-x-2">
-            {[...Array(3)].map((_, i) => (
-              <div
-                key={i}
-                className="w-6 h-6 rounded-full border-2 border-[#0a0a0a]"
-                style={{
-                  background:
-                    "linear-gradient(135deg, #a855f7 0%, #3b82f6 100%)",
-                }}
-              />
-            ))}
+            )}
           </div>
-          <span>{t("common.trustBadge")}</span>
         </div>
+      </main>
 
-        <div className="flex items-center gap-2 text-sm text-gray-400">
-          <div className="flex items-center gap-1">
-            {[...Array(5)].map((_, i) => (
-              <Star
-                key={i}
-                className="w-4 h-4 fill-yellow-400 text-yellow-400"
-              />
-            ))}
-          </div>
-          <span>{t("common.personalizedMatching")}</span>
-        </div>
-
-        <div className="flex items-center gap-6 text-xs text-gray-500 pt-2">
-          <span>FOX</span>
-          <span>CNN</span>
-          <span>WSJ</span>
-          <span>TechCrunch</span>
-          <span>MSNBC</span>
-        </div>
-      </div>
+      <footer className="bg-white border-t border-gray-200 py-6 mt-8">
+        <p className="text-center text-body-sm text-gray-600 max-w-3xl mx-auto px-4">
+          {t("quiz.confidentialNote")}
+        </p>
+      </footer>
     </div>
   );
 }
