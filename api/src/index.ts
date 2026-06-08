@@ -338,15 +338,26 @@ Recommend 4 high-quality, practical courses that will help this user grow into t
 
 India-specific requirements:
 - Prioritize resources accessible and valuable to learners in India: affordable pricing (INR), India-relevant examples, and skills demanded by Indian employers.
-- Prefer a mix of these providers where relevant:
-  - Free/government: NPTEL (https://nptel.ac.in), SWAYAM (https://swayam.gov.in)
+- Strongly prefer vocational and skill-based pathways common in India, not only online degrees:
+  - ITI (Industrial Training Institute): government-recognized 1–2 year trade programs (e.g. Electrician, Fitter, Turner, Welder, COPA — Computer Operator & Programming Assistant, Mechanic, Electronics). Name the specific ITI trade when relevant. Provider: "ITI" or "Government ITI / DGT".
+  - Polytechnic diploma programs (state polytechnics)
+  - NSDC / Skill India, PMKVY (Pradhan Mantri Kaushal Vikas Yojana), sector skill councils
+  - Apprenticeship-linked or NCVT/SCVT-certified vocational training
+- Also include where relevant:
+  - Free/government academic: NPTEL (https://nptel.ac.in), SWAYAM (https://swayam.gov.in)
   - Indian platforms: upGrad, Unacademy, Great Learning, Scaler, Simplilearn, NIIT, Internshala Trainings
-  - Global platforms widely used in India: Coursera, edX, Udemy, LinkedIn Learning (mention if financial aid or India pricing applies in reason when relevant)
-  - Indian universities and IITs/IIMs: official course pages on institute sites
-- Include at least 2 courses from India-based platforms or NPTEL/SWAYAM when suitable for the career.
-- Reasons should note relevance to Indian industry, hiring trends, or entry-level paths in India where natural.
+  - Global platforms widely used in India: Coursera, edX, Udemy, LinkedIn Learning
+  - Indian universities, IITs, and IIMs
+- Include at least 1 vocational pathway (ITI trade, polytechnic diploma, or NSDC/Skill India program) when the career can be entered via hands-on or trade skills — which is true for many technical, operations, healthcare support, hospitality, and skilled-labor roles.
+- Include at least 1 course from NPTEL, SWAYAM, or an India-based online platform when suitable.
+- Reasons should mention entry-level access, low cost, government recognition (NCVT/SCVT), or direct employability in Indian industry where applicable.
 
-For every course, include a real, working "url". Only use well-known, publicly reachable platforms. If you are not confident a specific course page exists, use a search URL on that platform instead (e.g., https://www.coursera.org/search?query=..., https://nptel.ac.in/courses, https://swayam.gov.in/search?searchText=...).
+For every course, include a real, working "url". Prefer these when unsure of a specific listing:
+- ITI / DGT: https://www.dgt.gov.in/ or https://iti.dgt.gov.in/
+- Skill India: https://www.skillindia.gov.in/
+- NPTEL: https://nptel.ac.in/courses
+- SWAYAM: https://swayam.gov.in/search?searchText=...
+- Coursera / edX / Udemy: platform search URLs
 ${languageInstruction(lang)}
 Always return valid JSON only.`;
 
@@ -359,7 +370,7 @@ Always return valid JSON only.`;
       }>;
     }>(
       "POST /courses",
-      "You are an expert career counselor specializing in upskilling for the Indian job market. Recommend concrete, practical learning resources for candidates in India. Always respond with valid JSON only.",
+      "You are an expert career counselor specializing in the Indian job market, including vocational routes (ITI, polytechnic, NSDC) and online upskilling. Recommend practical, realistic pathways for candidates in India. Always respond with valid JSON only.",
       prompt
     );
 
