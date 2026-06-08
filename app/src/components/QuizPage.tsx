@@ -173,7 +173,7 @@ export function QuizPage({ questions, onComplete, onBack }: QuizPageProps) {
                   {t("quiz.currentCategory")}
                 </p>
                 <p className="text-lg font-bold text-primary-900">
-                  {currentQuestion.category}
+                  {t(`quiz.categories.${currentQuestion.category}`)}
                 </p>
               </div>
             )}
