@@ -34,6 +34,7 @@ function buildCourseUrl(course: {
   const query = encodeURIComponent(`${course.title} ${course.provider}`);
   const provider = course.provider.toLowerCase();
   const title = course.title.toLowerCase();
+
   if (
     provider.includes("iti") ||
     provider.includes("dgt") ||
@@ -41,6 +42,7 @@ function buildCourseUrl(course: {
   ) {
     return `https://iti.dgt.gov.in/`;
   }
+
   if (
     provider.includes("skill india") ||
     provider.includes("nsdc") ||
@@ -48,22 +50,30 @@ function buildCourseUrl(course: {
   ) {
     return `https://www.skillindia.gov.in/search?search=${query}`;
   }
+
   if (provider.includes("nptel")) {
     return `https://nptel.ac.in/courses?search=${query}`;
   }
+
   if (provider.includes("swayam")) {
     return `https://swayam.gov.in/search?searchText=${query}`;
   }
+
   if (provider.includes("coursera")) {
     return `https://www.coursera.org/search?query=${query}`;
   }
+
   if (provider.includes("edx")) {
     return `https://www.edx.org/search?q=${query}`;
   }
+
   if (provider.includes("udemy")) {
     return `https://www.udemy.com/courses/search/?src=ukw&q=${query}`;
   }
-  return `https://www.google.com/search?q=${encodeURIComponent(`${course.title} ${course.provider} online course India`)}`;
+
+  return `https://www.google.com/search?q=${encodeURIComponent(
+    `${course.title} ${course.provider} online course India`
+  )}`;
 }
 
 function buildJobUrl(job: {
@@ -85,7 +95,7 @@ interface ResultsPageProps {
 }
 
 const CardSkeleton = () => (
-  <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+  <div className="rounded-xl border border-purple-900/40 bg-[#111111] p-4 shadow-sm">
     <div className="h-5 w-3/4 skeleton-shimmer rounded" />
     <div className="h-3 w-1/3 skeleton-shimmer rounded mt-3" />
     <div className="h-3 w-full skeleton-shimmer rounded mt-3" />
@@ -107,15 +117,20 @@ function ResultsShell({
   title?: string;
 }) {
   return (
-    <div className="page-shell">
-      <PageHeader
-        brand={brand}
-        onBack={onBack}
-        backLabel={backLabel}
-        title={title}
-        sticky
-      />
-      <main className="max-w-5xl mx-auto px-4 md:px-8 py-8 pb-16">{children}</main>
+    <div className="min-h-screen bg-[#050505] text-white">
+      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_bottom_left,rgba(126,34,206,0.28),transparent_42%)]" />
+      <div className="relative z-10">
+        <PageHeader
+          brand={brand}
+          onBack={onBack}
+          backLabel={backLabel}
+          title={title}
+          sticky
+        />
+        <main className="max-w-5xl mx-auto px-4 md:px-8 py-8 pb-16">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
@@ -244,7 +259,7 @@ export function ResultsPage({
         backLabel={t("common.goBack")}
         title={t("results.pageTitle")}
       >
-        <p className="text-center text-gray-600 text-body-sm mb-8">
+        <p className="text-center text-gray-300 text-body-sm mb-8">
           {t("results.analyzingHint")}
         </p>
         <ResultsPageSkeleton
@@ -264,14 +279,14 @@ export function ResultsPage({
         backLabel={t("common.goBack")}
       >
         <div className="flex items-center justify-center min-h-[50vh]">
-          <div className="text-center bg-white rounded-xl border border-gray-200 p-10 shadow-sm max-w-md">
-            <p className="text-lg mb-4 text-red-600 font-medium">
+          <div className="text-center bg-[#111111] rounded-xl border border-purple-900/40 p-10 shadow-sm max-w-md">
+            <p className="text-lg mb-4 text-red-400 font-medium">
               {t("common.errorPrefix")}:{" "}
               {careerError || t("results.failedToLoad")}
             </p>
             <Button
               onClick={onBack}
-              className="bg-primary-800 hover:bg-primary-900 text-white"
+              className="bg-purple-700 hover:bg-purple-600 text-white"
             >
               {t("common.goBackButton")}
             </Button>
@@ -289,12 +304,15 @@ export function ResultsPage({
       title={t("results.pageTitle")}
     >
       <div className="space-y-10">
-        <div className="bg-white rounded-xl overflow-hidden shadow-lg border border-gray-200">
-          <div className="bg-gradient-to-r from-primary-800 to-primary-900 px-6 md:px-10 py-10 text-white">
+        <div className="bg-[#111111] rounded-xl overflow-hidden shadow-lg border border-purple-900/40">
+          <div className="bg-gradient-to-r from-purple-800 to-purple-950 px-6 md:px-10 py-10 text-white">
             <p className="text-body-sm font-semibold opacity-90 mb-2 uppercase tracking-wide">
               {t("results.idealCareer")}
             </p>
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">{career.title}</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">
+              {career.title}
+            </h2>
+
             <div className="flex flex-wrap items-end gap-4">
               <div>
                 <p className="text-body-sm opacity-90 mb-1">
@@ -304,6 +322,7 @@ export function ResultsPage({
                   {career.matchScore}%
                 </span>
               </div>
+
               <div className="flex-1 min-w-[120px] max-w-md">
                 <div className="w-full h-2.5 bg-white/30 rounded-full overflow-hidden">
                   <div
@@ -317,38 +336,39 @@ export function ResultsPage({
 
           <div className="px-6 md:px-10 py-8 space-y-8">
             <div>
-              <h3 className="text-h4 font-bold text-gray-900 mb-3">
+              <h3 className="text-h4 font-bold text-white mb-3">
                 {t("results.aboutRole")}
               </h3>
-              <p className="text-body-sm text-gray-700 leading-relaxed">
+              <p className="text-body-sm text-gray-300 leading-relaxed">
                 {career.description}
               </p>
             </div>
 
             <div className="grid sm:grid-cols-2 gap-6">
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-5">
-                <p className="text-body-xs font-semibold text-gray-500 uppercase mb-1">
+              <div className="rounded-lg border border-purple-900/40 bg-[#1a1a1a] p-5">
+                <p className="text-body-xs font-semibold text-gray-400 uppercase mb-1">
                   {t("results.salaryRange")}
                 </p>
-                <p className="text-lg font-bold text-gray-900">{career.salary}</p>
+                <p className="text-lg font-bold text-white">{career.salary}</p>
               </div>
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-5">
-                <p className="text-body-xs font-semibold text-gray-500 uppercase mb-1">
+
+              <div className="rounded-lg border border-purple-900/40 bg-[#1a1a1a] p-5">
+                <p className="text-body-xs font-semibold text-gray-400 uppercase mb-1">
                   {t("results.jobGrowth")}
                 </p>
-                <p className="text-lg font-bold text-gray-900">{career.growth}</p>
+                <p className="text-lg font-bold text-white">{career.growth}</p>
               </div>
             </div>
 
             <div>
-              <h3 className="text-body-sm font-semibold text-gray-500 uppercase mb-4 text-center">
+              <h3 className="text-body-sm font-semibold text-gray-300 uppercase mb-4 text-center">
                 {t("results.keySkills")}
               </h3>
               <div className="flex flex-wrap justify-center gap-2">
                 {career.skills.map((skill, index) => (
                   <span
                     key={index}
-                    className="px-4 py-2 bg-primary-50 text-primary-800 rounded-lg text-body-sm font-medium border border-primary-200"
+                    className="px-4 py-2 bg-purple-950 text-purple-200 rounded-lg text-body-sm font-medium border border-purple-800"
                   >
                     {skill}
                   </span>
@@ -359,9 +379,10 @@ export function ResultsPage({
         </div>
 
         <section className="space-y-4">
-          <h3 className="text-h4 font-bold text-gray-900 text-center">
+          <h3 className="text-h4 font-bold text-white text-center">
             {t("results.coursesTitle")}
           </h3>
+
           <div className="grid gap-4">
             {coursesLoading ? (
               <>
@@ -390,18 +411,18 @@ export function ResultsPage({
                   href={buildCourseUrl(course)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group block rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:border-primary-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-500/40"
+                  className="group block rounded-xl border border-purple-900/40 bg-[#111111] p-5 shadow-sm transition-all hover:border-purple-500 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-purple-500/40"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <p className="text-lg font-semibold text-gray-900 group-hover:text-primary-800">
+                    <p className="text-lg font-semibold text-white group-hover:text-purple-300">
                       {course.title}
                     </p>
-                    <ExternalLink className="w-4 h-4 mt-1 shrink-0 text-gray-400 group-hover:text-primary-600" />
+                    <ExternalLink className="w-4 h-4 mt-1 shrink-0 text-gray-400 group-hover:text-purple-300" />
                   </div>
-                  <p className="text-body-sm text-gray-500 mt-1">
+                  <p className="text-body-sm text-gray-400 mt-1">
                     {course.provider}
                   </p>
-                  <p className="text-body-sm text-gray-600 mt-2">
+                  <p className="text-body-sm text-gray-300 mt-2">
                     {course.reason}
                   </p>
                 </a>
@@ -411,9 +432,10 @@ export function ResultsPage({
         </section>
 
         <section className="space-y-4">
-          <h3 className="text-h4 font-bold text-gray-900 text-center">
+          <h3 className="text-h4 font-bold text-white text-center">
             {t("results.jobsTitle")}
           </h3>
+
           <div className="grid gap-4">
             {jobsLoading ? (
               <>
@@ -442,21 +464,25 @@ export function ResultsPage({
                   href={buildJobUrl(job)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group block rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:border-primary-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-500/40"
+                  className="group block rounded-xl border border-purple-900/40 bg-[#111111] p-5 shadow-sm transition-all hover:border-purple-500 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-purple-500/40"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <p className="text-lg font-semibold text-gray-900 group-hover:text-primary-800">
+                      <p className="text-lg font-semibold text-white group-hover:text-purple-300">
                         {job.title}
                       </p>
-                      <ExternalLink className="w-4 h-4 shrink-0 text-gray-400 group-hover:text-primary-600" />
+                      <ExternalLink className="w-4 h-4 shrink-0 text-gray-400 group-hover:text-purple-300" />
                     </div>
-                    <span className="text-body-xs uppercase tracking-wide text-gray-500">
+                    <span className="text-body-xs uppercase tracking-wide text-gray-400">
                       {job.location}
                     </span>
                   </div>
-                  <p className="text-body-sm text-gray-500 mt-1">{job.company}</p>
-                  <p className="text-body-sm text-gray-600 mt-2">{job.reason}</p>
+                  <p className="text-body-sm text-gray-400 mt-1">
+                    {job.company}
+                  </p>
+                  <p className="text-body-sm text-gray-300 mt-2">
+                    {job.reason}
+                  </p>
                 </a>
               ))
             )}
