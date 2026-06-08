@@ -47,7 +47,7 @@ const translations = {
     estimatedTime: "Estimated Time",
     estimatedTimeValue: "10–15 minutes",
     questionsAnswered: "Questions Answered",
-    completion: "Completion",
+   completion: "Completion",
     currentCategory: "Current Category",
     categories: {
       Interests: "Interests",
