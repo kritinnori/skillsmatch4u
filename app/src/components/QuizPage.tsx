@@ -167,17 +167,6 @@ export function QuizPage({ questions, onComplete, onBack }: QuizPageProps) {
               </div>
             </div>
 
-            {!showAdditionalInfo && currentQuestion?.category && (
-              <div className="bg-primary-50 rounded-xl p-6 border border-primary-200">
-                <p className="text-body-xs font-semibold text-primary-800 uppercase mb-1">
-                  {t("quiz.currentCategory")}
-                </p>
-                <p className="text-lg font-bold text-primary-900">
-                  {currentQuestion.category}
-                </p>
-              </div>
-            )}
-
             <div className="bg-amber-50 rounded-xl p-5 border border-amber-200 hidden md:block">
               <p className="text-body-xs font-semibold text-amber-800 uppercase mb-2">
                 {t("quiz.tipsTitle")}

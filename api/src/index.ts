@@ -9,7 +9,9 @@ import {
 } from "./languages";
 
 const PORT = Number(process.env.PORT) || 3000;
-const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5";
+// gpt-4.1-mini: best latency/quality balance for structured JSON (benchmarked vs gpt-5, nano, 4o-mini).
+// Override via OPENAI_MODEL if needed.
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4.1-mini";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "",

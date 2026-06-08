@@ -37,7 +37,7 @@ MONGODB_URI=...
 MONGODB_DB=quiz_app
 OPENAI_API_KEY=...
 PORT=3000
-OPENAI_MODEL=gpt-4o
+OPENAI_MODEL=gpt-4.1-mini
 ```
 
 Default URL: `http://localhost:3000`
