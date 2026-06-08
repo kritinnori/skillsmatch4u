@@ -59,7 +59,7 @@ const translations: Translations = {
     tip3: "جوابات تبدیل کرنے کے لیے آپ واپس جا سکتے ہیں",
     previous: "پچھلا",
     questionNavigator: "سوال نیویگیٹر",
-    confidentialNote: "All answers are confidential and used only for career recommendations",
+    confidentialNote: "تمام جوابات خفیہ رکھے جاتے ہیں اور صرف کیریئر سفارشات کے لیے استعمال ہوتے ہیں",
     scale: {
       stronglyDisagree: "سختی سے متفق نہیں",
       disagree: "متفق نہیں",
