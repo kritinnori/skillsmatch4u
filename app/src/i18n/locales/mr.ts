@@ -59,7 +59,7 @@ const translations: Translations = {
     tip3: "उत्तरे बदलण्यासाठी तुम्ही मागे जाऊ शकता",
     previous: "मागील",
     questionNavigator: "प्रश्न नेव्हिगेटर",
-    confidentialNote: "All answers are confidential and used only for career recommendations",
+    confidentialNote: "सर्व उत्तरे गोपनीय आहेत आणि केवळ करिअर शिफारसींसाठी वापरली जातात",
     scale: {
       stronglyDisagree: "अजिबात सहमत नाही",
       disagree: "सहमत नाही",
