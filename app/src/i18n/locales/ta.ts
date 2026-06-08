@@ -47,6 +47,12 @@ const translations: Translations = {
     questionsAnswered: "பதிலளித்த கேள்விகள்",
     completion: "நிறைவு",
     currentCategory: "தற்போதைய வகை",
+    categories: {
+      Interests: "ஆர்வங்கள்",
+      Strengths: "பலங்கள்",
+      Personality: "ஆளுமை",
+      General: "பொது",
+    },
     selectHint: "உங்கள் பதிலை சிறப்பாகக் குறிக்கும் விருப்பத்தைத் தேர்ந்தெடுக்கவும்",
     tipsTitle: "குறிப்புகள்",
     tip1: "சிறந்த முடிவுகளுக்கு நேர்மையாக பதிலளிக்கவும்",

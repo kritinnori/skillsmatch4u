@@ -47,6 +47,12 @@ const translations: Translations = {
     questionsAnswered: "ଉତ୍ତର ଦିଆଯାଇଥିବା ପ୍ରଶ୍ନ",
     completion: "ସମାପ୍ତି",
     currentCategory: "ବର୍ତ୍ତମାନ ବର୍ଗ",
+    categories: {
+      Interests: "ଆଗ୍ରହ",
+      Strengths: "ଶକ୍ତି",
+      Personality: "ବ୍ୟକ୍ତିତ୍ୱ",
+      General: "ସାଧାରଣ",
+    },
     selectHint: "ଆପଣଙ୍କ ଉତ୍ତରକୁ ସର୍ବୋତ୍ତମ ପ୍ରତିନିଧିତ୍ୱ କରୁଥିବା ବିକଳ୍ପ ବାଛନ୍ତୁ",
     tipsTitle: "ଟିପ୍ସ",
     tip1: "ଉତ୍ତମ ଫଳାଫଳ ପାଇଁ ଇମାନଦାରୀରେ ଉତ୍ତର ଦିଅନ୍ତୁ",

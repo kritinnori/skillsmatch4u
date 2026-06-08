@@ -47,6 +47,12 @@ const translations: Translations = {
     questionsAnswered: "উত্তর দেওয়া প্রশ্ন",
     completion: "সমাপন",
     currentCategory: "বর্তমান বিভাগ",
+    categories: {
+      Interests: "আগ্রহ",
+      Strengths: "শক্তি",
+      Personality: "ব্যক্তিত্ব",
+      General: "সাধারণ",
+    },
     selectHint: "সেই বিকল্পটি বেছে নিন যা আপনার উত্তরের সবচেয়ে ভালো প্রতিনিধিত্ব করে",
     tipsTitle: "পরামর্শ",
     tip1: "সেরা ফলাফলের জন্য সৎভাবে উত্তর দিন",

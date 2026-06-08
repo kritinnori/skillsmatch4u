@@ -46,6 +46,12 @@ const translations: Translations = {
     questionsAnswered: "جواب دیے گئے سوالات",
     completion: "تکمیل",
     currentCategory: "موجودہ زمرہ",
+    categories: {
+      Interests: "دلچسپیاں",
+      Strengths: "خوبیاں",
+      Personality: "شخصیت",
+      General: "عام",
+    },
     selectHint: "وہ آپشن منتخب کریں جو آپ کے جواب کی بہترین نمائندگی کرے",
     tipsTitle: "تجاویز",
     tip1: "بہترین نتائج کے لیے ایمانداری سے جواب دیں",

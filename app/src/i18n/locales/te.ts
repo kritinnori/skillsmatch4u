@@ -46,6 +46,12 @@ const translations: Translations = {
     questionsAnswered: "సమాధానం ఇచ్చిన ప్రశ్నలు",
     completion: "పూర్తి",
     currentCategory: "ప్రస్తుత వర్గం",
+    categories: {
+      Interests: "ఆసక్తులు",
+      Strengths: "బలాలు",
+      Personality: "వ్యక్తిత్వం",
+      General: "సాధారణం",
+    },
     selectHint: "మీ సమాధానానికి బాగా సరిపోయే ఎంపికను ఎంచుకోండి",
     tipsTitle: "చిట్కాలు",
     tip1: "మంచి ఫలితాల కోసం నిజాయితీగా సమాధానం ఇవ్వండి",

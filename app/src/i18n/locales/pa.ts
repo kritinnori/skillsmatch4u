@@ -47,6 +47,12 @@ const translations: Translations = {
     questionsAnswered: "ਜਵਾਬ ਦਿੱਤੇ ਸਵਾਲ",
     completion: "ਪੂਰਨਤਾ",
     currentCategory: "ਮੌਜੂਦਾ ਸ਼੍ਰੇਣੀ",
+    categories: {
+      Interests: "ਰੁਚੀਆਂ",
+      Strengths: "ਤਾਕਤਾਂ",
+      Personality: "ਸ਼ਖਸੀਅਤ",
+      General: "ਆਮ",
+    },
     selectHint: "ਉਹ ਵਿਕਲਪ ਚੁਣੋ ਜੋ ਤੁਹਾਡੇ ਜਵਾਬ ਦੀ ਸਭ ਤੋਂ ਵਧੀਆ ਨੁਮਾਇੰਦਗੀ ਕਰੇ",
     tipsTitle: "ਸੁਝਾਅ",
     tip1: "ਸਭ ਤੋਂ ਵਧੀਆ ਨਤੀਜਿਆਂ ਲਈ ਈਮਾਨਦਾਰੀ ਨਾਲ ਜਵਾਬ ਦਿਓ",

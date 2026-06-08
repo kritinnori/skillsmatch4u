@@ -47,6 +47,12 @@ const translations: Translations = {
     questionsAnswered: "ಉತ್ತರಿಸಿದ ಪ್ರಶ್ನೆಗಳು",
     completion: "ಪೂರ್ಣಗೊಳಿಸುವಿಕೆ",
     currentCategory: "ಪ್ರಸ್ತುತ ವರ್ಗ",
+    categories: {
+      Interests: "ಆಸಕ್ತಿಗಳು",
+      Strengths: "ಸಾಮರ್ಥ್ಯಗಳು",
+      Personality: "ವ್ಯಕ್ತಿತ್ವ",
+      General: "ಸಾಮಾನ್ಯ",
+    },
     selectHint: "ನಿಮ್ಮ ಉತ್ತರವನ್ನು ಉತ್ತಮವಾಗಿ ಪ್ರತಿನಿಧಿಸುವ ಆಯ್ಕೆಯನ್ನು ಆರಿಸಿ",
     tipsTitle: "ಸಲಹೆಗಳು",
     tip1: "ಉತ್ತಮ ಫಲಿತಾಂಶಗಳಿಗಾಗಿ ಪ್ರಾಮಾಣಿಕವಾಗಿ ಉತ್ತರಿಸಿ",

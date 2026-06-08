@@ -267,6 +267,8 @@ Based on these responses, provide a career recommendation in JSON format with th
 }
 
 Keep the career recommendation thoughtful and based on the response patterns. The matchScore should be between 75-98. Provide 4-6 key skills.
+
+CURRENCY RULE (strict): The "salary" value must always be in Indian Rupees, using the ₹ symbol and Indian conventions such as "LPA" (lakhs per annum) — e.g. "₹6 LPA - ₹12 LPA" or "₹8,00,000 - ₹15,00,000 per year". Never use US dollars, the "$" symbol, "USD", or any non-Indian currency anywhere in the response.
 ${languageInstruction(lang)}
 Always return valid JSON only. Do not include courses or jobs fields in this response.`;
 

@@ -47,6 +47,12 @@ const translations: Translations = {
     questionsAnswered: "উত্তৰ দিয়া প্ৰশ্ন",
     completion: "সম্পূৰ্ণতা",
     currentCategory: "বৰ্তমান শ্ৰেণী",
+    categories: {
+      Interests: "আগ্ৰহ",
+      Strengths: "শক্তি",
+      Personality: "ব্যক্তিত্ব",
+      General: "সাধাৰণ",
+    },
     selectHint: "আপোনাৰ উত্তৰৰ সৰ্বোত্তম প্ৰতিনিধিত্ব কৰা বিকল্প বাছক",
     tipsTitle: "পৰামৰ্শ",
     tip1: "উত্তম ফলাফলৰ বাবে সততে উত্তৰ দিয়ক",
