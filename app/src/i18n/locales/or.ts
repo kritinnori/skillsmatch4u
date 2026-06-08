@@ -60,7 +60,7 @@ const translations: Translations = {
     tip3: "ଉତ୍ତର ବଦଳାଇବାକୁ ଆପଣ ପଛକୁ ଯାଇପାରିବେ",
     previous: "ପୂର୍ବବର୍ତ୍ତୀ",
     questionNavigator: "ପ୍ରଶ୍ନ ନେଭିଗେଟର୍",
-    confidentialNote: "All answers are confidential and used only for career recommendations",
+    confidentialNote: "ସମସ୍ତ ଉତ୍ତର ଗୋପନୀୟ ଏବଂ କେବଳ କ୍ୟାରିୟର ସୁପାରିଶ ପାଇଁ ବ୍ୟବହୃତ ହୁଏ",
     scale: {
       stronglyDisagree: "ପ୍ରବଳ ଭାବରେ ଅସହମତ",
       disagree: "ଅସହମତ",
