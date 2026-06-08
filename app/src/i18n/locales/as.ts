@@ -59,7 +59,7 @@ const translations: Translations = {
     tip3: "উত্তৰ সলনি কৰিবলৈ আপুনি পিছলৈ যাব পাৰে",
     previous: "পূৰ্বৱৰ্তী",
     questionNavigator: "প্ৰশ্ন নেভিগেটৰ",
-    confidentialNote: "All answers are confidential and used only for career recommendations",
+    confidentialNote: "সকলো উত্তৰ গোপনীয় আৰু কেৱল কেৰিয়াৰ পৰামৰ্শৰ বাবে ব্যৱহাৰ কৰা হয়",
     scale: {
       stronglyDisagree: "দৃঢ়ভাৱে একমত নহয়",
       disagree: "একমত নহয়",
