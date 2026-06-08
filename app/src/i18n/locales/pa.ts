@@ -60,7 +60,7 @@ const translations: Translations = {
     tip3: "ਤੁਸੀਂ ਜਵਾਬ ਬਦਲਣ ਲਈ ਵਾਪਸ ਜਾ ਸਕਦੇ ਹੋ",
     previous: "ਪਿਛਲਾ",
     questionNavigator: "ਸਵਾਲ ਨੈਵੀਗੇਟਰ",
-    confidentialNote: "All answers are confidential and used only for career recommendations",
+    confidentialNote: "ਸਾਰੇ ਜਵਾਬ ਗੁਪਤ ਰੱਖੇ ਜਾਂਦੇ ਹਨ ਅਤੇ ਸਿਰਫ਼ ਕਰੀਅਰ ਸਿਫਾਰਸ਼ਾਂ ਲਈ ਵਰਤੇ ਜਾਂਦੇ ਹਨ",
     scale: {
       stronglyDisagree: "ਬਿਲਕੁਲ ਸਹਿਮਤ ਨਹੀਂ",
       disagree: "ਸਹਿਮਤ ਨਹੀਂ",
