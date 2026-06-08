@@ -150,5 +150,5 @@ Analyzes user answers and returns AI-powered career recommendation.
   - 5 = Strongly Agree
 
 - After completing all questions, users can optionally add additional information
-- The AI analysis uses OpenAI's GPT model configured via `OPENAI_MODEL` (defaults to `gpt-5`)
+- The AI analysis uses OpenAI's GPT model configured via `OPENAI_MODEL` (defaults to `gpt-4.1-mini`)
 - Make sure your OpenAI API key has sufficient credits

@@ -33,6 +33,21 @@ function buildCourseUrl(course: {
   if (isValidHttpUrl(course.url)) return course.url;
   const query = encodeURIComponent(`${course.title} ${course.provider}`);
   const provider = course.provider.toLowerCase();
+  const title = course.title.toLowerCase();
+  if (
+    provider.includes("iti") ||
+    provider.includes("dgt") ||
+    title.includes("iti")
+  ) {
+    return `https://iti.dgt.gov.in/`;
+  }
+  if (
+    provider.includes("skill india") ||
+    provider.includes("nsdc") ||
+    provider.includes("pmkvy")
+  ) {
+    return `https://www.skillindia.gov.in/search?search=${query}`;
+  }
   if (provider.includes("nptel")) {
     return `https://nptel.ac.in/courses?search=${query}`;
   }
