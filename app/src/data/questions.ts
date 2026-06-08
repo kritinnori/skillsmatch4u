@@ -27,15 +27,5 @@ export const questions = [
   { id: 18, question: "I adapt quickly when situations change." },
   { id: 19, question: "I tend to think carefully before making decisions." },
   { id: 20, question: "I often come up with original solutions to problems." },
-
-  { id: 21, question: "I prefer working independently rather than in groups." },
-  { id: 22, question: "I feel energized after interacting with many people." },
-  { id: 23, question: "I like having clear instructions rather than vague goals." },
-  { id: 24, question: "I am comfortable taking risks if the reward is meaningful." },
-  { id: 25, question: "I get stressed when things are unorganized." },
-  { id: 26, question: "I prefer stability over frequent change." },
-  { id: 27, question: "I enjoy competing with others to be the best." },
-  { id: 28, question: "I value work that feels meaningful more than high salary alone." },
-  { id: 29, question: "I stay calm even when deadlines are tight." },
-  { id: 30, question: "I like having freedom to choose how I complete tasks." }
+  
 ];
