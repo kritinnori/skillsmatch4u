@@ -49,6 +49,12 @@ const translations = {
     questionsAnswered: "Questions Answered",
     completion: "Completion",
     currentCategory: "Current Category",
+    categories: {
+      Interests: "Interests",
+      Strengths: "Strengths",
+      Personality: "Personality",
+      General: "General",
+    },
     selectHint: "Select the option that best represents your answer",
     tipsTitle: "Tips",
     tip1: "Answer honestly for best results",
