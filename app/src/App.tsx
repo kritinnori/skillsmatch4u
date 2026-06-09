@@ -3,10 +3,11 @@ import { useTranslation } from 'react-i18next'
 import { HomePage } from './components/HomePage'
 import { QuizPage } from './components/QuizPage'
 import { ResultsPage } from './components/ResultsPage'
+import { LoginPage } from './components/LoginPage'
 import { fetchQuestions } from './lib/api'
 import type { Question } from './types/question'
 
-type Page = 'home' | 'quiz' | 'results'
+type Page = 'home' | 'quiz' | 'results' | 'login'
 
 function App() {
   const { t, i18n } = useTranslation()
@@ -25,6 +26,7 @@ function App() {
     const loadQuestions = async () => {
       setLoading(true)
       setError(null)
+
       try {
         const data = await fetchQuestions(language)
 
@@ -74,16 +76,23 @@ function App() {
   return (
     <>
       {currentPage === 'home' && (
-        <HomePage onStartQuiz={handleStartQuiz} />
+        <HomePage
+          onStartQuiz={handleStartQuiz}
+          onLogin={() => setCurrentPage('login')}
+        />
+      )}
+
+      {currentPage === 'login' && (
+        <LoginPage onBack={() => setCurrentPage('home')} />
       )}
 
       {currentPage === 'quiz' && (
         <>
           {loading && (
             <div className="page-shell flex items-center justify-center">
-              <div className="text-center bg-white rounded-xl border border-gray-200 px-10 py-8 shadow-sm">
-                <div className="w-10 h-10 border-4 border-primary-200 border-t-primary-800 rounded-full animate-spin mx-auto mb-4" />
-                <p className="text-lg font-medium text-gray-900">
+              <div className="text-center bg-[#111111] rounded-xl border border-purple-900/40 px-10 py-8 shadow-sm">
+                <div className="w-10 h-10 border-4 border-purple-900/40 border-t-purple-500 rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-lg font-medium text-white">
                   {t('quiz.loading')}
                 </p>
               </div>
@@ -92,8 +101,8 @@ function App() {
 
           {!loading && error && (
             <div className="page-shell flex items-center justify-center px-4">
-              <div className="text-center bg-white rounded-xl border border-gray-200 p-10 shadow-sm max-w-md">
-                <p className="text-lg mb-4 text-red-600 font-medium">
+              <div className="text-center bg-[#111111] rounded-xl border border-purple-900/40 p-10 shadow-sm max-w-md">
+                <p className="text-lg mb-4 text-red-400 font-medium">
                   {t('common.errorPrefix')}: {error}
                 </p>
                 <button
@@ -101,7 +110,7 @@ function App() {
                     setError(null)
                     setCurrentPage('home')
                   }}
-                  className="px-6 py-2.5 bg-primary-800 hover:bg-primary-900 text-white font-semibold rounded-lg transition-colors"
+                  className="px-6 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-semibold rounded-lg transition-colors"
                 >
                   {t('common.goBackButton')}
                 </button>
