@@ -12,11 +12,12 @@ import { LanguageSwitcher } from "./LanguageSwitcher";
 
 interface HomePageProps {
   onStartQuiz: () => void;
+  onLogin: () => void;
 }
 
 const featureIcons = [Target, Zap, BarChart3] as const;
 
-export function HomePage({ onStartQuiz }: HomePageProps) {
+export function HomePage({ onStartQuiz, onLogin }: HomePageProps) {
   const { t } = useTranslation();
 
   const features = [
@@ -48,7 +49,17 @@ export function HomePage({ onStartQuiz }: HomePageProps) {
       <header className="bg-[#050505] border-b border-purple-900/40 sticky top-0 z-20 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
           <BrandLogo label={t("common.brand")} />
+          <div className="flex items-center gap-4">
+            <Button
+                onClick={onLogin}
+                variant="outline"
+                className="border-purple-700 text-purple-300 hover:bg-purple-900/30 hover:text-white"
+              >
+              Login
+            </Button>
+
           <LanguageSwitcher />
+          </div>
         </div>
       </header>
 
