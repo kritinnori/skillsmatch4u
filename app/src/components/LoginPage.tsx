@@ -51,7 +51,7 @@ export function LoginPage({ onBack }: LoginPageProps) {
         if (error) throw error;
 
         setMessage(
-          "Account created successfully. Check your email if confirmation is required."
+          "Account created successfully. You can now sign in."
         );
       }
     } catch (err) {
