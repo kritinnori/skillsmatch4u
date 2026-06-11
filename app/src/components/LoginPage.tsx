@@ -8,9 +8,15 @@ import { supabase } from "../lib/supabase";
 
 interface LoginPageProps {
   onBack: () => void;
+  onAuthSuccess: () => void;
+  onContinueWithoutAccount?: () => void;
 }
 
-export function LoginPage({ onBack }: LoginPageProps) {
+export function LoginPage({
+  onBack,
+  onAuthSuccess,
+  onContinueWithoutAccount,
+}: LoginPageProps) {
   const { t } = useTranslation();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
@@ -21,6 +27,30 @@ export function LoginPage({ onBack }: LoginPageProps) {
   const [error, setError] = useState("");
 
   const isLogin = mode === "login";
+
+  const tr = (key: string, fallback: string) =>
+    t(key, { defaultValue: fallback });
+
+  const getFriendlyError = (rawMessage: string) => {
+    const lower = rawMessage.toLowerCase();
+
+    if (
+      lower.includes("invalid login credentials") ||
+      lower.includes("user not found") ||
+      lower.includes("failed to fetch")
+    ) {
+      return tr(
+        "login.accountDoesNotExist",
+        "Sorry, account does not exist. Please create an account."
+      );
+    }
+
+    if (lower.includes("already registered") || lower.includes("already exists")) {
+      return tr("login.accountAlreadyExists", "Account already exists. Please sign in.");
+    }
+
+    return tr("login.genericError", "Something went wrong. Please try again.");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,10 +68,8 @@ export function LoginPage({ onBack }: LoginPageProps) {
 
         if (error) throw error;
 
-        setMessage("Signed in successfully.");
-        setTimeout(() => {
-          onBack();
-        }, 800);
+        setMessage(tr("login.signedIn", "Signed in successfully."));
+        setTimeout(onAuthSuccess, 600);
       } else {
         const { error } = await supabase.auth.signUp({
           email,
@@ -50,12 +78,14 @@ export function LoginPage({ onBack }: LoginPageProps) {
 
         if (error) throw error;
 
-        setMessage(
-          "Account created successfully. You can now sign in."
-        );
+        setMode("login");
+        setPassword("");
+        setMessage(tr("login.accountCreated", "Success! Account created. Please sign in."));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      const rawMessage =
+        err instanceof Error ? err.message : "Something went wrong.";
+      setError(getFriendlyError(rawMessage));
     } finally {
       setLoading(false);
     }
@@ -65,6 +95,7 @@ export function LoginPage({ onBack }: LoginPageProps) {
     setMode(isLogin ? "signup" : "login");
     setMessage("");
     setError("");
+    setPassword("");
   };
 
   return (
@@ -93,36 +124,63 @@ export function LoginPage({ onBack }: LoginPageProps) {
             <section>
               <div className="inline-flex items-center gap-2 rounded-full border border-purple-800/50 bg-purple-950/40 px-4 py-2 text-sm text-purple-200 mb-6">
                 <Sparkles className="w-4 h-4" />
-                Personalized career matching
+                {tr("login.badge", "Personalized career matching")}
               </div>
 
               <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-5">
-                {isLogin ? "Welcome back" : "Create your account"}
+                {isLogin
+                  ? tr("login.welcomeBack", "Welcome back")
+                  : tr("login.createAccountTitle", "Create your account")}
               </h1>
 
               <p className="text-gray-300 text-lg max-w-xl">
                 {isLogin
-                  ? "Sign in to continue your career assessment and view your recommendations."
-                  : "Create an account to save your quiz progress and access your career results later."}
+                  ? tr(
+                      "login.signInDescription",
+                      "Sign in to continue your career assessment and view your recommendations."
+                    )
+                  : tr(
+                      "login.signUpDescription",
+                      "Create an account to save your quiz progress and access your career results later."
+                    )}
               </p>
             </section>
 
             <section className="bg-[#111111] border border-purple-900/40 rounded-2xl p-6 md:p-8 shadow-xl">
               <div className="mb-6">
                 <h2 className="text-2xl font-bold mb-2">
-                  {isLogin ? "Sign in" : "Sign up"}
+                  {isLogin ? tr("login.signIn", "Sign in") : tr("login.signUp", "Sign up")}
                 </h2>
                 <p className="text-gray-400 text-sm">
                   {isLogin
-                    ? "Enter your email and password to continue."
-                    : "Start with your email and create a password."}
+                    ? tr("login.signInSubtitle", "Enter your email and password to continue.")
+                    : tr("login.signUpSubtitle", "Start with your email and create a password.")}
                 </p>
               </div>
+
+              {onContinueWithoutAccount && (
+                <div className="mb-5 rounded-xl border border-purple-900/50 bg-purple-950/20 p-4">
+                  <p className="text-sm text-gray-300 mb-3">
+                    {tr(
+                      "login.promptText",
+                      "Sign in to save your progress, or continue without an account."
+                    )}
+                  </p>
+                  <Button
+                    type="button"
+                    onClick={onContinueWithoutAccount}
+                    variant="outline"
+                    className="w-full border-purple-700 text-purple-200 hover:bg-purple-900/30 hover:text-white"
+                  >
+                    {tr("login.continueWithoutAccount", "No thanks, continue")}
+                  </Button>
+                </div>
+              )}
 
               <form className="space-y-4" onSubmit={handleSubmit}>
                 <label className="block">
                   <span className="text-sm font-medium text-gray-300">
-                    Email
+                    {tr("login.email", "Email")}
                   </span>
                   <div className="mt-2 flex items-center gap-3 rounded-lg border border-purple-900/50 bg-[#080808] px-4 py-3 focus-within:border-purple-500">
                     <Mail className="w-5 h-5 text-purple-300" />
@@ -139,7 +197,7 @@ export function LoginPage({ onBack }: LoginPageProps) {
 
                 <label className="block">
                   <span className="text-sm font-medium text-gray-300">
-                    Password
+                    {tr("login.password", "Password")}
                   </span>
                   <div className="mt-2 flex items-center gap-3 rounded-lg border border-purple-900/50 bg-[#080808] px-4 py-3 focus-within:border-purple-500">
                     <Lock className="w-5 h-5 text-purple-300" />
@@ -155,17 +213,6 @@ export function LoginPage({ onBack }: LoginPageProps) {
                   </div>
                 </label>
 
-                {isLogin && (
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      className="text-sm text-purple-300 hover:text-purple-200"
-                    >
-                      Forgot password?
-                    </button>
-                  </div>
-                )}
-
                 {error && (
                   <p className="rounded-lg border border-red-900/50 bg-red-950/30 px-4 py-3 text-sm text-red-300">
                     {error}
@@ -173,7 +220,7 @@ export function LoginPage({ onBack }: LoginPageProps) {
                 )}
 
                 {message && (
-                  <p className="rounded-lg border border-green-900/50 bg-green-950/30 px-4 py-3 text-sm text-green-300">
+                  <p className="rounded-lg border border-green-900/50 bg-green-950/30 px-4 py-3 text-sm text-green-300 font-semibold">
                     {message}
                   </p>
                 )}
@@ -184,21 +231,23 @@ export function LoginPage({ onBack }: LoginPageProps) {
                   className="w-full bg-purple-700 hover:bg-purple-600 text-white font-semibold py-6 disabled:opacity-60"
                 >
                   {loading
-                    ? "Please wait..."
+                    ? tr("login.pleaseWait", "Please wait...")
                     : isLogin
-                      ? "Sign in"
-                      : "Create account"}
+                      ? tr("login.signIn", "Sign in")
+                      : tr("login.createAccountButton", "Create account")}
                 </Button>
               </form>
 
               <div className="mt-6 text-center text-sm text-gray-400">
-                {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+                {isLogin
+                  ? tr("login.noAccount", "Don't have an account?")
+                  : tr("login.hasAccount", "Already have an account?")}{" "}
                 <button
                   type="button"
                   onClick={switchMode}
                   className="text-purple-300 hover:text-purple-200 font-semibold"
                 >
-                  {isLogin ? "Sign up" : "Sign in"}
+                  {isLogin ? tr("login.signUp", "Sign up") : tr("login.signIn", "Sign in")}
                 </button>
               </div>
             </section>
