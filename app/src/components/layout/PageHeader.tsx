@@ -22,7 +22,7 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <header
-      className={`bg-white border-b border-gray-200 shadow-sm ${
+      className={`bg-[#050505] border-b border-purple-900/40 shadow-sm ${
         sticky ? "sticky top-0 z-20" : ""
       }`}
     >
@@ -33,14 +33,14 @@ export function PageHeader({
               <button
                 type="button"
                 onClick={onBack}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors shrink-0"
+                className="p-2 text-gray-300 hover:bg-purple-900/30 rounded-lg transition-colors shrink-0"
                 aria-label={backLabel}
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
             )}
             {title ? (
-              <h1 className="text-lg md:text-xl font-bold text-gray-900 truncate">
+              <h1 className="text-lg md:text-xl font-bold text-white truncate">
                 {title}
               </h1>
             ) : (
