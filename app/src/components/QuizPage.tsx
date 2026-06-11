@@ -17,6 +17,16 @@ interface QuizPageProps {
   onBack: () => void;
 }
 
+// --- sessionStorage helpers for quiz progress ---
+function readQuizSession<T>(key: string, fallback: T): T {
+  try {
+    const raw = sessionStorage.getItem(key);
+    return raw !== null ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export function QuizPage({ questions, onComplete, onBack }: QuizPageProps) {
   const { t } = useTranslation();
 
@@ -31,11 +41,44 @@ export function QuizPage({ questions, onComplete, onBack }: QuizPageProps) {
     [t]
   );
 
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [answers, setAnswers] = useState<number[]>([]);
-  const [additionalInfo, setAdditionalInfo] = useState("");
-  const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
+  // All state initializes from sessionStorage so language changes don't wipe progress
+  const [currentQuestionIndex, setCurrentQuestionIndexRaw] = useState(() =>
+    readQuizSession<number>("sm_qIndex", 0)
+  );
+  const [selectedAnswer, setSelectedAnswerRaw] = useState<number | null>(() =>
+    readQuizSession<number | null>("sm_qSelected", null)
+  );
+  const [answers, setAnswersRaw] = useState<number[]>(() =>
+    readQuizSession<number[]>("sm_qAnswers", [])
+  );
+  const [additionalInfo, setAdditionalInfoRaw] = useState<string>(() =>
+    readQuizSession<string>("sm_qAdditionalInfo", "")
+  );
+  const [showAdditionalInfo, setShowAdditionalInfoRaw] = useState<boolean>(() =>
+    readQuizSession<boolean>("sm_qShowAdditional", false)
+  );
+
+  // Synced setters — every write also goes to sessionStorage
+  const setCurrentQuestionIndex = (i: number) => {
+    sessionStorage.setItem("sm_qIndex", JSON.stringify(i));
+    setCurrentQuestionIndexRaw(i);
+  };
+  const setSelectedAnswer = (a: number | null) => {
+    sessionStorage.setItem("sm_qSelected", JSON.stringify(a));
+    setSelectedAnswerRaw(a);
+  };
+  const setAnswers = (a: number[]) => {
+    sessionStorage.setItem("sm_qAnswers", JSON.stringify(a));
+    setAnswersRaw(a);
+  };
+  const setAdditionalInfo = (s: string) => {
+    sessionStorage.setItem("sm_qAdditionalInfo", JSON.stringify(s));
+    setAdditionalInfoRaw(s);
+  };
+  const setShowAdditionalInfo = (v: boolean) => {
+    sessionStorage.setItem("sm_qShowAdditional", JSON.stringify(v));
+    setShowAdditionalInfoRaw(v);
+  };
 
   const currentQuestion = questions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
@@ -56,7 +99,6 @@ export function QuizPage({ questions, onComplete, onBack }: QuizPageProps) {
       const previousIndex = currentQuestionIndex - 1;
       setCurrentQuestionIndex(previousIndex);
       setSelectedAnswer(answers[previousIndex] ?? null);
-      // NOTE: do NOT truncate answers — preserve all future answers
     }
   };
 
@@ -77,15 +119,26 @@ export function QuizPage({ questions, onComplete, onBack }: QuizPageProps) {
   };
 
   const handleFinish = () => {
+    // Clear quiz session storage on finish
+    ["sm_qIndex","sm_qSelected","sm_qAnswers","sm_qAdditionalInfo","sm_qShowAdditional"].forEach(k =>
+      sessionStorage.removeItem(k)
+    );
     onComplete(answers, additionalInfo.trim() || undefined);
   };
 
   const jumpToQuestion = (index: number) => {
     if (index > answeredCount) return;
+
+    // FIX: save the current selectedAnswer before jumping away
+    if (selectedAnswer !== null) {
+      const newAnswers = [...answers];
+      newAnswers[currentQuestionIndex] = selectedAnswer;
+      setAnswers(newAnswers);
+    }
+
     setShowAdditionalInfo(false);
     setCurrentQuestionIndex(index);
     setSelectedAnswer(answers[index] ?? null);
-    // Do NOT slice answers — preserve all answered questions
   };
 
   return (
