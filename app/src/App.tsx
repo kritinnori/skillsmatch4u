@@ -11,7 +11,6 @@ import type { Question } from "./types/question";
 
 type Page = "home" | "quiz" | "results" | "login";
 
-// Helper to read from sessionStorage safely
 function readSession<T>(key: string, fallback: T): T {
   try {
     const raw = sessionStorage.getItem(key);
@@ -38,7 +37,6 @@ function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loginIntent, setLoginIntent] = useState<"startQuiz" | "normal">("normal");
 
-  // Wrappers that keep sessionStorage in sync
   const setCurrentPage = (page: Page) => {
     sessionStorage.setItem("sm_page", JSON.stringify(page));
     setCurrentPageState(page);
@@ -63,14 +61,7 @@ function App() {
       setUser(session?.user ?? null);
     });
 
-  
-  const handleSignOut = async () => {
-    const { supabase } = await import("./lib/supabase");
-    await supabase.auth.signOut();
-    handleRestart();
-  };
-
-  return () => {
+    return () => {
       data.subscription.unsubscribe();
     };
   }, []);
@@ -96,14 +87,7 @@ function App() {
 
     loadQuestions();
 
-  
-  const handleSignOut = async () => {
-    const { supabase } = await import("./lib/supabase");
-    await supabase.auth.signOut();
-    handleRestart();
-  };
-
-  return () => {
+    return () => {
       cancelled = true;
     };
   }, [language, t]);
@@ -112,7 +96,7 @@ function App() {
     setAnswers([]);
     setAdditionalInfo("");
     setError(null);
-    setCurrentPage("quiz"); // set last so sessionStorage is clean
+    setCurrentPage("quiz");
   };
 
   const handleStartQuiz = () => {
@@ -121,7 +105,6 @@ function App() {
       setCurrentPage("login");
       return;
     }
-
     actuallyStartQuiz();
   };
 
@@ -131,7 +114,6 @@ function App() {
     } else {
       setCurrentPage("home");
     }
-
     setLoginIntent("normal");
   };
 
@@ -156,9 +138,7 @@ function App() {
     setError(null);
   };
 
-
   const handleSignOut = async () => {
-    const { supabase } = await import("./lib/supabase");
     await supabase.auth.signOut();
     handleRestart();
   };
@@ -166,7 +146,8 @@ function App() {
   return (
     <>
       {currentPage === "home" && (
-        <HomePage user={user}
+        <HomePage
+          user={user}
           onStartQuiz={handleStartQuiz}
           onLogin={() => {
             setLoginIntent("normal");
