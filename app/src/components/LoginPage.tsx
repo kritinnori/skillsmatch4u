@@ -38,7 +38,7 @@ export function LoginPage({ onBack }: LoginPageProps) {
 
         if (error) throw error;
 
-        setMessage("Signed in successfully.");
+        setMessage(t("login.successLogin") || "Signed in successfully.");
         setTimeout(() => {
           onBack();
         }, 800);
@@ -50,12 +50,14 @@ export function LoginPage({ onBack }: LoginPageProps) {
 
         if (error) throw error;
 
-        setMessage(
-          "Account created successfully. You can now sign in."
-        );
+        // Strong success message
+        setMessage(t("login.successSignup") || "Success! Account created.");
+        
+        // Switch to login automatically
+        setMode("login");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(err instanceof Error ? err.message : t("login.error") || "Something went wrong.");
     } finally {
       setLoading(false);
     }
@@ -93,36 +95,44 @@ export function LoginPage({ onBack }: LoginPageProps) {
             <section>
               <div className="inline-flex items-center gap-2 rounded-full border border-purple-800/50 bg-purple-950/40 px-4 py-2 text-sm text-purple-200 mb-6">
                 <Sparkles className="w-4 h-4" />
-                Personalized career matching
+                {t("login.personalizedMatching") || "Personalized career matching"}
               </div>
 
               <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-5">
-                {isLogin ? "Welcome back" : "Create your account"}
+                {isLogin
+                  ? t("login.welcomeBack") || "Welcome back"
+                  : t("login.createAccount") || "Create your account"}
               </h1>
 
               <p className="text-gray-300 text-lg max-w-xl">
                 {isLogin
-                  ? "Sign in to continue your career assessment and view your recommendations."
-                  : "Create an account to save your quiz progress and access your career results later."}
+                  ? t("login.signInDesc") ||
+                    "Sign in to continue your career assessment and view your recommendations."
+                  : t("login.signUpDesc") ||
+                    "Create an account to save your quiz progress and access your career results later."}
               </p>
             </section>
 
             <section className="bg-[#111111] border border-purple-900/40 rounded-2xl p-6 md:p-8 shadow-xl">
               <div className="mb-6">
                 <h2 className="text-2xl font-bold mb-2">
-                  {isLogin ? "Sign in" : "Sign up"}
+                  {isLogin
+                    ? t("login.signIn") || "Sign in"
+                    : t("login.signUp") || "Sign up"}
                 </h2>
                 <p className="text-gray-400 text-sm">
                   {isLogin
-                    ? "Enter your email and password to continue."
-                    : "Start with your email and create a password."}
+                    ? t("login.signInInstructions") ||
+                      "Enter your email and password to continue."
+                    : t("login.signUpInstructions") ||
+                      "Start with your email and create a password."}
                 </p>
               </div>
 
               <form className="space-y-4" onSubmit={handleSubmit}>
                 <label className="block">
                   <span className="text-sm font-medium text-gray-300">
-                    Email
+                    {t("login.emailLabel") || "Email"}
                   </span>
                   <div className="mt-2 flex items-center gap-3 rounded-lg border border-purple-900/50 bg-[#080808] px-4 py-3 focus-within:border-purple-500">
                     <Mail className="w-5 h-5 text-purple-300" />
@@ -139,7 +149,7 @@ export function LoginPage({ onBack }: LoginPageProps) {
 
                 <label className="block">
                   <span className="text-sm font-medium text-gray-300">
-                    Password
+                    {t("login.passwordLabel") || "Password"}
                   </span>
                   <div className="mt-2 flex items-center gap-3 rounded-lg border border-purple-900/50 bg-[#080808] px-4 py-3 focus-within:border-purple-500">
                     <Lock className="w-5 h-5 text-purple-300" />
@@ -161,7 +171,7 @@ export function LoginPage({ onBack }: LoginPageProps) {
                       type="button"
                       className="text-sm text-purple-300 hover:text-purple-200"
                     >
-                      Forgot password?
+                      {t("login.forgotPassword") || "Forgot password?"}
                     </button>
                   </div>
                 )}
@@ -173,7 +183,7 @@ export function LoginPage({ onBack }: LoginPageProps) {
                 )}
 
                 {message && (
-                  <p className="rounded-lg border border-green-900/50 bg-green-950/30 px-4 py-3 text-sm text-green-300">
+                  <p className="rounded-lg border border-green-900/50 bg-green-950/30 px-4 py-3 text-sm text-green-300 font-semibold">
                     {message}
                   </p>
                 )}
@@ -184,21 +194,25 @@ export function LoginPage({ onBack }: LoginPageProps) {
                   className="w-full bg-purple-700 hover:bg-purple-600 text-white font-semibold py-6 disabled:opacity-60"
                 >
                   {loading
-                    ? "Please wait..."
+                    ? t("login.pleaseWait") || "Please wait..."
                     : isLogin
-                      ? "Sign in"
-                      : "Create account"}
+                    ? t("login.signIn") || "Sign in"
+                    : t("login.signUp") || "Create account"}
                 </Button>
               </form>
 
               <div className="mt-6 text-center text-sm text-gray-400">
-                {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+                {isLogin
+                  ? t("login.noAccount") || "Don't have an account?"
+                  : t("login.haveAccount") || "Already have an account?"}{" "}
                 <button
                   type="button"
                   onClick={switchMode}
                   className="text-purple-300 hover:text-purple-200 font-semibold"
                 >
-                  {isLogin ? "Sign up" : "Sign in"}
+                  {isLogin
+                    ? t("login.signUp") || "Sign up"
+                    : t("login.signIn") || "Sign in"}
                 </button>
               </div>
             </section>
