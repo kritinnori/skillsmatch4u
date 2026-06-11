@@ -32,68 +32,65 @@ export function QuizPage({ questions, onComplete, onBack }: QuizPageProps) {
   );
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [answers, setAnswers] = useState<number[]>([]);
+  const [answers, setAnswers] = useState<(number | null)[]>(
+    Array(questions.length).fill(null)
+  );
   const [additionalInfo, setAdditionalInfo] = useState("");
   const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
 
   const currentQuestion = questions[currentQuestionIndex];
+  const selectedAnswer = answers[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
   const isFirstQuestion = currentQuestionIndex === 0;
+
+  const answeredCount = answers.filter((answer) => answer !== null).length;
+
   const progress = showAdditionalInfo
     ? 100
     : ((currentQuestionIndex + 1) / questions.length) * 100;
-  const answeredCount = answers.length;
+
+  const updateAnswer = (value: number) => {
+    setAnswers((prev) => {
+      const next = [...prev];
+      next[currentQuestionIndex] = value;
+      return next;
+    });
+  };
 
   const handleBack = () => {
     if (showAdditionalInfo) {
       setShowAdditionalInfo(false);
-      if (answers.length > 0) {
-        setSelectedAnswer(answers[answers.length - 1]);
-      }
-    } else if (isFirstQuestion) {
-      onBack();
-    } else {
-      const previousIndex = currentQuestionIndex - 1;
-      setCurrentQuestionIndex(previousIndex);
-      if (answers[previousIndex] !== undefined) {
-        setSelectedAnswer(answers[previousIndex]);
-        setAnswers(answers.slice(0, previousIndex));
-      } else {
-        setSelectedAnswer(null);
-      }
+      setCurrentQuestionIndex(questions.length - 1);
+      return;
     }
+
+    if (isFirstQuestion) {
+      onBack();
+      return;
+    }
+
+    setCurrentQuestionIndex((prev) => prev - 1);
   };
 
   const handleNext = () => {
     if (selectedAnswer === null) return;
 
-    const newAnswers = [...answers, selectedAnswer];
-    setAnswers(newAnswers);
-
     if (isLastQuestion) {
       setShowAdditionalInfo(true);
-    } else {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setSelectedAnswer(null);
+      return;
     }
+
+    setCurrentQuestionIndex((prev) => prev + 1);
   };
 
   const handleFinish = () => {
-    onComplete(answers, additionalInfo.trim() || undefined);
+    const finalAnswers = answers.map((answer) => answer ?? 0);
+    onComplete(finalAnswers, additionalInfo.trim() || undefined);
   };
 
   const jumpToQuestion = (index: number) => {
-    if (index > answers.length) return;
     setShowAdditionalInfo(false);
     setCurrentQuestionIndex(index);
-
-    if (index < answers.length) {
-      setSelectedAnswer(answers[index]);
-      setAnswers(answers.slice(0, index));
-    } else {
-      setSelectedAnswer(null);
-    }
   };
 
   return (
@@ -205,7 +202,7 @@ export function QuizPage({ questions, onComplete, onBack }: QuizPageProps) {
                         <button
                           key={option.value}
                           type="button"
-                          onClick={() => setSelectedAnswer(option.value)}
+                          onClick={() => updateAnswer(option.value)}
                           className={`w-full text-left px-5 py-4 rounded-lg border-2 transition-all duration-200 ${
                             selectedAnswer === option.value
                               ? "border-purple-500 bg-purple-900/40 shadow-sm"
@@ -299,24 +296,20 @@ export function QuizPage({ questions, onComplete, onBack }: QuizPageProps) {
 
                   <div className="flex flex-wrap gap-2">
                     {questions.map((_, index) => {
-                      const answered = index < answers.length;
+                      const answered = answers[index] !== null;
                       const current = index === currentQuestionIndex;
-                      const reachable = index <= answers.length;
 
                       return (
                         <button
                           key={index}
                           type="button"
-                          disabled={!reachable}
-                          onClick={() => reachable && jumpToQuestion(index)}
+                          onClick={() => jumpToQuestion(index)}
                           className={`w-9 h-9 rounded-lg text-body-xs font-bold transition-all ${
                             current
                               ? "bg-purple-700 text-white shadow-sm"
                               : answered
                                 ? "bg-purple-900/50 text-purple-200 border border-purple-600"
-                                : reachable
-                                  ? "bg-[#0b0b0b] text-gray-300 border border-purple-900/40 hover:bg-purple-950/50"
-                                  : "bg-[#080808] text-gray-600 border border-gray-800 cursor-not-allowed"
+                                : "bg-[#0b0b0b] text-gray-300 border border-purple-900/40 hover:bg-purple-950/50"
                           }`}
                           title={`${index + 1}`}
                         >
