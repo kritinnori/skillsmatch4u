@@ -52,8 +52,7 @@ export function HomePage({ onStartQuiz, onLogin }: HomePageProps) {
           <div className="flex items-center gap-4">
             <Button
                 onClick={onLogin}
-                variant="outline"
-                className="border-purple-700 text-purple-300 hover:bg-purple-900/30 hover:text-white"
+                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold"
               >
               Login
             </Button>
