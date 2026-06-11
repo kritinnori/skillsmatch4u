@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 import { BrandLogo } from "./BrandLogo";
 import { LanguageSwitcher } from "../LanguageSwitcher";
+import { Button } from "../ui/button";
 
 interface PageHeaderProps {
   brand: string;
@@ -10,6 +11,8 @@ interface PageHeaderProps {
   title?: string;
   sticky?: boolean;
   children?: ReactNode;
+  user?: { email?: string } | null;
+  onSignOut?: () => void;
 }
 
 export function PageHeader({
@@ -19,6 +22,8 @@ export function PageHeader({
   title,
   sticky = false,
   children,
+  user,
+  onSignOut,
 }: PageHeaderProps) {
   return (
     <header
@@ -47,7 +52,17 @@ export function PageHeader({
               <BrandLogo label={brand} />
             )}
           </div>
-          <LanguageSwitcher />
+          <div className="flex items-center gap-3">
+            {user && onSignOut && (
+              <Button
+                onClick={onSignOut}
+                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold"
+              >
+                Sign out
+              </Button>
+            )}
+            <LanguageSwitcher />
+          </div>
         </div>
         {children}
       </div>
