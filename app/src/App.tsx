@@ -63,7 +63,14 @@ function App() {
       setUser(session?.user ?? null);
     });
 
-    return () => {
+  
+  const handleSignOut = async () => {
+    const { supabase } = await import("./lib/supabase");
+    await supabase.auth.signOut();
+    handleRestart();
+  };
+
+  return () => {
       data.subscription.unsubscribe();
     };
   }, []);
@@ -89,7 +96,14 @@ function App() {
 
     loadQuestions();
 
-    return () => {
+  
+  const handleSignOut = async () => {
+    const { supabase } = await import("./lib/supabase");
+    await supabase.auth.signOut();
+    handleRestart();
+  };
+
+  return () => {
       cancelled = true;
     };
   }, [language, t]);
@@ -140,6 +154,13 @@ function App() {
     setAnswers([]);
     setAdditionalInfo("");
     setError(null);
+  };
+
+
+  const handleSignOut = async () => {
+    const { supabase } = await import("./lib/supabase");
+    await supabase.auth.signOut();
+    handleRestart();
   };
 
   return (
@@ -202,6 +223,8 @@ function App() {
               questions={questions}
               onComplete={handleQuizComplete}
               onBack={() => setCurrentPage("home")}
+              user={user}
+              onSignOut={handleSignOut}
             />
           )}
         </>
@@ -214,6 +237,8 @@ function App() {
           additionalInfo={additionalInfo}
           onRestart={handleRestart}
           onBack={() => setCurrentPage("home")}
+          user={user}
+          onSignOut={handleSignOut}
         />
       )}
     </>
