@@ -40,42 +40,39 @@ export function QuizPage({ questions, onComplete, onBack }: QuizPageProps) {
   const currentQuestion = questions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
   const isFirstQuestion = currentQuestionIndex === 0;
+  const answeredCount = answers.filter(a => a !== undefined).length;
   const progress = showAdditionalInfo
     ? 100
     : ((currentQuestionIndex + 1) / questions.length) * 100;
-  const answeredCount = answers.length;
 
   const handleBack = () => {
     if (showAdditionalInfo) {
       setShowAdditionalInfo(false);
-      if (answers.length > 0) {
-        setSelectedAnswer(answers[answers.length - 1]);
-      }
+      const lastIndex = questions.length - 1;
+      setSelectedAnswer(answers[lastIndex] ?? null);
     } else if (isFirstQuestion) {
       onBack();
     } else {
       const previousIndex = currentQuestionIndex - 1;
       setCurrentQuestionIndex(previousIndex);
-      if (answers[previousIndex] !== undefined) {
-        setSelectedAnswer(answers[previousIndex]);
-        setAnswers(answers.slice(0, previousIndex));
-      } else {
-        setSelectedAnswer(null);
-      }
+      setSelectedAnswer(answers[previousIndex] ?? null);
+      // NOTE: do NOT truncate answers — preserve all future answers
     }
   };
 
   const handleNext = () => {
     if (selectedAnswer === null) return;
 
-    const newAnswers = [...answers, selectedAnswer];
+    // Write answer at current index, preserving any answers beyond it
+    const newAnswers = [...answers];
+    newAnswers[currentQuestionIndex] = selectedAnswer;
     setAnswers(newAnswers);
 
     if (isLastQuestion) {
       setShowAdditionalInfo(true);
     } else {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setSelectedAnswer(null);
+      setSelectedAnswer(newAnswers[currentQuestionIndex + 1] ?? null);
     }
   };
 
@@ -84,16 +81,11 @@ export function QuizPage({ questions, onComplete, onBack }: QuizPageProps) {
   };
 
   const jumpToQuestion = (index: number) => {
-    if (index > answers.length) return;
+    if (index > answeredCount) return;
     setShowAdditionalInfo(false);
     setCurrentQuestionIndex(index);
-
-    if (index < answers.length) {
-      setSelectedAnswer(answers[index]);
-      setAnswers(answers.slice(0, index));
-    } else {
-      setSelectedAnswer(null);
-    }
+    setSelectedAnswer(answers[index] ?? null);
+    // Do NOT slice answers — preserve all answered questions
   };
 
   return (
@@ -299,9 +291,9 @@ export function QuizPage({ questions, onComplete, onBack }: QuizPageProps) {
 
                   <div className="flex flex-wrap gap-2">
                     {questions.map((_, index) => {
-                      const answered = index < answers.length;
+                      const answered = answers[index] !== undefined;
                       const current = index === currentQuestionIndex;
-                      const reachable = index <= answers.length;
+                      const reachable = index <= answeredCount;
 
                       return (
                         <button
