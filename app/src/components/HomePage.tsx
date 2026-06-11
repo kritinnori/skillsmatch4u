@@ -6,19 +6,26 @@ import {
   BarChart3,
   ChevronRight,
 } from "lucide-react";
+import type { User } from "@supabase/supabase-js";
 import { Button } from "./ui/button";
 import { BrandLogo } from "./layout/BrandLogo";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { supabase } from "../lib/supabase";
 
 interface HomePageProps {
   onStartQuiz: () => void;
   onLogin: () => void;
+  user: User | null;
 }
 
 const featureIcons = [Target, Zap, BarChart3] as const;
 
-export function HomePage({ onStartQuiz, onLogin }: HomePageProps) {
+export function HomePage({ onStartQuiz, onLogin, user }: HomePageProps) {
   const { t } = useTranslation();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
 
   const features = [
     {
@@ -50,14 +57,22 @@ export function HomePage({ onStartQuiz, onLogin }: HomePageProps) {
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
           <BrandLogo label={t("common.brand")} />
           <div className="flex items-center gap-4">
-            <Button
+            {user ? (
+              <Button
+                onClick={handleSignOut}
+                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold"
+              >
+                Sign out
+              </Button>
+            ) : (
+              <Button
                 onClick={onLogin}
                 className="bg-purple-700 hover:bg-purple-600 text-white font-semibold"
               >
-              Login
-            </Button>
-
-          <LanguageSwitcher />
+                Login
+              </Button>
+            )}
+            <LanguageSwitcher />
           </div>
         </div>
       </header>
