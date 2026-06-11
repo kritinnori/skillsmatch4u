@@ -11,16 +11,46 @@ import type { Question } from "./types/question";
 
 type Page = "home" | "quiz" | "results" | "login";
 
+// Helper to read from sessionStorage safely
+function readSession<T>(key: string, fallback: T): T {
+  try {
+    const raw = sessionStorage.getItem(key);
+    return raw !== null ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 function App() {
   const { t, i18n } = useTranslation();
-  const [currentPage, setCurrentPage] = useState<Page>("home");
-  const [answers, setAnswers] = useState<number[]>([]);
+  const [currentPage, setCurrentPageState] = useState<Page>(() =>
+    readSession<Page>("sm_page", "home")
+  );
+  const [answers, setAnswersState] = useState<number[]>(() =>
+    readSession<number[]>("sm_answers", [])
+  );
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [additionalInfo, setAdditionalInfo] = useState("");
+  const [additionalInfo, setAdditionalInfoState] = useState<string>(() =>
+    readSession<string>("sm_additionalInfo", "")
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loginIntent, setLoginIntent] = useState<"startQuiz" | "normal">("normal");
+
+  // Wrappers that keep sessionStorage in sync
+  const setCurrentPage = (page: Page) => {
+    sessionStorage.setItem("sm_page", JSON.stringify(page));
+    setCurrentPageState(page);
+  };
+  const setAnswers = (a: number[]) => {
+    sessionStorage.setItem("sm_answers", JSON.stringify(a));
+    setAnswersState(a);
+  };
+  const setAdditionalInfo = (info: string) => {
+    sessionStorage.setItem("sm_additionalInfo", JSON.stringify(info));
+    setAdditionalInfoState(info);
+  };
 
   const language = i18n.resolvedLanguage || i18n.language || "en";
 
@@ -65,10 +95,10 @@ function App() {
   }, [language, t]);
 
   const actuallyStartQuiz = () => {
-    setCurrentPage("quiz");
     setAnswers([]);
     setAdditionalInfo("");
     setError(null);
+    setCurrentPage("quiz"); // set last so sessionStorage is clean
   };
 
   const handleStartQuiz = () => {
@@ -103,6 +133,9 @@ function App() {
   };
 
   const handleRestart = () => {
+    sessionStorage.removeItem("sm_page");
+    sessionStorage.removeItem("sm_answers");
+    sessionStorage.removeItem("sm_additionalInfo");
     setCurrentPage("home");
     setAnswers([]);
     setAdditionalInfo("");
