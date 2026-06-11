@@ -11,7 +11,6 @@ import type { Question } from "./types/question";
 
 type Page = "home" | "quiz" | "results" | "login";
 
-// Helper to read from sessionStorage safely
 function readSession<T>(key: string, fallback: T): T {
   try {
     const raw = sessionStorage.getItem(key);
@@ -38,7 +37,6 @@ function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loginIntent, setLoginIntent] = useState<"startQuiz" | "normal">("normal");
 
-  // Wrappers that keep sessionStorage in sync
   const setCurrentPage = (page: Page) => {
     sessionStorage.setItem("sm_page", JSON.stringify(page));
     setCurrentPageState(page);
@@ -98,7 +96,7 @@ function App() {
     setAnswers([]);
     setAdditionalInfo("");
     setError(null);
-    setCurrentPage("quiz"); // set last so sessionStorage is clean
+    setCurrentPage("quiz");
   };
 
   const handleStartQuiz = () => {
@@ -107,7 +105,6 @@ function App() {
       setCurrentPage("login");
       return;
     }
-
     actuallyStartQuiz();
   };
 
@@ -117,7 +114,6 @@ function App() {
     } else {
       setCurrentPage("home");
     }
-
     setLoginIntent("normal");
   };
 
@@ -142,10 +138,16 @@ function App() {
     setError(null);
   };
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    handleRestart();
+  };
+
   return (
     <>
       {currentPage === "home" && (
-        <HomePage user={user}
+        <HomePage
+          user={user}
           onStartQuiz={handleStartQuiz}
           onLogin={() => {
             setLoginIntent("normal");
@@ -202,6 +204,8 @@ function App() {
               questions={questions}
               onComplete={handleQuizComplete}
               onBack={() => setCurrentPage("home")}
+              user={user}
+              onSignOut={handleSignOut}
             />
           )}
         </>
@@ -214,6 +218,8 @@ function App() {
           additionalInfo={additionalInfo}
           onRestart={handleRestart}
           onBack={() => setCurrentPage("home")}
+          user={user}
+          onSignOut={handleSignOut}
         />
       )}
     </>
