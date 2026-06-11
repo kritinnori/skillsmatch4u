@@ -92,6 +92,8 @@ interface ResultsPageProps {
   additionalInfo?: string;
   onRestart: () => void;
   onBack: () => void;
+  user?: { email?: string } | null;
+  onSignOut?: () => void;
 }
 
 const CardSkeleton = () => (
@@ -109,12 +111,16 @@ function ResultsShell({
   onBack,
   backLabel,
   title,
+  user,
+  onSignOut,
 }: {
   children: ReactNode;
   brand: string;
   onBack: () => void;
   backLabel: string;
   title?: string;
+  user?: { email?: string } | null;
+  onSignOut?: () => void;
 }) {
   return (
     <div className="min-h-screen bg-[#050505] text-white">
@@ -125,6 +131,8 @@ function ResultsShell({
           onBack={onBack}
           backLabel={backLabel}
           title={title}
+          user={user}
+          onSignOut={onSignOut}
           sticky
         />
         <main className="max-w-5xl mx-auto px-4 md:px-8 py-8 pb-16">
@@ -140,6 +148,8 @@ export function ResultsPage({
   questions,
   additionalInfo,
   onBack,
+  user,
+  onSignOut,
 }: ResultsPageProps) {
   const { t, i18n } = useTranslation();
   const language = i18n.resolvedLanguage || i18n.language || "en";
@@ -258,6 +268,8 @@ export function ResultsPage({
         onBack={onBack}
         backLabel={t("common.goBack")}
         title={t("results.pageTitle")}
+        user={user}
+        onSignOut={onSignOut}
       >
         <p className="text-center text-gray-300 text-body-sm mb-8">
           {t("results.analyzingHint")}
@@ -302,6 +314,8 @@ export function ResultsPage({
       onBack={onBack}
       backLabel={t("common.goBack")}
       title={t("results.pageTitle")}
+      user={user}
+      onSignOut={onSignOut}
     >
       <div className="space-y-10">
         <div className="bg-[#111111] rounded-xl overflow-hidden shadow-lg border border-purple-900/40">
