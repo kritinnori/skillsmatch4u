@@ -145,7 +145,7 @@ function App() {
   return (
     <>
       {currentPage === "home" && (
-        <HomePage
+        <HomePage user={user}
           onStartQuiz={handleStartQuiz}
           onLogin={() => {
             setLoginIntent("normal");
