@@ -65,14 +65,14 @@ export function HomePage({ onStartQuiz, onLogin, user }: HomePageProps) {
                 onClick={handleSignOut}
                 className="bg-purple-700 hover:bg-purple-600 text-white font-semibold"
               >
-                Sign out
+                {t("login.signOut", { defaultValue: "Sign out" })}
               </Button>
             ) : (
               <Button
                 onClick={onLogin}
                 className="bg-purple-700 hover:bg-purple-600 text-white font-semibold"
               >
-                Login
+                {t("login.signIn", { defaultValue: "Login" })}
               </Button>
             )}
             <LanguageSwitcher />
