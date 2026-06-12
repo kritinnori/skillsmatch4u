@@ -148,7 +148,7 @@ export function QuizPage({ questions, onComplete, onBack, user, onSignOut }: Qui
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_bottom_left,rgba(126,34,206,0.28),transparent_42%)]" />
 
       <div className="relative z-10">
-        <PageHeader user={user} onSignOut={onSignOut}
+        <PageHeader user={user} onSignOut={onSignOut} onHome={onBack}
           brand={t("common.brand")}
           onBack={handleBack}
           backLabel={t("common.goBack")}

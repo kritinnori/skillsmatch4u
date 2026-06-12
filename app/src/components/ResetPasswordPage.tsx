@@ -50,7 +50,7 @@ export function ResetPasswordPage({ onDone }: ResetPasswordPageProps) {
       <div className="relative z-10">
         <header className="border-b border-purple-900/40 bg-[#050505]">
           <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
-            <BrandLogo label={t("common.brand")} />
+            <BrandLogo label={t("common.brand")} onClick={onDone} />
             <LanguageSwitcher />
           </div>
         </header>

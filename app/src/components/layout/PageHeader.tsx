@@ -13,6 +13,7 @@ interface PageHeaderProps {
   children?: ReactNode;
   user?: { email?: string } | null;
   onSignOut?: () => void;
+  onHome?: () => void;
 }
 
 export function PageHeader({
@@ -24,6 +25,7 @@ export function PageHeader({
   children,
   user,
   onSignOut,
+  onHome,
 }: PageHeaderProps) {
   return (
     <header
@@ -34,6 +36,11 @@ export function PageHeader({
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 md:py-5">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
+            <BrandLogo
+              label={brand}
+              onClick={onHome}
+              className="shrink-0 hidden sm:flex"
+            />
             {onBack && (
               <button
                 type="button"
@@ -44,12 +51,10 @@ export function PageHeader({
                 <ArrowLeft className="w-5 h-5" />
               </button>
             )}
-            {title ? (
+            {title && (
               <h1 className="text-lg md:text-xl font-bold text-white truncate">
                 {title}
               </h1>
-            ) : (
-              <BrandLogo label={brand} />
             )}
           </div>
           <div className="flex items-center gap-3">
