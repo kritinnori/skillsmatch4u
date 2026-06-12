@@ -117,6 +117,7 @@ function ResultsShell({
   title,
   user,
   onSignOut,
+  onHome,
 }: {
   children: ReactNode;
   brand: string;
@@ -125,6 +126,7 @@ function ResultsShell({
   title?: string;
   user?: { email?: string } | null;
   onSignOut?: () => void;
+  onHome?: () => void;
 }) {
   return (
     <div className="min-h-screen bg-[#050505] text-white">
@@ -137,6 +139,7 @@ function ResultsShell({
           title={title}
           user={user}
           onSignOut={onSignOut}
+          onHome={onHome}
           sticky
         />
         <main className="max-w-5xl mx-auto px-4 md:px-8 py-8 pb-16">
@@ -274,6 +277,7 @@ export function ResultsPage({
         title={t("results.pageTitle")}
         user={user}
         onSignOut={onSignOut}
+        onHome={onBack}
       >
         <p className="text-center text-gray-300 text-body-sm mb-8">
           {t("results.analyzingHint")}
@@ -293,6 +297,7 @@ export function ResultsPage({
         brand={brand}
         onBack={onBack}
         backLabel={t("common.goBack")}
+        onHome={onBack}
       >
         <div className="flex items-center justify-center min-h-[50vh]">
           <div className="text-center bg-[#111111] rounded-xl border border-purple-900/40 p-10 shadow-sm max-w-md">
@@ -320,6 +325,7 @@ export function ResultsPage({
       title={t("results.pageTitle")}
       user={user}
       onSignOut={onSignOut}
+      onHome={onBack}
     >
       <div className="space-y-10">
         <div className="bg-[#111111] rounded-xl overflow-hidden shadow-lg border border-purple-900/40">
