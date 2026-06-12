@@ -18,7 +18,7 @@ export function LoginPage({
   onContinueWithoutAccount,
 }: LoginPageProps) {
   const { t } = useTranslation();
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -27,6 +27,7 @@ export function LoginPage({
   const [error, setError] = useState("");
 
   const isLogin = mode === "login";
+  const isForgot = mode === "forgot";
 
   const tr = (key: string, fallback: string) =>
     t(key, { defaultValue: fallback });
@@ -60,6 +61,17 @@ export function LoginPage({
     setError("");
 
     try {
+      if (isForgot) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin,
+        });
+        if (error) throw error;
+        setMessage(
+          tr("login.resetEmailSent", "Check your email for a password reset link.")
+        );
+        return;
+      }
+
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -128,33 +140,46 @@ export function LoginPage({
               </div>
 
               <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-5">
-                {isLogin
-                  ? tr("login.welcomeBack", "Welcome back")
-                  : tr("login.createAccountTitle", "Create your account")}
+                {isForgot
+                  ? tr("login.forgotTitle", "Reset your password")
+                  : isLogin
+                    ? tr("login.welcomeBack", "Welcome back")
+                    : tr("login.createAccountTitle", "Create your account")}
               </h1>
 
               <p className="text-gray-300 text-lg max-w-xl">
-                {isLogin
+                {isForgot
                   ? tr(
-                      "login.signInDescription",
-                      "Sign in to continue your career assessment and view your recommendations."
+                      "login.forgotDescription",
+                      "Enter your email and we'll send you a link to reset your password."
                     )
-                  : tr(
-                      "login.signUpDescription",
-                      "Create an account to save your quiz progress and access your career results later."
-                    )}
+                  : isLogin
+                    ? tr(
+                        "login.signInDescription",
+                        "Sign in to continue your career assessment and view your recommendations."
+                      )
+                    : tr(
+                        "login.signUpDescription",
+                        "Create an account to save your quiz progress and access your career results later."
+                      )}
               </p>
             </section>
 
             <section className="bg-[#111111] border border-purple-900/40 rounded-2xl p-6 md:p-8 shadow-xl">
               <div className="mb-6">
                 <h2 className="text-2xl font-bold mb-2">
-                  {isLogin ? tr("login.signIn", "Sign in") : tr("login.signUp", "Sign up")}
+                  {isForgot
+                    ? tr("login.forgotTitle", "Reset your password")
+                    : isLogin
+                      ? tr("login.signIn", "Sign in")
+                      : tr("login.signUp", "Sign up")}
                 </h2>
                 <p className="text-gray-400 text-sm">
-                  {isLogin
-                    ? tr("login.signInSubtitle", "Enter your email and password to continue.")
-                    : tr("login.signUpSubtitle", "Start with your email and create a password.")}
+                  {isForgot
+                    ? tr("login.forgotSubtitle", "We'll email you a reset link.")
+                    : isLogin
+                      ? tr("login.signInSubtitle", "Enter your email and password to continue.")
+                      : tr("login.signUpSubtitle", "Start with your email and create a password.")}
                 </p>
               </div>
 
@@ -195,6 +220,7 @@ export function LoginPage({
                   </div>
                 </label>
 
+                {!isForgot && (
                 <label className="block">
                   <span className="text-sm font-medium text-gray-300">
                     {tr("login.password", "Password")}
@@ -212,6 +238,24 @@ export function LoginPage({
                     />
                   </div>
                 </label>
+                )}
+
+                {isLogin && (
+                  <div className="text-right">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode("forgot");
+                        setMessage("");
+                        setError("");
+                        setPassword("");
+                      }}
+                      className="text-sm text-purple-300 hover:text-purple-200 font-medium"
+                    >
+                      {tr("login.forgotPassword", "Forgot password?")}
+                    </button>
+                  </div>
+                )}
 
                 {error && (
                   <p className="rounded-lg border border-red-900/50 bg-red-950/30 px-4 py-3 text-sm text-red-300">
@@ -232,23 +276,41 @@ export function LoginPage({
                 >
                   {loading
                     ? tr("login.pleaseWait", "Please wait...")
-                    : isLogin
-                      ? tr("login.signIn", "Sign in")
-                      : tr("login.createAccountButton", "Create account")}
+                    : isForgot
+                      ? tr("login.sendResetLink", "Send reset link")
+                      : isLogin
+                        ? tr("login.signIn", "Sign in")
+                        : tr("login.createAccountButton", "Create account")}
                 </Button>
               </form>
 
               <div className="mt-6 text-center text-sm text-gray-400">
-                {isLogin
-                  ? tr("login.noAccount", "Don't have an account?")
-                  : tr("login.hasAccount", "Already have an account?")}{" "}
-                <button
-                  type="button"
-                  onClick={switchMode}
-                  className="text-purple-300 hover:text-purple-200 font-semibold"
-                >
-                  {isLogin ? tr("login.signUp", "Sign up") : tr("login.signIn", "Sign in")}
-                </button>
+                {isForgot ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("login");
+                      setMessage("");
+                      setError("");
+                    }}
+                    className="text-purple-300 hover:text-purple-200 font-semibold"
+                  >
+                    {tr("login.backToSignIn", "Back to sign in")}
+                  </button>
+                ) : (
+                  <>
+                    {isLogin
+                      ? tr("login.noAccount", "Don't have an account?")
+                      : tr("login.hasAccount", "Already have an account?")}{" "}
+                    <button
+                      type="button"
+                      onClick={switchMode}
+                      className="text-purple-300 hover:text-purple-200 font-semibold"
+                    >
+                      {isLogin ? tr("login.signUp", "Sign up") : tr("login.signIn", "Sign in")}
+                    </button>
+                  </>
+                )}
               </div>
             </section>
           </div>
