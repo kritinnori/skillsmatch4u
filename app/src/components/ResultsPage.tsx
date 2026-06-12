@@ -35,6 +35,10 @@ function buildCourseUrl(course: {
   const provider = course.provider.toLowerCase();
   const title = course.title.toLowerCase();
 
+  if (provider.includes("skillsbuild") || provider.includes("ibm")) {
+    return "https://skillsbuild.org/";
+  }
+
   if (
     provider.includes("iti") ||
     provider.includes("dgt") ||
@@ -396,6 +400,29 @@ export function ResultsPage({
           <h3 className="text-h4 font-bold text-white text-center">
             {t("results.coursesTitle")}
           </h3>
+
+          <a
+            href="https://skillsbuild.org/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group block rounded-xl border-2 border-teal-700/60 bg-gradient-to-r from-teal-950/40 to-[#111111] p-5 shadow-sm transition-all hover:border-teal-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-teal-500/40"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-lg font-semibold text-white group-hover:text-teal-300">
+                {t("results.skillsBuildTitle", { defaultValue: "IBM SkillsBuild" })}
+              </p>
+              <ExternalLink className="w-4 h-4 mt-1 shrink-0 text-gray-400 group-hover:text-teal-300" />
+            </div>
+            <p className="text-body-sm text-gray-400 mt-1">
+              {t("results.skillsBuildProvider", { defaultValue: "Free courses & IBM digital credentials" })}
+            </p>
+            <p className="text-body-sm text-gray-300 mt-2">
+              {t("results.skillsBuildReason", {
+                defaultValue:
+                  "Build the skills for this career with free, self-paced IBM courses — and earn digital badges employers recognize.",
+              })}
+            </p>
+          </a>
 
           <div className="grid gap-4">
             {coursesLoading ? (
