@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft } from "lucide-react";
 import { BrandLogo } from "./BrandLogo";
 import { LanguageSwitcher } from "../LanguageSwitcher";
@@ -27,6 +28,7 @@ export function PageHeader({
   onSignOut,
   onHome,
 }: PageHeaderProps) {
+  const { t } = useTranslation();
   return (
     <header
       className={`bg-[#050505] border-b border-purple-900/40 shadow-sm ${
@@ -63,7 +65,7 @@ export function PageHeader({
                 onClick={onSignOut}
                 className="bg-purple-700 hover:bg-purple-600 text-white font-semibold"
               >
-                Sign out
+                {t("login.signOut", { defaultValue: "Sign out" })}
               </Button>
             )}
             <LanguageSwitcher />
