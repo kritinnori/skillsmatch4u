@@ -5,11 +5,12 @@ import { HomePage } from "./components/HomePage";
 import { QuizPage } from "./components/QuizPage";
 import { ResultsPage } from "./components/ResultsPage";
 import { LoginPage } from "./components/LoginPage";
+import { ResetPasswordPage } from "./components/ResetPasswordPage";
 import { fetchQuestions } from "./lib/api";
 import { supabase } from "./lib/supabase";
 import type { Question } from "./types/question";
 
-type Page = "home" | "quiz" | "results" | "login";
+type Page = "home" | "quiz" | "results" | "login" | "resetPassword";
 
 function readSession<T>(key: string, fallback: T): T {
   try {
@@ -57,8 +58,11 @@ function App() {
       setUser(data.user);
     });
 
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      if (event === "PASSWORD_RECOVERY") {
+        setCurrentPage("resetPassword");
+      }
     });
 
     return () => {
@@ -154,6 +158,10 @@ function App() {
             setCurrentPage("login");
           }}
         />
+      )}
+
+      {currentPage === "resetPassword" && (
+        <ResetPasswordPage onDone={() => setCurrentPage("home")} />
       )}
 
       {currentPage === "login" && (
