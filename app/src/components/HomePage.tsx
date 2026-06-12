@@ -55,7 +55,10 @@ export function HomePage({ onStartQuiz, onLogin, user }: HomePageProps) {
     <div className="w-full min-h-screen bg-[#050505] text-white">
       <header className="bg-[#050505] border-b border-purple-900/40 sticky top-0 z-20 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
-          <BrandLogo label={t("common.brand")} />
+          <BrandLogo
+            label={t("common.brand")}
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          />
           <div className="flex items-center gap-4">
             {user ? (
               <Button
