@@ -1,541 +1,389 @@
-import { useState, useEffect, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ExternalLink } from "lucide-react";
+import { Button } from "./ui/button";
 import {
-  analyzeAnswers,
-  fetchCourseRecommendations,
-  fetchJobRecommendations,
-  type CareerCore,
-  type CourseRecommendation,
-  type JobRecommendation,
-} from "../lib/api";
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Zap,
+  BarChart3,
+} from "lucide-react";
 import type { Question } from "../types/question";
 import { PageHeader } from "./layout/PageHeader";
-import { ResultsPageSkeleton } from "./ResultsPageSkeleton";
-import { ResultsSectionEmptyState } from "./ResultsSectionEmptyState";
-import { Button } from "./ui/button";
 
-function isValidHttpUrl(value: string | undefined): value is string {
-  if (!value) return false;
-  try {
-    const parsed = new URL(value);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
-function buildCourseUrl(course: {
-  title: string;
-  provider: string;
-  url?: string;
-}): string {
-  if (isValidHttpUrl(course.url)) return course.url;
-  const query = encodeURIComponent(`${course.title} ${course.provider}`);
-  const provider = course.provider.toLowerCase();
-  const title = course.title.toLowerCase();
-
-  if (provider.includes("skillsbuild") || provider.includes("ibm")) {
-    return "https://skillsbuild.org/";
-  }
-
-  if (
-    provider.includes("iti") ||
-    provider.includes("dgt") ||
-    title.includes("iti")
-  ) {
-    return `https://iti.dgt.gov.in/`;
-  }
-
-  if (
-    provider.includes("skill india") ||
-    provider.includes("nsdc") ||
-    provider.includes("pmkvy")
-  ) {
-    return `https://www.skillindia.gov.in/search?search=${query}`;
-  }
-
-  if (provider.includes("nptel")) {
-    return `https://nptel.ac.in/courses?search=${query}`;
-  }
-
-  if (provider.includes("swayam")) {
-    return `https://swayam.gov.in/search?searchText=${query}`;
-  }
-
-  if (provider.includes("coursera")) {
-    return `https://www.coursera.org/search?query=${query}`;
-  }
-
-  if (provider.includes("edx")) {
-    return `https://www.edx.org/search?q=${query}`;
-  }
-
-  if (provider.includes("udemy")) {
-    return `https://www.udemy.com/courses/search/?src=ukw&q=${query}`;
-  }
-
-  return `https://www.google.com/search?q=${encodeURIComponent(
-    `${course.title} ${course.provider} online course India`
-  )}`;
-}
-
-function buildJobUrl(job: {
-  title: string;
-  company: string;
-  url?: string;
-}): string {
-  if (isValidHttpUrl(job.url)) return job.url;
-  const query = encodeURIComponent(`${job.title} ${job.company}`);
-  return `https://www.linkedin.com/jobs/search/?keywords=${query}&location=India`;
-}
-
-interface ResultsPageProps {
-  answers: number[];
+interface QuizPageProps {
+  user?: { email?: string } | null;
+  onSignOut?: () => void;
   questions: Question[];
-  additionalInfo?: string;
-  onRestart: () => void;
+  onComplete: (answers: number[], additionalInfo?: string) => void;
   onBack: () => void;
-  user?: { email?: string } | null;
-  onSignOut?: () => void;
 }
 
-const CardSkeleton = () => (
-  <div className="rounded-xl border border-purple-900/40 bg-[#111111] p-4 shadow-sm">
-    <div className="h-5 w-3/4 skeleton-shimmer rounded" />
-    <div className="h-3 w-1/3 skeleton-shimmer rounded mt-3" />
-    <div className="h-3 w-full skeleton-shimmer rounded mt-3" />
-    <div className="h-3 w-5/6 skeleton-shimmer rounded mt-2" />
-  </div>
-);
+// --- sessionStorage helpers for quiz progress ---
+function readQuizSession<T>(key: string, fallback: T): T {
+  try {
+    const raw = sessionStorage.getItem(key);
+    return raw !== null ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
-function ResultsShell({
-  children,
-  brand,
-  onBack,
-  backLabel,
-  title,
-  user,
-  onSignOut,
-  onHome,
-}: {
-  children: ReactNode;
-  brand: string;
-  onBack: () => void;
-  backLabel: string;
-  title?: string;
-  user?: { email?: string } | null;
-  onSignOut?: () => void;
-  onHome?: () => void;
-}) {
+export function QuizPage({ questions, onComplete, onBack, user, onSignOut }: QuizPageProps) {
+  const { t } = useTranslation();
+
+  const SCALE_OPTIONS = useMemo(
+    () => [
+      { value: 1, label: t("quiz.scale.stronglyDisagree") },
+      { value: 2, label: t("quiz.scale.disagree") },
+      { value: 3, label: t("quiz.scale.neutral") },
+      { value: 4, label: t("quiz.scale.agree") },
+      { value: 5, label: t("quiz.scale.stronglyAgree") },
+    ],
+    [t]
+  );
+
+  // All state initializes from sessionStorage so language changes don't wipe progress
+  const [currentQuestionIndex, setCurrentQuestionIndexRaw] = useState(() =>
+    readQuizSession<number>("sm_qIndex", 0)
+  );
+  const [selectedAnswer, setSelectedAnswerRaw] = useState<number | null>(() =>
+    readQuizSession<number | null>("sm_qSelected", null)
+  );
+  const [answers, setAnswersRaw] = useState<number[]>(() =>
+    readQuizSession<number[]>("sm_qAnswers", [])
+  );
+  const [additionalInfo, setAdditionalInfoRaw] = useState<string>(() =>
+    readQuizSession<string>("sm_qAdditionalInfo", "")
+  );
+  const [showAdditionalInfo, setShowAdditionalInfoRaw] = useState<boolean>(() =>
+    readQuizSession<boolean>("sm_qShowAdditional", false)
+  );
+
+  // Synced setters — every write also goes to sessionStorage
+  const setCurrentQuestionIndex = (i: number) => {
+    sessionStorage.setItem("sm_qIndex", JSON.stringify(i));
+    setCurrentQuestionIndexRaw(i);
+  };
+  const setSelectedAnswer = (a: number | null) => {
+    sessionStorage.setItem("sm_qSelected", JSON.stringify(a));
+    setSelectedAnswerRaw(a);
+  };
+  const setAnswers = (a: number[]) => {
+    sessionStorage.setItem("sm_qAnswers", JSON.stringify(a));
+    setAnswersRaw(a);
+  };
+  const setAdditionalInfo = (s: string) => {
+    sessionStorage.setItem("sm_qAdditionalInfo", JSON.stringify(s));
+    setAdditionalInfoRaw(s);
+  };
+  const setShowAdditionalInfo = (v: boolean) => {
+    sessionStorage.setItem("sm_qShowAdditional", JSON.stringify(v));
+    setShowAdditionalInfoRaw(v);
+  };
+
+  const currentQuestion = questions[currentQuestionIndex];
+  const isLastQuestion = currentQuestionIndex === questions.length - 1;
+  const isFirstQuestion = currentQuestionIndex === 0;
+  const answeredCount = answers.filter(a => a !== undefined).length;
+  const progress = showAdditionalInfo
+    ? 100
+    : ((currentQuestionIndex + 1) / questions.length) * 100;
+
+  const handleBack = () => {
+    if (showAdditionalInfo) {
+      setShowAdditionalInfo(false);
+      const lastIndex = questions.length - 1;
+      setSelectedAnswer(answers[lastIndex] ?? null);
+    } else if (isFirstQuestion) {
+      onBack();
+    } else {
+      const previousIndex = currentQuestionIndex - 1;
+      setCurrentQuestionIndex(previousIndex);
+      setSelectedAnswer(answers[previousIndex] ?? null);
+    }
+  };
+
+  const handleNext = () => {
+    if (selectedAnswer === null) return;
+
+    // Write answer at current index, preserving any answers beyond it
+    const newAnswers = [...answers];
+    newAnswers[currentQuestionIndex] = selectedAnswer;
+    setAnswers(newAnswers);
+
+    if (isLastQuestion) {
+      setShowAdditionalInfo(true);
+    } else {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      setSelectedAnswer(newAnswers[currentQuestionIndex + 1] ?? null);
+    }
+  };
+
+  const handleFinish = () => {
+    // Clear quiz session storage on finish
+    ["sm_qIndex","sm_qSelected","sm_qAnswers","sm_qAdditionalInfo","sm_qShowAdditional"].forEach(k =>
+      sessionStorage.removeItem(k)
+    );
+    onComplete(answers, additionalInfo.trim() || undefined);
+  };
+
+  const jumpToQuestion = (index: number) => {
+    if (index > answeredCount) return;
+
+    // FIX: save the current selectedAnswer before jumping away
+    if (selectedAnswer !== null) {
+      const newAnswers = [...answers];
+      newAnswers[currentQuestionIndex] = selectedAnswer;
+      setAnswers(newAnswers);
+    }
+
+    setShowAdditionalInfo(false);
+    setCurrentQuestionIndex(index);
+    setSelectedAnswer(answers[index] ?? null);
+  };
+
   return (
     <div className="min-h-screen bg-[#050505] text-white">
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_bottom_left,rgba(126,34,206,0.28),transparent_42%)]" />
+
       <div className="relative z-10">
-        <PageHeader
-          brand={brand}
-          onBack={onBack}
-          backLabel={backLabel}
-          title={title}
-          user={user}
-          onSignOut={onSignOut}
-          onHome={onHome}
+        <PageHeader user={user} onSignOut={onSignOut} onHome={onBack}
+          brand={t("common.brand")}
+          onBack={handleBack}
+          backLabel={t("common.goBack")}
+          title={t("quiz.quizTitle")}
           sticky
-        />
-        <main className="max-w-5xl mx-auto px-4 md:px-8 py-8 pb-16">
-          {children}
-        </main>
-      </div>
-    </div>
-  );
-}
+        >
+          <div className="mt-4 space-y-2">
+            <div className="flex justify-between text-body-sm">
+              <span className="text-gray-300">{t("quiz.progress")}</span>
+              <span className="font-semibold text-purple-300">
+                {showAdditionalInfo
+                  ? questions.length
+                  : currentQuestionIndex + 1}{" "}
+                {t("quiz.of")} {questions.length}
+              </span>
+            </div>
 
-export function ResultsPage({
-  answers,
-  questions,
-  additionalInfo,
-  onBack,
-  user,
-  onSignOut,
-}: ResultsPageProps) {
-  const { t, i18n } = useTranslation();
-  const language = i18n.resolvedLanguage || i18n.language || "en";
-
-  const [career, setCareer] = useState<CareerCore | null>(null);
-  const [careerLoading, setCareerLoading] = useState(true);
-  const [careerError, setCareerError] = useState<string | null>(null);
-
-  const [courses, setCourses] = useState<CourseRecommendation[] | null>(null);
-  const [coursesLoading, setCoursesLoading] = useState(false);
-  const [coursesError, setCoursesError] = useState<string | null>(null);
-
-  const [jobs, setJobs] = useState<JobRecommendation[] | null>(null);
-  const [jobsLoading, setJobsLoading] = useState(false);
-  const [jobsError, setJobsError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (answers.length === 0 || questions.length === 0) return;
-
-    let cancelled = false;
-
-    const run = async () => {
-      try {
-        setCareerLoading(true);
-        setCareerError(null);
-        const recommendation = await analyzeAnswers({
-          answers,
-          questions,
-          additionalInfo,
-          language,
-        });
-        if (cancelled) return;
-        setCareer(recommendation);
-      } catch (err) {
-        if (cancelled) return;
-        setCareerError(
-          err instanceof Error ? err.message : t("results.failedToLoad")
-        );
-      } finally {
-        if (!cancelled) setCareerLoading(false);
-      }
-    };
-
-    run();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [answers, questions, additionalInfo, language, t]);
-
-  useEffect(() => {
-    if (!career) return;
-
-    let cancelled = false;
-
-    const careerContext = {
-      title: career.title,
-      description: career.description,
-      skills: career.skills,
-    };
-
-    const loadCourses = async () => {
-      try {
-        setCoursesLoading(true);
-        setCoursesError(null);
-        const result = await fetchCourseRecommendations({
-          language,
-          career: careerContext,
-        });
-        if (cancelled) return;
-        setCourses(result);
-      } catch (err) {
-        if (cancelled) return;
-        setCoursesError(
-          err instanceof Error ? err.message : t("results.coursesError")
-        );
-      } finally {
-        if (!cancelled) setCoursesLoading(false);
-      }
-    };
-
-    const loadJobs = async () => {
-      try {
-        setJobsLoading(true);
-        setJobsError(null);
-        const result = await fetchJobRecommendations({
-          language,
-          career: careerContext,
-        });
-        if (cancelled) return;
-        setJobs(result);
-      } catch (err) {
-        if (cancelled) return;
-        setJobsError(
-          err instanceof Error ? err.message : t("results.jobsError")
-        );
-      } finally {
-        if (!cancelled) setJobsLoading(false);
-      }
-    };
-
-    loadCourses();
-    loadJobs();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [career, language, t]);
-
-  const brand = t("common.brand");
-
-  if (careerLoading) {
-    return (
-      <ResultsShell
-        brand={brand}
-        onBack={onBack}
-        backLabel={t("common.goBack")}
-        title={t("results.pageTitle")}
-        user={user}
-        onSignOut={onSignOut}
-        onHome={onBack}
-      >
-        <p className="text-center text-gray-300 text-body-sm mb-8">
-          {t("results.analyzingHint")}
-        </p>
-        <ResultsPageSkeleton
-          coursesTitle={t("results.coursesTitle")}
-          jobsTitle={t("results.jobsTitle")}
-          keySkillsLabel={t("results.keySkills")}
-        />
-      </ResultsShell>
-    );
-  }
-
-  if (careerError || !career) {
-    return (
-      <ResultsShell
-        brand={brand}
-        onBack={onBack}
-        backLabel={t("common.goBack")}
-        onHome={onBack}
-      >
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <div className="text-center bg-[#111111] rounded-xl border border-purple-900/40 p-10 shadow-sm max-w-md">
-            <p className="text-lg mb-4 text-red-400 font-medium">
-              {t("common.errorPrefix")}:{" "}
-              {careerError || t("results.failedToLoad")}
-            </p>
-            <Button
-              onClick={onBack}
-              className="bg-purple-700 hover:bg-purple-600 text-white"
-            >
-              {t("common.goBackButton")}
-            </Button>
+            <div className="w-full bg-[#1a1a1a] rounded-full h-2 overflow-hidden">
+              <div
+                className="bg-purple-600 h-full transition-all duration-500 ease-out rounded-full"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
           </div>
-        </div>
-      </ResultsShell>
-    );
-  }
+        </PageHeader>
 
-  return (
-    <ResultsShell
-      brand={brand}
-      onBack={onBack}
-      backLabel={t("common.goBack")}
-      title={t("results.pageTitle")}
-      user={user}
-      onSignOut={onSignOut}
-      onHome={onBack}
-    >
-      <div className="space-y-10">
-        <div className="bg-[#111111] rounded-xl overflow-hidden shadow-lg border border-purple-900/40">
-          <div className="bg-gradient-to-r from-purple-800 to-purple-950 px-6 md:px-10 py-10 text-white">
-            <p className="text-body-sm font-semibold opacity-90 mb-2 uppercase tracking-wide">
-              {t("results.idealCareer")}
-            </p>
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">
-              {career.title}
-            </h2>
+        <main className="max-w-5xl mx-auto px-4 md:px-8 py-8 md:py-12">
+          <div className="grid md:grid-cols-3 gap-8">
+            <aside className="md:col-span-1 space-y-4 order-2 md:order-1">
+              <div className="bg-[#111111] rounded-xl p-6 border border-purple-900/40 shadow-sm">
+                <h3 className="text-body-xs font-semibold text-gray-400 uppercase mb-4">
+                  {t("quiz.progress")}
+                </h3>
 
-            <div className="flex flex-wrap items-end gap-4">
-              <div>
-                <p className="text-body-sm opacity-90 mb-1">
-                  {t("results.heading")}
-                </p>
-                <span className="text-4xl md:text-5xl font-bold">
-                  {career.matchScore}%
-                </span>
-              </div>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Clock className="w-5 h-5 text-purple-400 shrink-0" />
+                    <div>
+                      <p className="text-body-xs text-gray-400">
+                        {t("quiz.estimatedTime")}
+                      </p>
+                      <p className="font-semibold text-white text-sm">
+                        {t("quiz.estimatedTimeValue")}
+                      </p>
+                    </div>
+                  </div>
 
-              <div className="flex-1 min-w-[120px] max-w-md">
-                <div className="w-full h-2.5 bg-white/30 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-white rounded-full transition-all duration-700"
-                    style={{ width: `${career.matchScore}%` }}
-                  />
+                  <div className="flex items-center gap-3">
+                    <Zap className="w-5 h-5 text-purple-400 shrink-0" />
+                    <div>
+                      <p className="text-body-xs text-gray-400">
+                        {t("quiz.questionsAnswered")}
+                      </p>
+                      <p className="font-semibold text-white text-sm">
+                        {answeredCount} {t("quiz.of")} {questions.length}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <BarChart3 className="w-5 h-5 text-purple-400 shrink-0" />
+                    <div>
+                      <p className="text-body-xs text-gray-400">
+                        {t("quiz.completion")}
+                      </p>
+                      <p className="font-semibold text-white text-sm">
+                        {Math.round(progress)}%
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          <div className="px-6 md:px-10 py-8 space-y-8">
-            <div>
-              <h3 className="text-h4 font-bold text-white mb-3">
-                {t("results.aboutRole")}
-              </h3>
-              <p className="text-body-sm text-gray-300 leading-relaxed">
-                {career.description}
-              </p>
-            </div>
-
-            <div className="grid sm:grid-cols-2 gap-6">
-              <div className="rounded-lg border border-purple-900/40 bg-[#1a1a1a] p-5">
-                <p className="text-body-xs font-semibold text-gray-400 uppercase mb-1">
-                  {t("results.salaryRange")}
+              <div className="bg-purple-950/40 rounded-xl p-5 border border-purple-800/50 hidden md:block">
+                <p className="text-body-xs font-semibold text-purple-300 uppercase mb-2">
+                  {t("quiz.tipsTitle")}
                 </p>
-                <p className="text-lg font-bold text-white">{career.salary}</p>
+                <ul className="space-y-1.5 text-body-xs text-gray-300">
+                  <li>• {t("quiz.tip1")}</li>
+                  <li>• {t("quiz.tip2")}</li>
+                  <li>• {t("quiz.tip3")}</li>
+                </ul>
               </div>
+            </aside>
 
-              <div className="rounded-lg border border-purple-900/40 bg-[#1a1a1a] p-5">
-                <p className="text-body-xs font-semibold text-gray-400 uppercase mb-1">
-                  {t("results.jobGrowth")}
-                </p>
-                <p className="text-lg font-bold text-white">{career.growth}</p>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-body-sm font-semibold text-gray-300 uppercase mb-4 text-center">
-                {t("results.keySkills")}
-              </h3>
-              <div className="flex flex-wrap justify-center gap-2">
-                {career.skills.map((skill, index) => (
-                  <span
-                    key={index}
-                    className="px-4 py-2 bg-purple-950 text-purple-200 rounded-lg text-body-sm font-medium border border-purple-800"
-                  >
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <section className="space-y-4">
-          <h3 className="text-h4 font-bold text-white text-center">
-            {t("results.coursesTitle")}
-          </h3>
-
-          <a
-            href="https://skillsbuild.org/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group block rounded-xl border-2 border-teal-700/60 bg-gradient-to-r from-teal-950/40 to-[#111111] p-5 shadow-sm transition-all hover:border-teal-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-teal-500/40"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-lg font-semibold text-white group-hover:text-teal-300">
-                {t("results.skillsBuildTitle", { defaultValue: "IBM SkillsBuild" })}
-              </p>
-              <ExternalLink className="w-4 h-4 mt-1 shrink-0 text-gray-400 group-hover:text-teal-300" />
-            </div>
-            <p className="text-body-sm text-gray-400 mt-1">
-              {t("results.skillsBuildProvider", { defaultValue: "Free courses & IBM digital credentials" })}
-            </p>
-            <p className="text-body-sm text-gray-300 mt-2">
-              {t("results.skillsBuildReason", {
-                defaultValue:
-                  "Build the skills for this career with free, self-paced IBM courses — and earn digital badges employers recognize.",
-              })}
-            </p>
-          </a>
-
-          <div className="grid gap-4">
-            {coursesLoading ? (
-              <>
-                <CardSkeleton />
-                <CardSkeleton />
-                <CardSkeleton />
-              </>
-            ) : coursesError || !courses?.length ? (
-              <ResultsSectionEmptyState
-                kind="courses"
-                title={
-                  coursesError
-                    ? t("results.coursesUnavailableTitle")
-                    : t("results.noCoursesTitle")
-                }
-                description={
-                  coursesError
-                    ? t("results.coursesUnavailableDescription")
-                    : t("results.noCoursesDescription")
-                }
-              />
-            ) : (
-              courses.map((course, index) => (
-                <a
-                  key={`${course.title}-${index}`}
-                  href={buildCourseUrl(course)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group block rounded-xl border border-purple-900/40 bg-[#111111] p-5 shadow-sm transition-all hover:border-purple-500 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-purple-500/40"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-lg font-semibold text-white group-hover:text-purple-300">
-                      {course.title}
-                    </p>
-                    <ExternalLink className="w-4 h-4 mt-1 shrink-0 text-gray-400 group-hover:text-purple-300" />
-                  </div>
-                  <p className="text-body-sm text-gray-400 mt-1">
-                    {course.provider}
-                  </p>
-                  <p className="text-body-sm text-gray-300 mt-2">
-                    {course.reason}
-                  </p>
-                </a>
-              ))
-            )}
-          </div>
-        </section>
-
-        <section className="space-y-4">
-          <h3 className="text-h4 font-bold text-white text-center">
-            {t("results.jobsTitle")}
-          </h3>
-
-          <div className="grid gap-4">
-            {jobsLoading ? (
-              <>
-                <CardSkeleton />
-                <CardSkeleton />
-                <CardSkeleton />
-              </>
-            ) : jobsError || !jobs?.length ? (
-              <ResultsSectionEmptyState
-                kind="jobs"
-                title={
-                  jobsError
-                    ? t("results.jobsUnavailableTitle")
-                    : t("results.noJobsTitle")
-                }
-                description={
-                  jobsError
-                    ? t("results.jobsUnavailableDescription")
-                    : t("results.noJobsDescription")
-                }
-              />
-            ) : (
-              jobs.map((job, index) => (
-                <a
-                  key={`${job.title}-${job.company}-${index}`}
-                  href={buildJobUrl(job)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group block rounded-xl border border-purple-900/40 bg-[#111111] p-5 shadow-sm transition-all hover:border-purple-500 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-purple-500/40"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <p className="text-lg font-semibold text-white group-hover:text-purple-300">
-                        {job.title}
+            <div className="md:col-span-2 order-1 md:order-2 space-y-6">
+              <div className="bg-[#111111] rounded-xl p-6 md:p-10 border border-purple-900/40 shadow-md">
+                {!showAdditionalInfo ? (
+                  <div className="space-y-8">
+                    <div>
+                      <h2 className="text-xl md:text-2xl font-bold text-white mb-2 leading-snug">
+                        {currentQuestion.question}
+                      </h2>
+                      <p className="text-body-sm text-gray-300">
+                        {t("quiz.selectHint")}
                       </p>
-                      <ExternalLink className="w-4 h-4 shrink-0 text-gray-400 group-hover:text-purple-300" />
                     </div>
-                    <span className="text-body-xs uppercase tracking-wide text-gray-400">
-                      {job.location}
-                    </span>
+
+                    <div className="space-y-3">
+                      {SCALE_OPTIONS.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => setSelectedAnswer(option.value)}
+                          className={`w-full text-left px-5 py-4 rounded-lg border-2 transition-all duration-200 ${
+                            selectedAnswer === option.value
+                              ? "border-purple-500 bg-purple-900/40 shadow-sm"
+                              : "border-purple-900/40 bg-[#0b0b0b] hover:border-purple-500"
+                          }`}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div
+                              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                                selectedAnswer === option.value
+                                  ? "border-purple-500 bg-purple-600"
+                                  : "border-gray-500"
+                              }`}
+                            >
+                              {selectedAnswer === option.value && (
+                                <span className="w-2 h-2 bg-white rounded-full" />
+                              )}
+                            </div>
+
+                            <span
+                              className={`text-body-sm font-medium ${
+                                selectedAnswer === option.value
+                                  ? "text-purple-200"
+                                  : "text-gray-200"
+                              }`}
+                            >
+                              {option.label}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-3 pt-4 border-t border-purple-900/40">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleBack}
+                        disabled={isFirstQuestion}
+                        className="border-purple-900/50 bg-[#0b0b0b] text-white hover:bg-purple-950/50"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        {t("quiz.previous")}
+                      </Button>
+
+                      <Button
+                        onClick={handleNext}
+                        disabled={selectedAnswer === null}
+                        className="flex-1 bg-purple-700 hover:bg-purple-600 text-white font-semibold"
+                      >
+                        {t("quiz.next")}
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <p className="text-body-sm text-gray-400 mt-1">
-                    {job.company}
+                ) : (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-xl md:text-2xl font-bold text-white mb-2">
+                        {t("quiz.additionalInfoTitle")}
+                      </h2>
+                      <p className="text-body-sm text-gray-300">
+                        {t("quiz.additionalInfoSubtitle")}
+                      </p>
+                    </div>
+
+                    <textarea
+                      value={additionalInfo}
+                      onChange={(e) => setAdditionalInfo(e.target.value)}
+                      placeholder={t("quiz.additionalInfoPlaceholder")}
+                      className="w-full px-4 py-3 border border-purple-900/50 rounded-lg bg-[#0b0b0b] text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-900/50 min-h-[150px] resize-y"
+                    />
+
+                    <div className="flex justify-end pt-2">
+                      <Button
+                        onClick={handleFinish}
+                        className="bg-purple-700 hover:bg-purple-600 text-white font-semibold px-8"
+                      >
+                        {t("quiz.finish")}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {!showAdditionalInfo && questions.length <= 30 && (
+                <div className="bg-[#111111] rounded-xl p-5 border border-purple-900/40 shadow-sm">
+                  <p className="text-body-xs font-semibold text-gray-400 uppercase mb-3">
+                    {t("quiz.questionNavigator")}
                   </p>
-                  <p className="text-body-sm text-gray-300 mt-2">
-                    {job.reason}
-                  </p>
-                </a>
-              ))
-            )}
+
+                  <div className="flex flex-wrap gap-2">
+                    {questions.map((_, index) => {
+                      const answered = answers[index] !== undefined;
+                      const current = index === currentQuestionIndex;
+                      const reachable = index <= answeredCount;
+
+                      return (
+                        <button
+                          key={index}
+                          type="button"
+                          disabled={!reachable}
+                          onClick={() => reachable && jumpToQuestion(index)}
+                          className={`w-9 h-9 rounded-lg text-body-xs font-bold transition-all ${
+                            current
+                              ? "bg-purple-700 text-white shadow-sm"
+                              : answered
+                                ? "bg-purple-900/50 text-purple-200 border border-purple-600"
+                                : reachable
+                                  ? "bg-[#0b0b0b] text-gray-300 border border-purple-900/40 hover:bg-purple-950/50"
+                                  : "bg-[#080808] text-gray-600 border border-gray-800 cursor-not-allowed"
+                          }`}
+                          title={`${index + 1}`}
+                        >
+                          {answered && !current ? "✓" : index + 1}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </section>
+        </main>
+
+        <footer className="bg-[#050505] border-t border-purple-900/40 py-6 mt-8">
+          <p className="text-center text-body-sm text-gray-400 max-w-3xl mx-auto px-4">
+            {t("quiz.confidentialNote")}
+          </p>
+        </footer>
       </div>
-    </ResultsShell>
+    </div>
   );
 }
