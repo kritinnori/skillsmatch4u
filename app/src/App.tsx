@@ -133,8 +133,11 @@ function App() {
     sessionStorage.removeItem("sm_answers");
     sessionStorage.removeItem("sm_additionalInfo");
     sessionStorage.removeItem("sm_career");
-    sessionStorage.removeItem("sm_career_lang");
     sessionStorage.removeItem("sm_career_score");
+    // Clear all per-language career caches
+    ["en","hi","bn","te","mr","ta","ur","gu","kn","or","ml","pa","as"].forEach(lang => 
+      sessionStorage.removeItem(`sm_career_${lang}`)
+    );
     setCurrentPage("home");
     setAnswers([]);
     setAdditionalInfo("");
