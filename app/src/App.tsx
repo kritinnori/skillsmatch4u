@@ -133,6 +133,8 @@ function App() {
     sessionStorage.removeItem("sm_answers");
     sessionStorage.removeItem("sm_additionalInfo");
     sessionStorage.removeItem("sm_career");
+    sessionStorage.removeItem("sm_career_lang");
+    sessionStorage.removeItem("sm_career_score");
     setCurrentPage("home");
     setAnswers([]);
     setAdditionalInfo("");
