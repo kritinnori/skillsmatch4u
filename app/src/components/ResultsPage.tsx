@@ -158,15 +158,15 @@ export function ResultsPage({
   const language = i18n.resolvedLanguage || i18n.language || "en";
 
   // Load from cache if available so language changes never re-trigger analysis
-  const [career, setCareer] = useState<CareerCore | null>(() => {
+  // Lock the match score so it never changes across language switches
+  const [lockedScore, setLockedScore] = useState<number | null>(() => {
     try {
-      const cached = sessionStorage.getItem("sm_career");
-      return cached ? JSON.parse(cached) : null;
+      const s = sessionStorage.getItem("sm_career_score");
+      return s ? JSON.parse(s) : null;
     } catch { return null; }
   });
-  const [careerLoading, setCareerLoading] = useState(() => {
-    try { return !sessionStorage.getItem("sm_career"); } catch { return true; }
-  });
+  const [career, setCareer] = useState<CareerCore | null>(null);
+  const [careerLoading, setCareerLoading] = useState(true);
   const [careerError, setCareerError] = useState<string | null>(null);
 
   const [courses, setCourses] = useState<CourseRecommendation[] | null>(null);
@@ -190,12 +190,18 @@ export function ResultsPage({
           answers,
           questions,
           additionalInfo,
-          language: "en",
+          language,
         });
         if (cancelled) return;
-        // Cache so language switches never re-trigger analysis
-        sessionStorage.setItem("sm_career", JSON.stringify(recommendation));
-        setCareer(recommendation);
+        // Cache per language so switching language gets translated result but % stays stable within a session
+        // Lock the score on first analysis, inject it on subsequent ones
+        const score = lockedScore ?? recommendation.matchScore;
+        if (!lockedScore) {
+          sessionStorage.setItem("sm_career_score", JSON.stringify(score));
+          setLockedScore(score);
+        }
+        const stabilized = { ...recommendation, matchScore: score };
+        setCareer(stabilized);
       } catch (err) {
         if (cancelled) return;
         setCareerError(
@@ -211,7 +217,7 @@ export function ResultsPage({
     return () => {
       cancelled = true;
     };
-  }, [answers, questions, additionalInfo]);
+  }, [answers, questions, additionalInfo, language]);
 
   useEffect(() => {
     if (!career) return;
