@@ -255,21 +255,21 @@ app.post("/analyze", async (req, res) => {
 
     const prompt = `You are a career counselor in India analyzing a personality and career assessment quiz. Based on the user's responses, recommend the most suitable job profile for the Indian job market.
 
+LANGUAGE RULE (HIGHEST PRIORITY — MUST FOLLOW): ${languageInstruction(lang)} Every single human-readable value in the JSON — including title, description, skills, salary, and growth — MUST be written in this language. This is mandatory. Do not write any human-readable content in English unless the language is English.
+
 ${responses}
-Based on these responses, provide a career recommendation in JSON format with the following structure:
+Based on these responses, provide a career recommendation in JSON format:
 {
-  "title": "Job Title",
-  "description": "Detailed description explaining why this career matches the user's personality and preferences (2-3 sentences)",
+  "title": "<job title in the required language>",
+  "description": "<2-3 sentence description of why this career fits the user, written entirely in the required language>",
   "matchScore": 85,
-  "skills": ["Skill 1", "Skill 2", "Skill 3", "Skill 4"],
-  "salary": "Typical annual salary range in India in INR (e.g., '₹6 LPA - ₹12 LPA' or '₹8,00,000 - ₹15,00,000 per year')",
-  "growth": "Job growth outlook in India (e.g., 'Strong demand in Indian tech and services sectors')"
+  "skills": ["<skill in required language>", "<skill in required language>", "<skill in required language>", "<skill in required language>"],
+  "salary": "<salary range in ₹ LPA format>",
+  "growth": "<job growth outlook in India, written in the required language>"
 }
 
-Keep the career recommendation thoughtful and based on the response patterns. The matchScore should be between 75-98. Provide 4-6 key skills.
+The matchScore should be between 75-98. Provide 4-6 key skills. CURRENCY RULE: salary must always use ₹ symbol and LPA format — e.g. "₹6 LPA - ₹12 LPA". Never use USD or $.
 
-CURRENCY RULE (strict): The "salary" value must always be in Indian Rupees, using the ₹ symbol and Indian conventions such as "LPA" (lakhs per annum) — e.g. "₹6 LPA - ₹12 LPA" or "₹8,00,000 - ₹15,00,000 per year". Never use US dollars, the "$" symbol, "USD", or any non-Indian currency anywhere in the response.
-${languageInstruction(lang)}
 Always return valid JSON only. Do not include courses or jobs fields in this response.`;
 
     const recommendation = await runJsonCompletion<{
