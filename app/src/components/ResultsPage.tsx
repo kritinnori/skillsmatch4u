@@ -158,15 +158,21 @@ export function ResultsPage({
   const language = i18n.resolvedLanguage || i18n.language || "en";
 
   // Load from cache if available so language changes never re-trigger analysis
-  // Lock the match score so it never changes across language switches
+  // Cache career results per language so switching back is instant
+  const getCareerCache = (lang: string): CareerCore | null => {
+    try {
+      const raw = sessionStorage.getItem(`sm_career_${lang}`);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  };
   const [lockedScore, setLockedScore] = useState<number | null>(() => {
     try {
       const s = sessionStorage.getItem("sm_career_score");
       return s ? JSON.parse(s) : null;
     } catch { return null; }
   });
-  const [career, setCareer] = useState<CareerCore | null>(null);
-  const [careerLoading, setCareerLoading] = useState(true);
+  const [career, setCareer] = useState<CareerCore | null>(() => getCareerCache(language));
+  const [careerLoading, setCareerLoading] = useState(() => !getCareerCache(language));
   const [careerError, setCareerError] = useState<string | null>(null);
 
   const [courses, setCourses] = useState<CourseRecommendation[] | null>(null);
@@ -183,6 +189,13 @@ export function ResultsPage({
     let cancelled = false;
 
     const run = async () => {
+      // Check cache first — instant load if already fetched for this language
+      const cached = getCareerCache(language);
+      if (cached) {
+        setCareer(cached);
+        setCareerLoading(false);
+        return;
+      }
       try {
         setCareerLoading(true);
         setCareerError(null);
@@ -418,6 +431,26 @@ export function ResultsPage({
           <h3 className="text-h4 font-bold text-white text-center">
             {t("results.coursesTitle")}
           </h3>
+
+          <a
+            href="https://skillsbuild.org/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group block rounded-xl border-2 border-teal-700/60 bg-gradient-to-r from-teal-950/40 to-[#111111] p-5 shadow-sm transition-all hover:border-teal-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-teal-500/40"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-lg font-semibold text-white group-hover:text-teal-300">
+                {t("results.skillsBuildTitle", { defaultValue: "IBM SkillsBuild" })}
+              </p>
+              <ExternalLink className="w-4 h-4 mt-1 shrink-0 text-gray-400 group-hover:text-teal-300" />
+            </div>
+            <p className="text-body-sm text-gray-400 mt-1">
+              {t("results.skillsBuildProvider", { defaultValue: "Free courses & IBM digital credentials" })}
+            </p>
+            <p className="text-body-sm text-gray-300 mt-2">
+              {t("results.skillsBuildReason", { defaultValue: "Build the skills for this career with free, self-paced IBM courses — and earn digital badges employers recognize." })}
+            </p>
+          </a>
 
           <div className="grid gap-4">
             {coursesLoading ? (
