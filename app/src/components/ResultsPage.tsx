@@ -35,10 +35,6 @@ function buildCourseUrl(course: {
   const provider = course.provider.toLowerCase();
   const title = course.title.toLowerCase();
 
-  if (provider.includes("skillsbuild") || provider.includes("ibm")) {
-    return "https://skillsbuild.org/";
-  }
-
   if (
     provider.includes("iti") ||
     provider.includes("dgt") ||
@@ -96,8 +92,6 @@ interface ResultsPageProps {
   additionalInfo?: string;
   onRestart: () => void;
   onBack: () => void;
-  user?: { email?: string } | null;
-  onSignOut?: () => void;
 }
 
 const CardSkeleton = () => (
@@ -115,18 +109,12 @@ function ResultsShell({
   onBack,
   backLabel,
   title,
-  user,
-  onSignOut,
-  onHome,
 }: {
   children: ReactNode;
   brand: string;
   onBack: () => void;
   backLabel: string;
   title?: string;
-  user?: { email?: string } | null;
-  onSignOut?: () => void;
-  onHome?: () => void;
 }) {
   return (
     <div className="min-h-screen bg-[#050505] text-white">
@@ -137,9 +125,6 @@ function ResultsShell({
           onBack={onBack}
           backLabel={backLabel}
           title={title}
-          user={user}
-          onSignOut={onSignOut}
-          onHome={onHome}
           sticky
         />
         <main className="max-w-5xl mx-auto px-4 md:px-8 py-8 pb-16">
@@ -155,8 +140,6 @@ export function ResultsPage({
   questions,
   additionalInfo,
   onBack,
-  user,
-  onSignOut,
 }: ResultsPageProps) {
   const { t, i18n } = useTranslation();
   const language = i18n.resolvedLanguage || i18n.language || "en";
@@ -186,7 +169,7 @@ export function ResultsPage({
           answers,
           questions,
           additionalInfo,
-          language,
+          language: "en",  // Always analyze in English so % never changes on language switch
         });
         if (cancelled) return;
         setCareer(recommendation);
@@ -205,7 +188,7 @@ export function ResultsPage({
     return () => {
       cancelled = true;
     };
-  }, [answers, questions, additionalInfo, language, t]);
+  }, [answers, questions, additionalInfo, t]);
 
   useEffect(() => {
     if (!career) return;
@@ -275,9 +258,6 @@ export function ResultsPage({
         onBack={onBack}
         backLabel={t("common.goBack")}
         title={t("results.pageTitle")}
-        user={user}
-        onSignOut={onSignOut}
-        onHome={onBack}
       >
         <p className="text-center text-gray-300 text-body-sm mb-8">
           {t("results.analyzingHint")}
@@ -297,7 +277,6 @@ export function ResultsPage({
         brand={brand}
         onBack={onBack}
         backLabel={t("common.goBack")}
-        onHome={onBack}
       >
         <div className="flex items-center justify-center min-h-[50vh]">
           <div className="text-center bg-[#111111] rounded-xl border border-purple-900/40 p-10 shadow-sm max-w-md">
@@ -323,9 +302,6 @@ export function ResultsPage({
       onBack={onBack}
       backLabel={t("common.goBack")}
       title={t("results.pageTitle")}
-      user={user}
-      onSignOut={onSignOut}
-      onHome={onBack}
     >
       <div className="space-y-10">
         <div className="bg-[#111111] rounded-xl overflow-hidden shadow-lg border border-purple-900/40">
@@ -406,29 +382,6 @@ export function ResultsPage({
           <h3 className="text-h4 font-bold text-white text-center">
             {t("results.coursesTitle")}
           </h3>
-
-          <a
-            href="https://skillsbuild.org/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group block rounded-xl border-2 border-teal-700/60 bg-gradient-to-r from-teal-950/40 to-[#111111] p-5 shadow-sm transition-all hover:border-teal-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-teal-500/40"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-lg font-semibold text-white group-hover:text-teal-300">
-                {t("results.skillsBuildTitle", { defaultValue: "IBM SkillsBuild" })}
-              </p>
-              <ExternalLink className="w-4 h-4 mt-1 shrink-0 text-gray-400 group-hover:text-teal-300" />
-            </div>
-            <p className="text-body-sm text-gray-400 mt-1">
-              {t("results.skillsBuildProvider", { defaultValue: "Free courses & IBM digital credentials" })}
-            </p>
-            <p className="text-body-sm text-gray-300 mt-2">
-              {t("results.skillsBuildReason", {
-                defaultValue:
-                  "Build the skills for this career with free, self-paced IBM courses — and earn digital badges employers recognize.",
-              })}
-            </p>
-          </a>
 
           <div className="grid gap-4">
             {coursesLoading ? (
