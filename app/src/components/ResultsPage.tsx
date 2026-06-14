@@ -157,8 +157,16 @@ export function ResultsPage({
   const { t, i18n } = useTranslation();
   const language = i18n.resolvedLanguage || i18n.language || "en";
 
-  const [career, setCareer] = useState<CareerCore | null>(null);
-  const [careerLoading, setCareerLoading] = useState(true);
+  // Load from cache if available so language changes never re-trigger analysis
+  const [career, setCareer] = useState<CareerCore | null>(() => {
+    try {
+      const cached = sessionStorage.getItem("sm_career");
+      return cached ? JSON.parse(cached) : null;
+    } catch { return null; }
+  });
+  const [careerLoading, setCareerLoading] = useState(() => {
+    try { return !sessionStorage.getItem("sm_career"); } catch { return true; }
+  });
   const [careerError, setCareerError] = useState<string | null>(null);
 
   const [courses, setCourses] = useState<CourseRecommendation[] | null>(null);
@@ -182,9 +190,11 @@ export function ResultsPage({
           answers,
           questions,
           additionalInfo,
-          language: "en",  // Always analyze in English so % never changes on language switch
+          language: "en",
         });
         if (cancelled) return;
+        // Cache so language switches never re-trigger analysis
+        sessionStorage.setItem("sm_career", JSON.stringify(recommendation));
         setCareer(recommendation);
       } catch (err) {
         if (cancelled) return;
@@ -201,7 +211,7 @@ export function ResultsPage({
     return () => {
       cancelled = true;
     };
-  }, [answers, questions, additionalInfo, t]);
+  }, [answers, questions, additionalInfo]);
 
   useEffect(() => {
     if (!career) return;
