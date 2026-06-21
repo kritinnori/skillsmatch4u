@@ -15,12 +15,13 @@ import { supabase } from "../lib/supabase";
 interface HomePageProps {
   onStartQuiz: () => void;
   onLogin: () => void;
+  onDashboard: () => void;
   user: User | null;
 }
 
 const featureIcons = [Target, Zap, BarChart3] as const;
 
-export function HomePage({ onStartQuiz, onLogin, user }: HomePageProps) {
+export function HomePage({ onStartQuiz, onLogin, onDashboard, user }: HomePageProps) {
   const { t } = useTranslation();
 
   const handleSignOut = async () => {
@@ -60,6 +61,15 @@ export function HomePage({ onStartQuiz, onLogin, user }: HomePageProps) {
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           />
           <div className="flex items-center gap-4">
+            {user && (
+              <Button
+                onClick={onDashboard}
+                variant="outline"
+                className="border-purple-700 text-purple-300 hover:bg-purple-900/30 hover:text-white"
+              >
+                {t("dashboard.title", { defaultValue: "My Dashboard" })}
+              </Button>
+            )}
             {user ? (
               <Button
                 onClick={handleSignOut}
