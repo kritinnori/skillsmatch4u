@@ -143,6 +143,19 @@ const translations: Translations = {
     coursesError: "کورسز لوڈ کرنے میں ناکام",
     jobsError: "نوکریاں لوڈ کرنے میں ناکام",
   },
+  dashboard: {
+    title: "میرا ڈیش بورڈ",
+    currentMatch: "آپ کا موجودہ کیریئر میچ",
+    retakeQuiz: "دوبارہ تشخیص کریں",
+    startQuiz: "اپنی تشخیص شروع کریں",
+    noResultsYet: "آپ نے ابھی تک کیریئر تشخیص مکمل نہیں کی۔",
+    coursesStarted: "شروع کیے گئے کورسز",
+    jobsSaved: "دیکھی گئی نوکریاں",
+    yourCourses: "آپ کے شروع کیے گئے کورسز",
+    yourJobs: "آپ کی دیکھی گئی نوکریاں",
+    noCourses: "آپ نے ابھی تک کوئی کورس شروع نہیں کیا۔ اختیارات دیکھنے کے لیے اپنے نتائج دیکھیں۔",
+    noJobs: "آپ نے ابھی تک کوئی نوکری کی فہرست نہیں دیکھی۔",
+  },
 };
 
 export default translations;
