@@ -143,6 +143,19 @@ const translations: Translations = {
     coursesError: "કોર્સ લોડ કરવામાં નિષ્ફળ",
     jobsError: "નોકરીઓ લોડ કરવામાં નિષ્ફળ",
   },
+  dashboard: {
+    title: "મારું ડેશબોર્ડ",
+    currentMatch: "તમારો વર્તમાન કારકિર્દી મેળ",
+    retakeQuiz: "ફરીથી મૂલ્યાંકન કરો",
+    startQuiz: "તમારું મૂલ્યાંકન શરૂ કરો",
+    noResultsYet: "તમે હજુ સુધી કારકિર્દી મૂલ્યાંકન પૂર્ણ કર્યું નથી.",
+    coursesStarted: "શરૂ કરેલા કોર્સ",
+    jobsSaved: "જોયેલી નોકરીઓ",
+    yourCourses: "તમે શરૂ કરેલા કોર્સ",
+    yourJobs: "તમે જોયેલી નોકરીઓ",
+    noCourses: "તમે હજુ સુધી કોઈ કોર્સ શરૂ કર્યો નથી. વિકલ્પો જોવા તમારા પરિણામો જુઓ.",
+    noJobs: "તમે હજુ સુધી કોઈ નોકરી લિસ્ટિંગ જોયું નથી.",
+  },
 };
 
 export default translations;

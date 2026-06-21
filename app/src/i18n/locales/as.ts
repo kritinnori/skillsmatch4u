@@ -144,6 +144,19 @@ const translations: Translations = {
     coursesError: "কোৰ্চ ল'ড কৰিবলৈ ব্যৰ্থ",
     jobsError: "চাকৰি ল'ড কৰিবলৈ ব্যৰ্থ",
   },
+  dashboard: {
+    title: "মোৰ ডেশবোর্ড",
+    currentMatch: "আপোনাৰ বৰ্তমানৰ কেৰিয়াৰ মিলন",
+    retakeQuiz: "পুনৰ মূল্যায়ন কৰক",
+    startQuiz: "আপোনাৰ মূল্যায়ন আৰম্ভ কৰক",
+    noResultsYet: "আপুনি এতিয়াও কেৰিয়াৰ মূল্যায়ন সম্পূৰ্ণ কৰা নাই।",
+    coursesStarted: "আৰম্ভ কৰা কোৰ্স",
+    jobsSaved: "চাই থকা চাকৰি",
+    yourCourses: "আপুনি আৰম্ভ কৰা কোৰ্স",
+    yourJobs: "আপুনি চাই থকা চাকৰি",
+    noCourses: "আপুনি এতিয়াও কোনো কোৰ্স আৰম্ভ কৰা নাই। বিকল্প চাবলে আপোনাৰ ফলাফল চাওক।",
+    noJobs: "আপুনি এতিয়াও কোনো চাকৰি তালিকা চাই নাই।",
+  },
 };
 
 export default translations;

@@ -144,6 +144,19 @@ const translations: Translations = {
     coursesError: "कोर्स लोड करने में विफल",
     jobsError: "नौकरियाँ लोड करने में विफल",
   },
+  dashboard: {
+    title: "मेरा डैशबोर्ड",
+    currentMatch: "आपका वर्तमान करियर मैच",
+    retakeQuiz: "फिर से मूल्यांकन करें",
+    startQuiz: "अपना मूल्यांकन शुरू करें",
+    noResultsYet: "आपने अभी तक करियर मूल्यांकन पूरा नहीं किया है।",
+    coursesStarted: "शुरू किए गए कोर्स",
+    jobsSaved: "देखी गई नौकरियां",
+    yourCourses: "आपके शुरू किए गए कोर्स",
+    yourJobs: "आपकी देखी गई नौकरियां",
+    noCourses: "आपने अभी तक कोई कोर्स शुरू नहीं किया है। विकल्प देखने के लिए अपने परिणाम देखें।",
+    noJobs: "आपने अभी तक कोई नौकरी सूची नहीं देखी है।",
+  },
 };
 
 export default translations;

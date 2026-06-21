@@ -4,12 +4,13 @@ import type { User } from "@supabase/supabase-js";
 import { HomePage } from "./components/HomePage";
 import { QuizPage } from "./components/QuizPage";
 import { ResultsPage } from "./components/ResultsPage";
+import { DashboardPage } from "./components/DashboardPage";
 import { LoginPage } from "./components/LoginPage";
 import { fetchQuestions } from "./lib/api";
 import { supabase } from "./lib/supabase";
 import type { Question } from "./types/question";
 
-type Page = "home" | "quiz" | "results" | "login";
+type Page = "home" | "quiz" | "results" | "login" | "dashboard";
 
 function readSession<T>(key: string, fallback: T): T {
   try {
@@ -159,6 +160,7 @@ function App() {
             setLoginIntent("normal");
             setCurrentPage("login");
           }}
+          onDashboard={() => setCurrentPage("dashboard")}
         />
       )}
 
@@ -212,6 +214,7 @@ function App() {
               onBack={() => setCurrentPage("home")}
               user={user}
               onSignOut={handleSignOut}
+              onDashboard={() => setCurrentPage("dashboard")}
             />
           )}
         </>
@@ -226,6 +229,17 @@ function App() {
           onBack={() => setCurrentPage("home")}
           user={user}
           onSignOut={handleSignOut}
+          onDashboard={() => setCurrentPage("dashboard")}
+        />
+      )}
+
+      {currentPage === "dashboard" && (
+        <DashboardPage
+          user={user}
+          onBack={() => setCurrentPage("home")}
+          onHome={() => setCurrentPage("home")}
+          onSignOut={handleSignOut}
+          onRetakeQuiz={handleStartQuiz}
         />
       )}
     </>

@@ -144,6 +144,19 @@ const translations: Translations = {
     coursesError: "কোর্স লোড করতে ব্যর্থ",
     jobsError: "চাকরি লোড করতে ব্যর্থ",
   },
+  dashboard: {
+    title: "আমার ড্যাশবোর্ড",
+    currentMatch: "আপনার বর্তমান ক্যারিয়ার ম্যাচ",
+    retakeQuiz: "পুনরায় মূল্যায়ন করুন",
+    startQuiz: "আপনার মূল্যায়ন শুরু করুন",
+    noResultsYet: "আপনি এখনও ক্যারিয়ার মূল্যায়ন সম্পন্ন করেননি।",
+    coursesStarted: "শুরু করা কোর্স",
+    jobsSaved: "অন্বেষণ করা চাকরি",
+    yourCourses: "আপনার শুরু করা কোর্স",
+    yourJobs: "আপনার অন্বেষণ করা চাকরি",
+    noCourses: "আপনি এখনও কোনো কোর্স শুরু করেননি। বিকল্প দেখতে আপনার ফলাফল দেখুন।",
+    noJobs: "আপনি এখনও কোনো চাকরির তালিকা অন্বেষণ করেননি।",
+  },
 };
 
 export default translations;
