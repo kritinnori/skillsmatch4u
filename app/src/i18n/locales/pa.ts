@@ -145,6 +145,19 @@ const translations: Translations = {
     coursesError: "ਕੋਰਸ ਲੋਡ ਕਰਨ ਵਿੱਚ ਅਸਫਲ",
     jobsError: "ਨੌਕਰੀਆਂ ਲੋਡ ਕਰਨ ਵਿੱਚ ਅਸਫਲ",
   },
+  dashboard: {
+    title: "ਮੇਰਾ ਡੈਸ਼ਬੋਰਡ",
+    currentMatch: "ਤੁਹਾਡਾ ਮੌਜੂਦਾ ਕਰੀਅਰ ਮੇਲ",
+    retakeQuiz: "ਦੁਬਾਰਾ ਮੁਲਾਂਕਣ ਕਰੋ",
+    startQuiz: "ਆਪਣਾ ਮੁਲਾਂਕਣ ਸ਼ੁਰੂ ਕਰੋ",
+    noResultsYet: "ਤੁਸੀਂ ਅਜੇ ਤੱਕ ਕਰੀਅਰ ਮੁਲਾਂਕਣ ਪੂਰਾ ਨਹੀਂ ਕੀਤਾ।",
+    coursesStarted: "ਸ਼ੁਰੂ ਕੀਤੇ ਕੋਰਸ",
+    jobsSaved: "ਦੇਖੀਆਂ ਨੌਕਰੀਆਂ",
+    yourCourses: "ਤੁਹਾਡੇ ਸ਼ੁਰੂ ਕੀਤੇ ਕੋਰਸ",
+    yourJobs: "ਤੁਹਾਡੀਆਂ ਦੇਖੀਆਂ ਨੌਕਰੀਆਂ",
+    noCourses: "ਤੁਸੀਂ ਅਜੇ ਤੱਕ ਕੋਈ ਕੋਰਸ ਸ਼ੁਰੂ ਨਹੀਂ ਕੀਤਾ। ਵਿਕਲਪ ਦੇਖਣ ਲਈ ਆਪਣੇ ਨਤੀਜੇ ਦੇਖੋ।",
+    noJobs: "ਤੁਸੀਂ ਅਜੇ ਤੱਕ ਕੋਈ ਨੌਕਰੀ ਸੂਚੀ ਨਹੀਂ ਦੇਖੀ।",
+  },
 };
 
 export default translations;
