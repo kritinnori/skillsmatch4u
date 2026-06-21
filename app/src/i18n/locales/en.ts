@@ -147,6 +147,19 @@ const translations = {
     coursesError: "Failed to load courses",
     jobsError: "Failed to load jobs",
   },
+  dashboard: {
+    title: "My Dashboard",
+    currentMatch: "Your Current Career Match",
+    retakeQuiz: "Retake Assessment",
+    startQuiz: "Start Your Assessment",
+    noResultsYet: "You haven't completed a career assessment yet.",
+    coursesStarted: "Courses Started",
+    jobsSaved: "Jobs Explored",
+    yourCourses: "Courses You've Started",
+    yourJobs: "Jobs You've Explored",
+    noCourses: "You haven't started any courses yet. Visit your results to explore options.",
+    noJobs: "You haven't explored any job listings yet.",
+  },
 };
 
 export default translations;
