@@ -14,6 +14,7 @@ import { PageHeader } from "./layout/PageHeader";
 interface QuizPageProps {
   user?: { email?: string } | null;
   onSignOut?: () => void;
+  onDashboard?: () => void;
   questions: Question[];
   onComplete: (answers: number[], additionalInfo?: string) => void;
   onBack: () => void;
@@ -29,7 +30,7 @@ function readQuizSession<T>(key: string, fallback: T): T {
   }
 }
 
-export function QuizPage({ questions, onComplete, onBack, user, onSignOut }: QuizPageProps) {
+export function QuizPage({ questions, onComplete, onBack, user, onSignOut, onDashboard }: QuizPageProps) {
   const { t } = useTranslation();
 
   const SCALE_OPTIONS = useMemo(
@@ -148,7 +149,7 @@ export function QuizPage({ questions, onComplete, onBack, user, onSignOut }: Qui
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_bottom_left,rgba(126,34,206,0.28),transparent_42%)]" />
 
       <div className="relative z-10">
-        <PageHeader user={user} onSignOut={onSignOut} onHome={onBack}
+        <PageHeader user={user} onSignOut={onSignOut} onHome={onBack} onDashboard={onDashboard}
           brand={t("common.brand")}
           onBack={handleBack}
           backLabel={t("common.goBack")}
