@@ -12,7 +12,7 @@ import type { Question } from "../types/question";
 import { PageHeader } from "./layout/PageHeader";
 
 interface QuizPageProps {
-  user?: { email?: string } | null;
+  user?: { id: string; email?: string } | null;
   onSignOut?: () => void;
   onDashboard?: () => void;
   questions: Question[];
