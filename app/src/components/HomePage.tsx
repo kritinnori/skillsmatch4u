@@ -64,8 +64,7 @@ export function HomePage({ onStartQuiz, onLogin, onDashboard, user }: HomePagePr
             {user && (
               <Button
                 onClick={onDashboard}
-                variant="outline"
-                className="border-purple-700 text-purple-300 hover:bg-purple-900/30 hover:text-white"
+                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold"
               >
                 {t("dashboard.title", { defaultValue: "My Dashboard" })}
               </Button>
