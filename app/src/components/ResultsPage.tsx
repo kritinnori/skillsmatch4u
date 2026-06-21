@@ -93,7 +93,7 @@ interface ResultsPageProps {
   additionalInfo?: string;
   onRestart: () => void;
   onBack: () => void;
-  user?: { email?: string } | null;
+  user?: { id: string; email?: string } | null;
   onSignOut?: () => void;
   onDashboard?: () => void;
 }
@@ -123,7 +123,7 @@ function ResultsShell({
   onBack: () => void;
   backLabel: string;
   title?: string;
-  user?: { email?: string } | null;
+  user?: { id: string; email?: string } | null;
   onSignOut?: () => void;
   onHome?: () => void;
   onDashboard?: () => void;
