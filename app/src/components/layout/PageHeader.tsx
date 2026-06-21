@@ -15,6 +15,7 @@ interface PageHeaderProps {
   user?: { email?: string } | null;
   onSignOut?: () => void;
   onHome?: () => void;
+  onDashboard?: () => void;
 }
 
 export function PageHeader({
@@ -27,6 +28,7 @@ export function PageHeader({
   user,
   onSignOut,
   onHome,
+  onDashboard,
 }: PageHeaderProps) {
   const { t } = useTranslation();
   return (
@@ -60,6 +62,15 @@ export function PageHeader({
             )}
           </div>
           <div className="flex items-center gap-3">
+            {user && onDashboard && (
+              <Button
+                onClick={onDashboard}
+                variant="outline"
+                className="border-purple-700 text-purple-300 hover:bg-purple-900/30 hover:text-white"
+              >
+                {t("dashboard.title", { defaultValue: "My Dashboard" })}
+              </Button>
+            )}
             {user && onSignOut && (
               <Button
                 onClick={onSignOut}
