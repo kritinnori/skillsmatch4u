@@ -12,7 +12,7 @@ interface PageHeaderProps {
   title?: string;
   sticky?: boolean;
   children?: ReactNode;
-  user?: { email?: string } | null;
+  user?: { id: string; email?: string } | null;
   onSignOut?: () => void;
   onHome?: () => void;
   onDashboard?: () => void;
