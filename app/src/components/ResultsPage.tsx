@@ -11,6 +11,7 @@ import {
 } from "../lib/api";
 import type { Question } from "../types/question";
 import { PageHeader } from "./layout/PageHeader";
+import { saveCareerResult, logCourseClick, logJobClick } from "../lib/dashboard";
 import { ResultsPageSkeleton } from "./ResultsPageSkeleton";
 import { ResultsSectionEmptyState } from "./ResultsSectionEmptyState";
 import { Button } from "./ui/button";
@@ -94,6 +95,7 @@ interface ResultsPageProps {
   onBack: () => void;
   user?: { email?: string } | null;
   onSignOut?: () => void;
+  onDashboard?: () => void;
 }
 
 const CardSkeleton = () => (
@@ -114,6 +116,7 @@ function ResultsShell({
   user,
   onSignOut,
   onHome,
+  onDashboard,
 }: {
   children: ReactNode;
   brand: string;
@@ -123,6 +126,7 @@ function ResultsShell({
   user?: { email?: string } | null;
   onSignOut?: () => void;
   onHome?: () => void;
+  onDashboard?: () => void;
 }) {
   return (
     <div className="min-h-screen bg-[#050505] text-white">
@@ -136,6 +140,7 @@ function ResultsShell({
           user={user}
           onSignOut={onSignOut}
           onHome={onHome}
+          onDashboard={onDashboard}
           sticky
         />
         <main className="max-w-5xl mx-auto px-4 md:px-8 py-8 pb-16">
@@ -153,6 +158,7 @@ export function ResultsPage({
   onBack,
   user,
   onSignOut,
+  onDashboard,
 }: ResultsPageProps) {
   const { t, i18n } = useTranslation();
   const language = i18n.resolvedLanguage || i18n.language || "en";
@@ -215,6 +221,9 @@ export function ResultsPage({
         }
         const stabilized = { ...recommendation, matchScore: score };
         setCareer(stabilized);
+        if (user?.id) {
+          saveCareerResult(user.id, stabilized);
+        }
       } catch (err) {
         if (cancelled) return;
         setCareerError(
@@ -303,6 +312,7 @@ export function ResultsPage({
         user={user}
         onSignOut={onSignOut}
         onHome={onBack}
+        onDashboard={onDashboard}
       >
         <p className="text-center text-gray-300 text-body-sm mb-8">
           {t("results.analyzingHint")}
@@ -351,6 +361,7 @@ export function ResultsPage({
       user={user}
       onSignOut={onSignOut}
       onHome={onBack}
+      onDashboard={onDashboard}
     >
       <div className="space-y-10">
         <div className="bg-[#111111] rounded-xl overflow-hidden shadow-lg border border-purple-900/40">
@@ -480,6 +491,15 @@ export function ResultsPage({
                   href={buildCourseUrl(course)}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => {
+                    if (user?.id) {
+                      logCourseClick(user.id, {
+                        title: course.title,
+                        provider: course.provider,
+                        url: buildCourseUrl(course),
+                      });
+                    }
+                  }}
                   className="group block rounded-xl border border-purple-900/40 bg-[#111111] p-5 shadow-sm transition-all hover:border-purple-500 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-purple-500/40"
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -533,6 +553,15 @@ export function ResultsPage({
                   href={buildJobUrl(job)}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => {
+                    if (user?.id) {
+                      logJobClick(user.id, {
+                        title: job.title,
+                        company: job.company,
+                        url: buildJobUrl(job),
+                      });
+                    }
+                  }}
                   className="group block rounded-xl border border-purple-900/40 bg-[#111111] p-5 shadow-sm transition-all hover:border-purple-500 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-purple-500/40"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
