@@ -194,8 +194,7 @@ export function LoginPage({
                   <Button
                     type="button"
                     onClick={onContinueWithoutAccount}
-                    variant="outline"
-                    className="w-full border-purple-700 text-purple-200 hover:bg-purple-900/30 hover:text-white"
+                    className="w-full bg-black text-white hover:bg-gray-900 border border-purple-900/50"
                   >
                     {tr("login.continueWithoutAccount", "No thanks, continue")}
                   </Button>
