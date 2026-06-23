@@ -156,6 +156,12 @@ const translations: Translations = {
     yourJobs: "आपकी देखी गई नौकरियां",
     noCourses: "आपने अभी तक कोई कोर्स शुरू नहीं किया है। विकल्प देखने के लिए अपने परिणाम देखें।",
     noJobs: "आपने अभी तक कोई नौकरी सूची नहीं देखी है।",
+    recommendedCourses: "सुझाए गए कोर्स",
+    noRecommendedCourses: "अभी कोई कोर्स सुझाव नहीं हैं।",
+    started: "शुरू किया गया",
+    recommendedJobs: "सुझाई गई नौकरियां",
+    noRecommendedJobs: "अभी कोई नौकरी सुझाव नहीं हैं।",
+    explored: "देखा गया",
   },
   location: {
     title: "आप कहाँ स्थित हैं?",
