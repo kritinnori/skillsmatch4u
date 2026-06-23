@@ -174,6 +174,8 @@ const translations: Translations = {
     matchesYourPath: "ਤੁਹਾਡੇ ਰਸਤੇ ਨਾਲ ਮੇਲ ਖਾਂਦਾ ਹੈ",
     exploreInstead: "ਇਸਨੂੰ ਦੇਖੋ",
     seeThriving: "ਦੇਖੋ ਤੁਹਾਡੇ ਨੇੜੇ ਕੀ ਵਧ ਰਿਹਾ ਹੈ",
+    addPrompt: "ਕੀ ਤੁਸੀਂ ਦੇਖਣਾ ਚਾਹੁੰਦੇ ਹੋ ਤੁਹਾਡੇ ਨੇੜੇ ਕਿਹੜੇ ਉਦਯੋਗ ਵਧ ਰਹੇ ਹਨ?",
+    addLocation: "ਆਪਣਾ ਟਿਕਾਣਾ ਸ਼ਾਮਲ ਕਰੋ",
   },
 };
 

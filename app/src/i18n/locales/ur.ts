@@ -172,6 +172,8 @@ const translations: Translations = {
     matchesYourPath: "آپ کے راستے سے میل کھاتا ہے",
     exploreInstead: "اس کو دیکھیں",
     seeThriving: "دیکھیں آپ کے قریب کیا پھل پھول رہا ہے",
+    addPrompt: "کیا آپ دیکھنا چاہتے ہیں آپ کے قریب کون سی صنعتیں پھل پھول رہی ہیں؟",
+    addLocation: "اپنا مقام شامل کریں",
   },
 };
 

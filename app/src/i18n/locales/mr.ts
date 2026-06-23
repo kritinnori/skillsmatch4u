@@ -172,6 +172,8 @@ const translations: Translations = {
     matchesYourPath: "तुमच्या मार्गाशी जुळते",
     exploreInstead: "हे एक्सप्लोर करा",
     seeThriving: "तुमच्या जवळ काय भरभराटीला आले आहे ते पहा",
+    addPrompt: "तुमच्या जवळ कोणते उद्योग भरभराटीला आले आहेत हे पाहायचे आहे का?",
+    addLocation: "तुमचे स्थान जोडा",
   },
 };
 

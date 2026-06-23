@@ -176,6 +176,8 @@ const translations = {
     matchesYourPath: "Matches your path",
     exploreInstead: "Explore this instead",
     seeThriving: "See What's Thriving Near You",
+    addPrompt: "Want to see what industries are thriving near you?",
+    addLocation: "Add Your Location",
   },
 };
 
