@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { CareerCore } from "./api";
+import type { CareerCore, CourseRecommendation, JobRecommendation } from "./api";
 
 export interface ClickedItem {
   title: string;
@@ -18,6 +18,8 @@ export interface UserProgress {
   career_skills: string[];
   courses_clicked: ClickedItem[];
   jobs_clicked: ClickedItem[];
+  recommended_courses: CourseRecommendation[];
+  recommended_jobs: JobRecommendation[];
   quiz_completed_at: string | null;
   updated_at: string | null;
 }
@@ -41,6 +43,24 @@ export async function saveCareerResult(userId: string, career: CareerCore) {
       { onConflict: "user_id" }
     );
   if (error) console.error("Failed to save career result:", error);
+}
+
+
+// Save the FULL recommended courses/jobs list (shown on dashboard even before any clicks)
+export async function saveRecommendedCourses(userId: string, courses: CourseRecommendation[]) {
+  const { error } = await supabase
+    .from("user_progress")
+    .update({ recommended_courses: courses, updated_at: new Date().toISOString() })
+    .eq("user_id", userId);
+  if (error) console.error("Failed to save recommended courses:", error);
+}
+
+export async function saveRecommendedJobs(userId: string, jobs: JobRecommendation[]) {
+  const { error } = await supabase
+    .from("user_progress")
+    .update({ recommended_jobs: jobs, updated_at: new Date().toISOString() })
+    .eq("user_id", userId);
+  if (error) console.error("Failed to save recommended jobs:", error);
 }
 
 // Log a course click — appends to the courses_clicked array
@@ -111,6 +131,8 @@ export async function fetchUserProgress(userId: string): Promise<UserProgress | 
     career_skills: data.career_skills ?? [],
     courses_clicked: data.courses_clicked ?? [],
     jobs_clicked: data.jobs_clicked ?? [],
+    recommended_courses: data.recommended_courses ?? [],
+    recommended_jobs: data.recommended_jobs ?? [],
     quiz_completed_at: data.quiz_completed_at,
     updated_at: data.updated_at,
   };
