@@ -116,3 +116,38 @@ export async function fetchJobRecommendations(
   if (data.error) throw new Error(data.error);
   return Array.isArray(data.jobs) ? data.jobs : [];
 }
+
+export interface LocalIndustry {
+  name: string;
+  reason: string;
+  matchesUserCareer?: boolean;
+}
+
+export interface LocalIndustriesRequest {
+  state: string;
+  district?: string;
+  career?: { title: string };
+  language?: string;
+}
+
+export async function fetchLocalIndustries(
+  request: LocalIndustriesRequest
+): Promise<{ location: string; industries: LocalIndustry[] }> {
+  const response = await fetch(`${API_BASE_URL}/local-industries`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || "Failed to fetch local industry recommendations");
+  }
+
+  const data = await response.json();
+  if (data.error) throw new Error(data.error);
+  return {
+    location: data.location ?? request.district ?? request.state,
+    industries: Array.isArray(data.industries) ? data.industries : [],
+  };
+}
