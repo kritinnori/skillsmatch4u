@@ -5,12 +5,14 @@ import { HomePage } from "./components/HomePage";
 import { QuizPage } from "./components/QuizPage";
 import { ResultsPage } from "./components/ResultsPage";
 import { DashboardPage } from "./components/DashboardPage";
+import { LocationPage } from "./components/LocationPage";
+import { LocalEcosystemPage } from "./components/LocalEcosystemPage";
 import { LoginPage } from "./components/LoginPage";
 import { fetchQuestions } from "./lib/api";
 import { supabase } from "./lib/supabase";
 import type { Question } from "./types/question";
 
-type Page = "home" | "quiz" | "results" | "login" | "dashboard";
+type Page = "home" | "quiz" | "results" | "login" | "dashboard" | "location" | "localEcosystem";
 
 function readSession<T>(key: string, fallback: T): T {
   try {
@@ -37,6 +39,8 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loginIntent, setLoginIntent] = useState<"startQuiz" | "normal">("normal");
+  const [userState, setUserState] = useState<string>(() => localStorage.getItem("sm_state") || "");
+  const [userDistrict, setUserDistrict] = useState<string>(() => localStorage.getItem("sm_district") || "");
 
   const setCurrentPage = (page: Page) => {
     sessionStorage.setItem("sm_page", JSON.stringify(page));
@@ -110,6 +114,35 @@ function App() {
   };
 
   const handleLoginSuccess = () => {
+    const hasLocation = localStorage.getItem("sm_location_asked") === "true";
+    if (!hasLocation) {
+      setCurrentPage("location");
+      return;
+    }
+    if (loginIntent === "startQuiz") {
+      actuallyStartQuiz();
+    } else {
+      setCurrentPage("home");
+    }
+    setLoginIntent("normal");
+  };
+
+  const handleLocationContinue = (state: string, district: string) => {
+    localStorage.setItem("sm_state", state);
+    localStorage.setItem("sm_district", district);
+    localStorage.setItem("sm_location_asked", "true");
+    setUserState(state);
+    setUserDistrict(district);
+    if (loginIntent === "startQuiz") {
+      actuallyStartQuiz();
+    } else {
+      setCurrentPage("home");
+    }
+    setLoginIntent("normal");
+  };
+
+  const handleLocationSkip = () => {
+    localStorage.setItem("sm_location_asked", "true");
     if (loginIntent === "startQuiz") {
       actuallyStartQuiz();
     } else {
@@ -230,6 +263,8 @@ function App() {
           user={user}
           onSignOut={handleSignOut}
           onDashboard={() => setCurrentPage("dashboard")}
+          onViewLocalEcosystem={() => setCurrentPage("localEcosystem")}
+          hasLocation={!!userState && !!userDistrict}
         />
       )}
 
@@ -240,6 +275,26 @@ function App() {
           onHome={() => setCurrentPage("home")}
           onSignOut={handleSignOut}
           onRetakeQuiz={handleStartQuiz}
+        />
+      )}
+
+      {currentPage === "location" && (
+        <LocationPage
+          onContinue={handleLocationContinue}
+          onSkip={handleLocationSkip}
+        />
+      )}
+
+      {currentPage === "localEcosystem" && (
+        <LocalEcosystemPage
+          state={userState}
+          district={userDistrict}
+          currentCareerTitle={(() => { try { const lang = i18n.resolvedLanguage || i18n.language || "en"; const cached = sessionStorage.getItem(`sm_career_${lang}`); return cached ? JSON.parse(cached).title : undefined; } catch { return undefined; } })()}
+          user={user}
+          onSignOut={handleSignOut}
+          onBack={() => setCurrentPage("results")}
+          onHome={() => setCurrentPage("home")}
+          onDashboard={() => setCurrentPage("dashboard")}
         />
       )}
     </>
