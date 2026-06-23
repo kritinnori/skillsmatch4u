@@ -16,25 +16,21 @@ import { ResultsPageSkeleton } from "./ResultsPageSkeleton";
 import { ResultsSectionEmptyState } from "./ResultsSectionEmptyState";
 import { Button } from "./ui/button";
 
-function isValidHttpUrl(value: string | undefined): value is string {
-  if (!value) return false;
-  try {
-    const parsed = new URL(value);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
 function buildCourseUrl(course: {
   title: string;
   provider: string;
   url?: string;
 }): string {
-  if (isValidHttpUrl(course.url)) return course.url;
+  // NOTE: we deliberately do NOT trust course.url directly, even if it's a syntactically
+  // valid URL — the AI can hallucinate a specific course page that 404s. We always build
+  // a search/listing URL on the real platform instead, which is guaranteed to load.
   const query = encodeURIComponent(`${course.title} ${course.provider}`);
   const provider = course.provider.toLowerCase();
   const title = course.title.toLowerCase();
+
+  if (provider.includes("skillsbuild") || provider.includes("ibm")) {
+    return "https://skillsbuild.org/";
+  }
 
   if (
     provider.includes("iti") ||
@@ -72,6 +68,26 @@ function buildCourseUrl(course: {
     return `https://www.udemy.com/courses/search/?src=ukw&q=${query}`;
   }
 
+  if (provider.includes("upgrad")) {
+    return `https://www.upgrad.com/search/?q=${query}`;
+  }
+
+  if (provider.includes("simplilearn")) {
+    return `https://www.simplilearn.com/search?q=${query}`;
+  }
+
+  if (provider.includes("great learning")) {
+    return `https://www.mygreatlearning.com/search?query=${query}`;
+  }
+
+  if (provider.includes("internshala")) {
+    return `https://trainings.internshala.com/search/?search_term=${query}`;
+  }
+
+  if (provider.includes("linkedin")) {
+    return `https://www.linkedin.com/learning/search?keywords=${query}`;
+  }
+
   return `https://www.google.com/search?q=${encodeURIComponent(
     `${course.title} ${course.provider} online course India`
   )}`;
@@ -82,7 +98,8 @@ function buildJobUrl(job: {
   company: string;
   url?: string;
 }): string {
-  if (isValidHttpUrl(job.url)) return job.url;
+  // Same reasoning as buildCourseUrl: never trust a specific guessed job posting URL,
+  // since listings expire and the AI can hallucinate. Always build a search URL instead.
   const query = encodeURIComponent(`${job.title} ${job.company}`);
   return `https://www.linkedin.com/jobs/search/?keywords=${query}&location=India`;
 }
