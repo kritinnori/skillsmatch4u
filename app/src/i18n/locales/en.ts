@@ -159,6 +159,12 @@ const translations = {
     yourJobs: "Jobs You've Explored",
     noCourses: "You haven't started any courses yet. Visit your results to explore options.",
     noJobs: "You haven't explored any job listings yet.",
+    recommendedCourses: "Recommended Courses",
+    noRecommendedCourses: "No course recommendations yet.",
+    started: "Started",
+    recommendedJobs: "Recommended Jobs",
+    noRecommendedJobs: "No job recommendations yet.",
+    explored: "Explored",
   },
   location: {
     title: "Where are you located?",

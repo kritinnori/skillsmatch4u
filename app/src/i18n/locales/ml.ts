@@ -157,6 +157,12 @@ const translations: Translations = {
     yourJobs: "നിങ്ങൾ പരിശോധിച്ച ജോലികൾ",
     noCourses: "നിങ്ങൾ ഇതുവരെ ഒരു കോഴ്സും ആരംഭിച്ചിട്ടില്ല. ഓപ്ഷനുകൾ പരിശോധിക്കാൻ നിങ്ങളുടെ ഫലങ്ങൾ കാണുക.",
     noJobs: "നിങ്ങൾ ഇതുവരെ ഒരു ജോലി ലിസ്റ്റിംഗും പരിശോധിച്ചിട്ടില്ല.",
+    recommendedCourses: "ശുപാർശ ചെയ്ത കോഴ്സുകൾ",
+    noRecommendedCourses: "ഇതുവരെ കോഴ്സ് ശുപാർശകൾ ഇല്ല.",
+    started: "ആരംഭിച്ചു",
+    recommendedJobs: "ശുപാർശ ചെയ്ത ജോലികൾ",
+    noRecommendedJobs: "ഇതുവരെ ജോലി ശുപാർശകൾ ഇല്ല.",
+    explored: "പരിശോധിച്ചു",
   },
   location: {
     title: "നിങ്ങൾ എവിടെയാണ്?",

@@ -11,7 +11,7 @@ import {
 } from "../lib/api";
 import type { Question } from "../types/question";
 import { PageHeader } from "./layout/PageHeader";
-import { saveCareerResult, logCourseClick, logJobClick } from "../lib/dashboard";
+import { saveCareerResult, logCourseClick, logJobClick, saveRecommendedCourses, saveRecommendedJobs } from "../lib/dashboard";
 import { ResultsPageSkeleton } from "./ResultsPageSkeleton";
 import { ResultsSectionEmptyState } from "./ResultsSectionEmptyState";
 import { Button } from "./ui/button";
@@ -285,6 +285,9 @@ export function ResultsPage({
         });
         if (cancelled) return;
         setCourses(result);
+        if (user?.id) {
+          saveRecommendedCourses(user.id, result);
+        }
       } catch (err) {
         if (cancelled) return;
         setCoursesError(
@@ -305,6 +308,9 @@ export function ResultsPage({
         });
         if (cancelled) return;
         setJobs(result);
+        if (user?.id) {
+          saveRecommendedJobs(user.id, result);
+        }
       } catch (err) {
         if (cancelled) return;
         setJobsError(
