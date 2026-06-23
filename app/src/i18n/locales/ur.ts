@@ -155,6 +155,12 @@ const translations: Translations = {
     yourJobs: "آپ کی دیکھی گئی نوکریاں",
     noCourses: "آپ نے ابھی تک کوئی کورس شروع نہیں کیا۔ اختیارات دیکھنے کے لیے اپنے نتائج دیکھیں۔",
     noJobs: "آپ نے ابھی تک کوئی نوکری کی فہرست نہیں دیکھی۔",
+    recommendedCourses: "تجویز کردہ کورسز",
+    noRecommendedCourses: "ابھی تک کوئی کورس کی تجویز نہیں۔",
+    started: "شروع ہوا",
+    recommendedJobs: "تجویز کردہ نوکریاں",
+    noRecommendedJobs: "ابھی تک کوئی نوکری کی تجویز نہیں۔",
+    explored: "دیکھا گیا",
   },
   location: {
     title: "آپ کہاں واقع ہیں؟",
