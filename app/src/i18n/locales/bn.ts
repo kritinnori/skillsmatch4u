@@ -156,6 +156,12 @@ const translations: Translations = {
     yourJobs: "আপনার অন্বেষণ করা চাকরি",
     noCourses: "আপনি এখনও কোনো কোর্স শুরু করেননি। বিকল্প দেখতে আপনার ফলাফল দেখুন।",
     noJobs: "আপনি এখনও কোনো চাকরির তালিকা অন্বেষণ করেননি।",
+    recommendedCourses: "প্রস্তাবিত কোর্স",
+    noRecommendedCourses: "এখনো কোনো কোর্সের সুপারিশ নেই।",
+    started: "শুরু হয়েছে",
+    recommendedJobs: "প্রস্তাবিত চাকরি",
+    noRecommendedJobs: "এখনো কোনো চাকরির সুপারিশ নেই।",
+    explored: "দেখা হয়েছে",
   },
   location: {
     title: "আপনি কোথায় অবস্থিত?",
