@@ -335,7 +335,7 @@ Recommend 4 high-quality, practical courses that will help this user grow into t
       "title": "Course title",
       "provider": "Platform or institution name",
       "reason": "Why this course helps for this career in India (1 sentence; mention affordability, Hindi/regional language, or India-relevant skills where applicable)",
-      "url": "Direct URL to the course page on the provider's website"
+      "url": "A search/listing URL on the provider's site for this course topic (see URL rules below — never a guessed direct course page)"
     }
   ]
 }
@@ -356,12 +356,22 @@ India-specific requirements:
 - Include at least 1 course from NPTEL, SWAYAM, or an India-based online platform when suitable.
 - Reasons should mention entry-level access, low cost, government recognition (NCVT/SCVT), or direct employability in Indian industry where applicable.
 
-For every course, include a real, working "url". Prefer these when unsure of a specific listing:
-- ITI / DGT: https://www.dgt.gov.in/ or https://iti.dgt.gov.in/
-- Skill India: https://www.skillindia.gov.in/
-- NPTEL: https://nptel.ac.in/courses
-- SWAYAM: https://swayam.gov.in/search?searchText=...
-- Coursera / edX / Udemy: platform search URLs
+CRITICAL URL RULE — links must never 404:
+- NEVER invent or guess a specific course page URL (e.g. never make up "/course/data-analytics-101" style paths). Specific guessed URLs are very likely to 404 and are forbidden.
+- ALWAYS use a search or category-listing URL on the real platform's actual domain, built from the course title/topic, using these exact patterns:
+  - ITI / DGT: https://www.dgt.gov.in/ or https://iti.dgt.gov.in/
+  - Skill India: https://www.skillindia.gov.in/search?search=<topic>
+  - NPTEL: https://nptel.ac.in/courses?searchText=<topic>
+  - SWAYAM: https://swayam.gov.in/search?searchText=<topic>
+  - Coursera: https://www.coursera.org/search?query=<topic>
+  - edX: https://www.edx.org/search?q=<topic>
+  - Udemy: https://www.udemy.com/courses/search/?q=<topic>
+  - upGrad: https://www.upgrad.com/search/?q=<topic>
+  - Simplilearn: https://www.simplilearn.com/search?q=<topic>
+  - Great Learning: https://www.mygreatlearning.com/search?query=<topic>
+  - Internshala Trainings: https://trainings.internshala.com/search/?search_term=<topic>
+  - LinkedIn Learning: https://www.linkedin.com/learning/search?keywords=<topic>
+- URL-encode the topic (spaces as %20 or +). These listing/search pages always load successfully even if the exact course name varies slightly — this is mandatory to avoid broken links.
 ${languageInstruction(lang)}
 Always return valid JSON only.`;
 
