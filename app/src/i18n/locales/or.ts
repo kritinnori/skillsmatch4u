@@ -157,6 +157,12 @@ const translations: Translations = {
     yourJobs: "ଆପଣ ଦେଖିଥିବା ଚାକିରି",
     noCourses: "ଆପଣ ଏପର୍ଯ୍ୟନ୍ତ କୋଣସି କୋର୍ସ ଆରମ୍ଭ କରିନାହାଁନ୍ତି। ବିକଳ୍ପ ଦେଖିବାକୁ ଆପଣଙ୍କ ଫଲାଫଲ ଦେଖନ୍ତୁ।",
     noJobs: "ଆପଣ ଏପର୍ଯ୍ୟନ୍ତ କୋଣସି ଚାକିରି ତାଲିକା ଦେଖିନାହାଁନ୍ତି।",
+    recommendedCourses: "ସୁପାରିଶ ହୋଇଥିବା କୋର୍ସ",
+    noRecommendedCourses: "ବର୍ତ୍ତମାନ କୋଣସି କୋର୍ସ ସୁପାରିଶ ନାହିଁ।",
+    started: "ଆରମ୍ଭ ହୋଇଛି",
+    recommendedJobs: "ସୁପାରିଶ ହୋଇଥିବା ଚାକିରି",
+    noRecommendedJobs: "ବର୍ତ୍ତମାନ କୋଣସି ଚାକିରି ସୁପାରିଶ ନାହିଁ।",
+    explored: "ଦେଖାଯାଇଛି",
   },
   location: {
     title: "ଆପଣ କେଉଁଠାରେ ଅବସ୍ଥିତ?",
