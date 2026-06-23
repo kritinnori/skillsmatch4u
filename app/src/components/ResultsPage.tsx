@@ -97,6 +97,7 @@ interface ResultsPageProps {
   onSignOut?: () => void;
   onDashboard?: () => void;
   onViewLocalEcosystem?: () => void;
+  onAddLocation?: () => void;
   hasLocation?: boolean;
 }
 
@@ -162,6 +163,7 @@ export function ResultsPage({
   onSignOut,
   onDashboard,
   onViewLocalEcosystem,
+  onAddLocation,
   hasLocation,
 }: ResultsPageProps) {
   const { t, i18n } = useTranslation();
@@ -442,7 +444,7 @@ export function ResultsPage({
           </div>
         </div>
 
-        {hasLocation && onViewLocalEcosystem && (
+        {hasLocation && onViewLocalEcosystem ? (
           <div className="flex justify-center">
             <Button
               onClick={onViewLocalEcosystem}
@@ -451,6 +453,23 @@ export function ResultsPage({
               {t("location.seeThriving", { defaultValue: "See What's Thriving Near You" })}
             </Button>
           </div>
+        ) : (
+          onAddLocation && (
+            <div className="flex flex-col items-center text-center gap-2 bg-[#111111] border border-purple-900/40 rounded-xl p-5">
+              <p className="text-body-sm text-gray-300">
+                {t("location.addPrompt", {
+                  defaultValue: "Want to see what industries are thriving near you?",
+                })}
+              </p>
+              <Button
+                onClick={onAddLocation}
+                variant="outline"
+                className="border-purple-700 text-purple-300 hover:bg-purple-900/30 hover:text-white"
+              >
+                {t("location.addLocation", { defaultValue: "Add Your Location" })}
+              </Button>
+            </div>
+          )
         )}
 
         <section className="space-y-4">
