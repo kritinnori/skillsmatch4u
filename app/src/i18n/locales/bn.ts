@@ -173,6 +173,8 @@ const translations: Translations = {
     matchesYourPath: "আপনার পথের সাথে মেলে",
     exploreInstead: "এটি অন্বেষণ করুন",
     seeThriving: "আপনার কাছাকাছি কী বিকাশমান দেখুন",
+    addPrompt: "আপনি কি দেখতে চান আপনার কাছাকাছি কোন শিল্প বিকাশমান?",
+    addLocation: "আপনার স্থান যুক্ত করুন",
   },
 };
 
