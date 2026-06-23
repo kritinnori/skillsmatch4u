@@ -173,6 +173,8 @@ const translations: Translations = {
     matchesYourPath: "आपके मार्ग से मेल खाता है",
     exploreInstead: "इसके बारे में जानें",
     seeThriving: "अपने पास के अवसर देखें",
+    addPrompt: "क्या आप देखना चाहते हैं कि आपके पास कौन से उद्योग फल-फूल रहे हैं?",
+    addLocation: "अपना स्थान जोड़ें",
   },
 };
 
