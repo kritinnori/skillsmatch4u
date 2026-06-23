@@ -162,6 +162,10 @@ const translations: Translations = {
     recommendedJobs: "सुझाई गई नौकरियां",
     noRecommendedJobs: "अभी कोई नौकरी सुझाव नहीं हैं।",
     explored: "देखा गया",
+    coursesStartedTitle: "आपके शुरू किए गए कोर्स",
+    coursesNotStartedTitle: "आपके अभी तक शुरू न किए गए कोर्स",
+    jobsExploredTitle: "आपकी देखी गई नौकरियां",
+    jobsNotExploredTitle: "आपकी अभी तक न देखी गई नौकरियां",
   },
   location: {
     title: "आप कहाँ स्थित हैं?",
