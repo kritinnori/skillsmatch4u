@@ -255,21 +255,21 @@ app.post("/analyze", async (req, res) => {
 
     const prompt = `You are a career counselor in India analyzing a personality and career assessment quiz. Based on the user's responses, recommend the most suitable job profile for the Indian job market.
 
-LANGUAGE RULE (HIGHEST PRIORITY — MUST FOLLOW): ${languageInstruction(lang)} Every single human-readable value in the JSON — including title, description, skills, salary, and growth — MUST be written in this language. This is mandatory. Do not write any human-readable content in English unless the language is English.
-
 ${responses}
-Based on these responses, provide a career recommendation in JSON format:
+Based on these responses, provide a career recommendation in JSON format with the following structure:
 {
-  "title": "<job title in the required language>",
-  "description": "<2-3 sentence description of why this career fits the user, written entirely in the required language>",
+  "title": "Job Title",
+  "description": "Detailed description explaining why this career matches the user's personality and preferences (2-3 sentences)",
   "matchScore": 85,
-  "skills": ["<skill in required language>", "<skill in required language>", "<skill in required language>", "<skill in required language>"],
-  "salary": "<salary range in ₹ LPA format>",
-  "growth": "<job growth outlook in India, written in the required language>"
+  "skills": ["Skill 1", "Skill 2", "Skill 3", "Skill 4"],
+  "salary": "Typical annual salary range in India in INR (e.g., '₹6 LPA - ₹12 LPA' or '₹8,00,000 - ₹15,00,000 per year')",
+  "growth": "Job growth outlook in India (e.g., 'Strong demand in Indian tech and services sectors')"
 }
 
-The matchScore should be between 75-98. Provide 4-6 key skills. CURRENCY RULE: salary must always use ₹ symbol and LPA format — e.g. "₹6 LPA - ₹12 LPA". Never use USD or $.
+Keep the career recommendation thoughtful and based on the response patterns. The matchScore should be between 75-98. Provide 4-6 key skills.
 
+CURRENCY RULE (strict): The "salary" value must always be in Indian Rupees, using the ₹ symbol and Indian conventions such as "LPA" (lakhs per annum) — e.g. "₹6 LPA - ₹12 LPA" or "₹8,00,000 - ₹15,00,000 per year". Never use US dollars, the "$" symbol, "USD", or any non-Indian currency anywhere in the response.
+${languageInstruction(lang)}
 Always return valid JSON only. Do not include courses or jobs fields in this response.`;
 
     const recommendation = await runJsonCompletion<{
@@ -482,6 +482,87 @@ Always return valid JSON only.`;
       `[benchmark] POST /jobs request=failed after ${formatMs(performance.now() - requestStarted)}`
     );
     console.error("Error generating jobs:", error);
+    res.json({
+      error: "Internal server error",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+
+app.post("/local-industries", async (req, res) => {
+  const requestStarted = performance.now();
+  try {
+    const { state, district, career, language } = req.body as {
+      state: string;
+      district?: string;
+      career?: { title: string };
+      language?: string;
+    };
+
+    if (!state) {
+      res.json({ error: "Invalid request: state is required" });
+      return;
+    }
+
+    const lang = normalizeLanguage(language);
+    const locationLabel = district ? `${district}, ${state}` : state;
+    const careerNote = career?.title
+      ? `The student was matched to "${career.title}" by a career assessment. If that career is NOT among the thriving local industries, mention this gently as an alternative worth exploring.`
+      : "";
+
+    const prompt = `You are a regional labor-market analyst in India. Identify thriving industries and employment opportunities near "${locationLabel}".
+
+${careerNote}
+
+Return JSON in this exact shape:
+{
+  "location": "${locationLabel}",
+  "industries": [
+    {
+      "name": "Industry or sector name",
+      "reason": "Why this industry is thriving near this location specifically (1-2 sentences, mention real regional factors like local manufacturing hubs, agriculture, ports, IT corridors, etc. if known)",
+      "matchesUserCareer": false
+    }
+  ]
+}
+
+Requirements:
+- Identify 3 real, regionally-grounded thriving industries near this specific location in India — not generic national trends.
+- Base this on actual known economic activity in or near that district/state (e.g. textiles in Tamil Nadu districts, pharma in Hyderabad, IT in Bengaluru/Pune, manufacturing belts, agriculture/agri-processing in rural districts, ports/logistics in coastal areas).
+- If the student's matched career (above) aligns with one of these industries, set "matchesUserCareer": true for that entry.
+- Keep reasons concrete and specific to the location, not generic platitudes.
+${languageInstruction(lang)}
+Always return valid JSON only.`;
+
+    const parsed = await runJsonCompletion<{
+      location?: string;
+      industries?: Array<{
+        name: string;
+        reason: string;
+        matchesUserCareer?: boolean;
+      }>;
+    }>(
+      "POST /local-industries",
+      "You are a regional economic analyst specializing in India's district-level labor markets. Ground every recommendation in real, specific regional economic activity. Always respond with valid JSON only.",
+      prompt
+    );
+
+    if (!parsed) {
+      logRequestTotal("POST /local-industries", requestStarted);
+      res.json({ error: "Failed to generate local industry recommendations" });
+      return;
+    }
+
+    const industries = Array.isArray(parsed.industries) ? parsed.industries.slice(0, 3) : [];
+
+    logRequestTotal("POST /local-industries", requestStarted);
+    res.json({ location: parsed.location ?? locationLabel, industries });
+  } catch (error) {
+    console.error(
+      `[benchmark] POST /local-industries request=failed after ${formatMs(performance.now() - requestStarted)}`
+    );
+    console.error("Error generating local industries:", error);
     res.json({
       error: "Internal server error",
       details: error instanceof Error ? error.message : "Unknown error",

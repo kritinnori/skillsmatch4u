@@ -96,6 +96,8 @@ interface ResultsPageProps {
   user?: { id: string; email?: string } | null;
   onSignOut?: () => void;
   onDashboard?: () => void;
+  onViewLocalEcosystem?: () => void;
+  hasLocation?: boolean;
 }
 
 const CardSkeleton = () => (
@@ -159,6 +161,8 @@ export function ResultsPage({
   user,
   onSignOut,
   onDashboard,
+  onViewLocalEcosystem,
+  hasLocation,
 }: ResultsPageProps) {
   const { t, i18n } = useTranslation();
   const language = i18n.resolvedLanguage || i18n.language || "en";
@@ -437,6 +441,17 @@ export function ResultsPage({
             </div>
           </div>
         </div>
+
+        {hasLocation && onViewLocalEcosystem && (
+          <div className="flex justify-center">
+            <Button
+              onClick={onViewLocalEcosystem}
+              className="bg-purple-700 hover:bg-purple-600 text-white font-semibold"
+            >
+              {t("location.seeThriving", { defaultValue: "See What's Thriving Near You" })}
+            </Button>
+          </div>
+        )}
 
         <section className="space-y-4">
           <h3 className="text-h4 font-bold text-white text-center">

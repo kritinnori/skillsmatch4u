@@ -160,6 +160,23 @@ const translations = {
     noCourses: "You haven't started any courses yet. Visit your results to explore options.",
     noJobs: "You haven't explored any job listings yet.",
   },
+  location: {
+    title: "Where are you located?",
+    subtitle: "We'll use this to show you industries and opportunities thriving near you. This isn't saved to your profile.",
+    state: "State",
+    selectState: "Select your state",
+    district: "District or town",
+    districtPlaceholder: "e.g. Krishna, Dindi",
+    continue: "Continue",
+    skip: "Skip for now",
+    pageTitle: "Thriving Near You",
+    intro: "Industries and opportunities thriving in your area right now.",
+    failedToLoad: "Failed to load local opportunities",
+    noData: "We couldn't find local data right now.",
+    matchesYourPath: "Matches your path",
+    exploreInstead: "Explore this instead",
+    seeThriving: "See What's Thriving Near You",
+  },
 };
 
 export default translations;
