@@ -4,7 +4,7 @@ import { ExternalLink, BookOpen, Briefcase, RefreshCw } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { PageHeader } from "./layout/PageHeader";
 import { Button } from "./ui/button";
-import { fetchUserProgress, type UserProgress } from "../lib/dashboard";
+import { fetchUserProgress, logCourseClick, logJobClick, type UserProgress } from "../lib/dashboard";
 
 interface DashboardPageProps {
   user: User | null;
@@ -141,6 +141,118 @@ export function DashboardPage({ user, onBack, onSignOut, onHome, onRetakeQuiz }:
                   </div>
                 </div>
               </div>
+
+              <section className="space-y-3">
+                <h3 className="text-h4 font-bold text-white">
+                  {t("dashboard.recommendedCourses", { defaultValue: "Recommended Courses" })}
+                </h3>
+                {progress.recommended_courses.length === 0 ? (
+                  <p className="text-body-sm text-gray-400">
+                    {t("dashboard.noRecommendedCourses", {
+                      defaultValue: "No course recommendations yet.",
+                    })}
+                  </p>
+                ) : (
+                  <div className="grid gap-3">
+                    {progress.recommended_courses.map((course, i) => {
+                      const started = progress.courses_clicked.some(
+                        (c) => c.title === course.title
+                      );
+                      return (
+                        <a
+                          key={i}
+                          href={course.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => {
+                            if (user?.id) {
+                              logCourseClick(user.id, {
+                                title: course.title,
+                                provider: course.provider,
+                                url: course.url || "",
+                              }).then(() => {
+                                fetchUserProgress(user.id).then(setProgress);
+                              });
+                            }
+                          }}
+                          className="group flex items-center justify-between rounded-lg border border-purple-900/40 bg-[#111111] p-4 hover:border-purple-500 transition-colors"
+                        >
+                          <div>
+                            <p className="font-semibold text-white group-hover:text-purple-300">
+                              {course.title}
+                            </p>
+                            <p className="text-body-xs text-gray-400">{course.provider}</p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {started && (
+                              <span className="text-xs font-semibold text-purple-300 bg-purple-900/40 px-2 py-1 rounded-full">
+                                {t("dashboard.started", { defaultValue: "Started" })}
+                              </span>
+                            )}
+                            <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-purple-300" />
+                          </div>
+                        </a>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-h4 font-bold text-white">
+                  {t("dashboard.recommendedJobs", { defaultValue: "Recommended Jobs" })}
+                </h3>
+                {progress.recommended_jobs.length === 0 ? (
+                  <p className="text-body-sm text-gray-400">
+                    {t("dashboard.noRecommendedJobs", {
+                      defaultValue: "No job recommendations yet.",
+                    })}
+                  </p>
+                ) : (
+                  <div className="grid gap-3">
+                    {progress.recommended_jobs.map((job, i) => {
+                      const explored = progress.jobs_clicked.some(
+                        (j) => j.title === job.title
+                      );
+                      return (
+                        <a
+                          key={i}
+                          href={job.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => {
+                            if (user?.id) {
+                              logJobClick(user.id, {
+                                title: job.title,
+                                company: job.company,
+                                url: job.url || "",
+                              }).then(() => {
+                                fetchUserProgress(user.id).then(setProgress);
+                              });
+                            }
+                          }}
+                          className="group flex items-center justify-between rounded-lg border border-purple-900/40 bg-[#111111] p-4 hover:border-purple-500 transition-colors"
+                        >
+                          <div>
+                            <p className="font-semibold text-white group-hover:text-purple-300">
+                              {job.title}
+                            </p>
+                            <p className="text-body-xs text-gray-400">{job.company}</p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {explored && (
+                              <span className="text-xs font-semibold text-purple-300 bg-purple-900/40 px-2 py-1 rounded-full">
+                                {t("dashboard.explored", { defaultValue: "Explored" })}
+                              </span>
+                            )}
+                            <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-purple-300" />
+                          </div>
+                        </a>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
 
               <section className="space-y-3">
                 <h3 className="text-h4 font-bold text-white">
