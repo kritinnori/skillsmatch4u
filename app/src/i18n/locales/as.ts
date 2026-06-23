@@ -156,6 +156,12 @@ const translations: Translations = {
     yourJobs: "আপুনি চাই থকা চাকৰি",
     noCourses: "আপুনি এতিয়াও কোনো কোৰ্স আৰম্ভ কৰা নাই। বিকল্প চাবলে আপোনাৰ ফলাফল চাওক।",
     noJobs: "আপুনি এতিয়াও কোনো চাকৰি তালিকা চাই নাই।",
+    recommendedCourses: "প্ৰস্তাৱিত কোৰ্স",
+    noRecommendedCourses: "এতিয়াও কোনো কোৰ্স প্ৰস্তাৱ নাই।",
+    started: "আৰম্ভ কৰা হ'ল",
+    recommendedJobs: "প্ৰস্তাৱিত চাকৰি",
+    noRecommendedJobs: "এতিয়াও কোনো চাকৰি প্ৰস্তাৱ নাই।",
+    explored: "চাই থকা হ'ল",
   },
   location: {
     title: "আপুনি কত আছে?",
