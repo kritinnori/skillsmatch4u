@@ -172,6 +172,8 @@ const translations: Translations = {
     matchesYourPath: "మీ మార్గానికి సరిపోతుంది",
     exploreInstead: "దీన్ని అన్వేషించండి",
     seeThriving: "మీ సమీపంలో ఏది అభివృద్ధి చెందుతుందో చూడండి",
+    addPrompt: "మీ సమీపంలో ఏ పరిశ్రమలు అభివృద్ధి చెందుతున్నాయో చూడాలనుకుంటున్నారా?",
+    addLocation: "మీ స్థానాన్ని జోడించండి",
   },
 };
 
