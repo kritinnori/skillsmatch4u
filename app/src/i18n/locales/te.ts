@@ -155,6 +155,12 @@ const translations: Translations = {
     yourJobs: "మీరు అన్వేషించిన ఉద్యోగాలు",
     noCourses: "మీరు ఇంకా ఏ కోర్సు ప్రారంభించలేదు. ఎంపికలను అన్వేషించడానికి మీ ఫలితాలను చూడండి.",
     noJobs: "మీరు ఇంకా ఏ ఉద్యోగ జాబితాను అన్వేషించలేదు.",
+    recommendedCourses: "సిఫార్సు చేయబడిన కోర్సులు",
+    noRecommendedCourses: "ఇంకా కోర్సు సిఫార్సులు లేవు.",
+    started: "ప్రారంభించబడింది",
+    recommendedJobs: "సిఫార్సు చేయబడిన ఉద్యోగాలు",
+    noRecommendedJobs: "ఇంకా ఉద్యోగ సిఫార్సులు లేవు.",
+    explored: "అన్వేషించబడింది",
   },
   location: {
     title: "మీరు ఎక్కడ ఉన్నారు?",
