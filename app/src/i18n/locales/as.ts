@@ -162,6 +162,10 @@ const translations: Translations = {
     recommendedJobs: "প্ৰস্তাৱিত চাকৰি",
     noRecommendedJobs: "এতিয়াও কোনো চাকৰি প্ৰস্তাৱ নাই।",
     explored: "চাই থকা হ'ল",
+    coursesStartedTitle: "আপুনি আৰম্ভ কৰা কোৰ্স",
+    coursesNotStartedTitle: "আপুনি আৰম্ভ নকৰা কোৰ্স",
+    jobsExploredTitle: "আপুনি চাই থকা চাকৰি",
+    jobsNotExploredTitle: "আপুনি চাই নথকা চাকৰি",
   },
   location: {
     title: "আপুনি কত আছে?",
