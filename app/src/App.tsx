@@ -115,8 +115,8 @@ function App() {
   };
 
   const handleLoginSuccess = () => {
-    const hasLocation = localStorage.getItem("sm_location_asked") === "true";
-    if (!hasLocation) {
+    const hasSavedLocation = !!localStorage.getItem("sm_state") && !!localStorage.getItem("sm_district");
+    if (!hasSavedLocation) {
       setCurrentPage("location");
       return;
     }
@@ -131,7 +131,6 @@ function App() {
   const handleLocationContinue = (state: string, district: string) => {
     localStorage.setItem("sm_state", state);
     localStorage.setItem("sm_district", district);
-    localStorage.setItem("sm_location_asked", "true");
     setUserState(state);
     setUserDistrict(district);
     if (loginIntent === "startQuiz") {
@@ -143,7 +142,7 @@ function App() {
   };
 
   const handleLocationSkip = () => {
-    localStorage.setItem("sm_location_asked", "true");
+    // No flag set on skip — they'll be asked again on next sign-in until they provide it
     if (loginIntent === "startQuiz") {
       actuallyStartQuiz();
     } else {
