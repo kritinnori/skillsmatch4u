@@ -41,6 +41,7 @@ function App() {
   const [loginIntent, setLoginIntent] = useState<"startQuiz" | "normal">("normal");
   const [userState, setUserState] = useState<string>(() => localStorage.getItem("sm_state") || "");
   const [userDistrict, setUserDistrict] = useState<string>(() => localStorage.getItem("sm_district") || "");
+  const [locationReturnTo, setLocationReturnTo] = useState<Page>("home");
 
   const setCurrentPage = (page: Page) => {
     sessionStorage.setItem("sm_page", JSON.stringify(page));
@@ -136,7 +137,7 @@ function App() {
     if (loginIntent === "startQuiz") {
       actuallyStartQuiz();
     } else {
-      setCurrentPage("home");
+      setCurrentPage(locationReturnTo);
     }
     setLoginIntent("normal");
   };
@@ -146,9 +147,16 @@ function App() {
     if (loginIntent === "startQuiz") {
       actuallyStartQuiz();
     } else {
-      setCurrentPage("home");
+      setCurrentPage(locationReturnTo);
     }
     setLoginIntent("normal");
+  };
+
+  // Lets a user revisit the location prompt anytime (e.g. from Results "Add Your Location")
+  // without resetting their "already asked" status globally.
+  const handleAddLocation = () => {
+    setLocationReturnTo("results");
+    setCurrentPage("location");
   };
 
   const handleContinueWithoutAccount = () => {
@@ -264,6 +272,7 @@ function App() {
           onSignOut={handleSignOut}
           onDashboard={() => setCurrentPage("dashboard")}
           onViewLocalEcosystem={() => setCurrentPage("localEcosystem")}
+          onAddLocation={handleAddLocation}
           hasLocation={!!userState && !!userDistrict}
         />
       )}
