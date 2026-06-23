@@ -163,6 +163,10 @@ const translations: Translations = {
     recommendedJobs: "பரிந்துரைக்கப்பட்ட வேலைகள்",
     noRecommendedJobs: "இன்னும் வேலை பரிந்துரைகள் இல்லை.",
     explored: "ஆராயப்பட்டது",
+    coursesStartedTitle: "நீங்கள் தொடங்கிய படிப்புகள்",
+    coursesNotStartedTitle: "நீங்கள் தொடங்காத படிப்புகள்",
+    jobsExploredTitle: "நீங்கள் ஆராய்ந்த வேலைகள்",
+    jobsNotExploredTitle: "நீங்கள் ஆராயாத வேலைகள்",
   },
   location: {
     title: "நீங்கள் எங்கு வசிக்கிறீர்கள்?",

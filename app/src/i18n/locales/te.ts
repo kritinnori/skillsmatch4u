@@ -161,6 +161,10 @@ const translations: Translations = {
     recommendedJobs: "సిఫార్సు చేయబడిన ఉద్యోగాలు",
     noRecommendedJobs: "ఇంకా ఉద్యోగ సిఫార్సులు లేవు.",
     explored: "అన్వేషించబడింది",
+    coursesStartedTitle: "మీరు ప్రారంభించిన కోర్సులు",
+    coursesNotStartedTitle: "మీరు ప్రారంభించని కోర్సులు",
+    jobsExploredTitle: "మీరు అన్వేషించిన ఉద్యోగాలు",
+    jobsNotExploredTitle: "మీరు అన్వేషించని ఉద్యోగాలు",
   },
   location: {
     title: "మీరు ఎక్కడ ఉన్నారు?",

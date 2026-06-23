@@ -165,6 +165,10 @@ const translations = {
     recommendedJobs: "Recommended Jobs",
     noRecommendedJobs: "No job recommendations yet.",
     explored: "Explored",
+    coursesStartedTitle: "Courses You've Started",
+    coursesNotStartedTitle: "Courses You Haven't Started",
+    jobsExploredTitle: "Jobs You've Explored",
+    jobsNotExploredTitle: "Jobs You Haven't Explored",
   },
   location: {
     title: "Where are you located?",

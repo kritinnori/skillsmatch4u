@@ -162,6 +162,10 @@ const translations: Translations = {
     recommendedJobs: "ಶಿಫಾರಸು ಮಾಡಿದ ಉದ್ಯೋಗಗಳು",
     noRecommendedJobs: "ಇನ್ನೂ ಯಾವುದೇ ಉದ್ಯೋಗ ಶಿಫಾರಸುಗಳಿಲ್ಲ.",
     explored: "ಅನ್ವೇಷಿಸಲಾಗಿದೆ",
+    coursesStartedTitle: "ನೀವು ಪ್ರಾರಂಭಿಸಿದ ಕೋರ್ಸ್‌ಗಳು",
+    coursesNotStartedTitle: "ನೀವು ಪ್ರಾರಂಭಿಸದ ಕೋರ್ಸ್‌ಗಳು",
+    jobsExploredTitle: "ನೀವು ಅನ್ವೇಷಿಸಿದ ಉದ್ಯೋಗಗಳು",
+    jobsNotExploredTitle: "ನೀವು ಅನ್ವೇಷಿಸದ ಉದ್ಯೋಗಗಳು",
   },
   location: {
     title: "ನೀವು ಎಲ್ಲಿದ್ದೀರಿ?",

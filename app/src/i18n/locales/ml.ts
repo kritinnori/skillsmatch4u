@@ -163,6 +163,10 @@ const translations: Translations = {
     recommendedJobs: "ശുപാർശ ചെയ്ത ജോലികൾ",
     noRecommendedJobs: "ഇതുവരെ ജോലി ശുപാർശകൾ ഇല്ല.",
     explored: "പരിശോധിച്ചു",
+    coursesStartedTitle: "നിങ്ങൾ ആരംഭിച്ച കോഴ്സുകൾ",
+    coursesNotStartedTitle: "നിങ്ങൾ ആരംഭിക്കാത്ത കോഴ്സുകൾ",
+    jobsExploredTitle: "നിങ്ങൾ പരിശോധിച്ച ജോലികൾ",
+    jobsNotExploredTitle: "നിങ്ങൾ പരിശോധിക്കാത്ത ജോലികൾ",
   },
   location: {
     title: "നിങ്ങൾ എവിടെയാണ്?",
