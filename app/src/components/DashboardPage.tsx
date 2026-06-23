@@ -32,6 +32,17 @@ export function DashboardPage({ user, onBack, onSignOut, onHome, onRetakeQuiz }:
 
   const brand = t("common.brand");
 
+  // Split recommended courses/jobs into two buckets based on what's been clicked.
+  // If nothing has been clicked yet, everything recommended falls into "not started".
+  const startedCourses = progress?.courses_clicked ?? [];
+  const notStartedCourses = (progress?.recommended_courses ?? []).filter(
+    (course) => !startedCourses.some((c) => c.title === course.title)
+  );
+  const exploredJobs = progress?.jobs_clicked ?? [];
+  const notExploredJobs = (progress?.recommended_jobs ?? []).filter(
+    (job) => !exploredJobs.some((j) => j.title === job.title)
+  );
+
   return (
     <div className="min-h-screen bg-[#050505] text-white">
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_bottom_left,rgba(126,34,206,0.28),transparent_42%)]" />
@@ -144,129 +155,17 @@ export function DashboardPage({ user, onBack, onSignOut, onHome, onRetakeQuiz }:
 
               <section className="space-y-3">
                 <h3 className="text-h4 font-bold text-white">
-                  {t("dashboard.recommendedCourses", { defaultValue: "Recommended Courses" })}
+                  {t("dashboard.coursesStartedTitle", { defaultValue: "Courses You've Started" })}
                 </h3>
-                {progress.recommended_courses.length === 0 ? (
-                  <p className="text-body-sm text-gray-400">
-                    {t("dashboard.noRecommendedCourses", {
-                      defaultValue: "No course recommendations yet.",
-                    })}
-                  </p>
-                ) : (
-                  <div className="grid gap-3">
-                    {progress.recommended_courses.map((course, i) => {
-                      const started = progress.courses_clicked.some(
-                        (c) => c.title === course.title
-                      );
-                      return (
-                        <a
-                          key={i}
-                          href={course.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() => {
-                            if (user?.id) {
-                              logCourseClick(user.id, {
-                                title: course.title,
-                                provider: course.provider,
-                                url: course.url || "",
-                              }).then(() => {
-                                fetchUserProgress(user.id).then(setProgress);
-                              });
-                            }
-                          }}
-                          className="group flex items-center justify-between rounded-lg border border-purple-900/40 bg-[#111111] p-4 hover:border-purple-500 transition-colors"
-                        >
-                          <div>
-                            <p className="font-semibold text-white group-hover:text-purple-300">
-                              {course.title}
-                            </p>
-                            <p className="text-body-xs text-gray-400">{course.provider}</p>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            {started && (
-                              <span className="text-xs font-semibold text-purple-300 bg-purple-900/40 px-2 py-1 rounded-full">
-                                {t("dashboard.started", { defaultValue: "Started" })}
-                              </span>
-                            )}
-                            <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-purple-300" />
-                          </div>
-                        </a>
-                      );
-                    })}
-                  </div>
-                )}
-              </section>
-
-              <section className="space-y-3">
-                <h3 className="text-h4 font-bold text-white">
-                  {t("dashboard.recommendedJobs", { defaultValue: "Recommended Jobs" })}
-                </h3>
-                {progress.recommended_jobs.length === 0 ? (
-                  <p className="text-body-sm text-gray-400">
-                    {t("dashboard.noRecommendedJobs", {
-                      defaultValue: "No job recommendations yet.",
-                    })}
-                  </p>
-                ) : (
-                  <div className="grid gap-3">
-                    {progress.recommended_jobs.map((job, i) => {
-                      const explored = progress.jobs_clicked.some(
-                        (j) => j.title === job.title
-                      );
-                      return (
-                        <a
-                          key={i}
-                          href={job.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() => {
-                            if (user?.id) {
-                              logJobClick(user.id, {
-                                title: job.title,
-                                company: job.company,
-                                url: job.url || "",
-                              }).then(() => {
-                                fetchUserProgress(user.id).then(setProgress);
-                              });
-                            }
-                          }}
-                          className="group flex items-center justify-between rounded-lg border border-purple-900/40 bg-[#111111] p-4 hover:border-purple-500 transition-colors"
-                        >
-                          <div>
-                            <p className="font-semibold text-white group-hover:text-purple-300">
-                              {job.title}
-                            </p>
-                            <p className="text-body-xs text-gray-400">{job.company}</p>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            {explored && (
-                              <span className="text-xs font-semibold text-purple-300 bg-purple-900/40 px-2 py-1 rounded-full">
-                                {t("dashboard.explored", { defaultValue: "Explored" })}
-                              </span>
-                            )}
-                            <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-purple-300" />
-                          </div>
-                        </a>
-                      );
-                    })}
-                  </div>
-                )}
-              </section>
-
-              <section className="space-y-3">
-                <h3 className="text-h4 font-bold text-white">
-                  {t("dashboard.yourCourses", { defaultValue: "Courses You've Started" })}
-                </h3>
-                {progress.courses_clicked.length === 0 ? (
+                {startedCourses.length === 0 ? (
                   <p className="text-body-sm text-gray-400">
                     {t("dashboard.noCourses", {
-                      defaultValue: "You haven't started any courses yet. Visit your results to explore options.",
+                      defaultValue: "You haven't started any courses yet.",
                     })}
                   </p>
                 ) : (
                   <div className="grid gap-3">
-                    {progress.courses_clicked.map((course, i) => (
+                    {startedCourses.map((course, i) => (
                       <a
                         key={i}
                         href={course.url}
@@ -291,9 +190,53 @@ export function DashboardPage({ user, onBack, onSignOut, onHome, onRetakeQuiz }:
 
               <section className="space-y-3">
                 <h3 className="text-h4 font-bold text-white">
-                  {t("dashboard.yourJobs", { defaultValue: "Jobs You've Explored" })}
+                  {t("dashboard.coursesNotStartedTitle", { defaultValue: "Courses You Haven't Started" })}
                 </h3>
-                {progress.jobs_clicked.length === 0 ? (
+                {notStartedCourses.length === 0 ? (
+                  <p className="text-body-sm text-gray-400">
+                    {t("dashboard.noRecommendedCourses", {
+                      defaultValue: "No course recommendations yet.",
+                    })}
+                  </p>
+                ) : (
+                  <div className="grid gap-3">
+                    {notStartedCourses.map((course, i) => (
+                      <a
+                        key={i}
+                        href={course.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => {
+                          if (user?.id) {
+                            logCourseClick(user.id, {
+                              title: course.title,
+                              provider: course.provider,
+                              url: course.url || "",
+                            }).then(() => {
+                              fetchUserProgress(user.id).then(setProgress);
+                            });
+                          }
+                        }}
+                        className="group flex items-center justify-between rounded-lg border border-purple-900/40 bg-[#111111] p-4 hover:border-purple-500 transition-colors"
+                      >
+                        <div>
+                          <p className="font-semibold text-white group-hover:text-purple-300">
+                            {course.title}
+                          </p>
+                          <p className="text-body-xs text-gray-400">{course.provider}</p>
+                        </div>
+                        <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-purple-300 shrink-0" />
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-h4 font-bold text-white">
+                  {t("dashboard.jobsExploredTitle", { defaultValue: "Jobs You've Explored" })}
+                </h3>
+                {exploredJobs.length === 0 ? (
                   <p className="text-body-sm text-gray-400">
                     {t("dashboard.noJobs", {
                       defaultValue: "You haven't explored any job listings yet.",
@@ -301,7 +244,7 @@ export function DashboardPage({ user, onBack, onSignOut, onHome, onRetakeQuiz }:
                   </p>
                 ) : (
                   <div className="grid gap-3">
-                    {progress.jobs_clicked.map((job, i) => (
+                    {exploredJobs.map((job, i) => (
                       <a
                         key={i}
                         href={job.url}
@@ -316,6 +259,50 @@ export function DashboardPage({ user, onBack, onSignOut, onHome, onRetakeQuiz }:
                           {job.company && (
                             <p className="text-body-xs text-gray-400">{job.company}</p>
                           )}
+                        </div>
+                        <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-purple-300 shrink-0" />
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-h4 font-bold text-white">
+                  {t("dashboard.jobsNotExploredTitle", { defaultValue: "Jobs You Haven't Explored" })}
+                </h3>
+                {notExploredJobs.length === 0 ? (
+                  <p className="text-body-sm text-gray-400">
+                    {t("dashboard.noRecommendedJobs", {
+                      defaultValue: "No job recommendations yet.",
+                    })}
+                  </p>
+                ) : (
+                  <div className="grid gap-3">
+                    {notExploredJobs.map((job, i) => (
+                      <a
+                        key={i}
+                        href={job.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => {
+                          if (user?.id) {
+                            logJobClick(user.id, {
+                              title: job.title,
+                              company: job.company,
+                              url: job.url || "",
+                            }).then(() => {
+                              fetchUserProgress(user.id).then(setProgress);
+                            });
+                          }
+                        }}
+                        className="group flex items-center justify-between rounded-lg border border-purple-900/40 bg-[#111111] p-4 hover:border-purple-500 transition-colors"
+                      >
+                        <div>
+                          <p className="font-semibold text-white group-hover:text-purple-300">
+                            {job.title}
+                          </p>
+                          <p className="text-body-xs text-gray-400">{job.company}</p>
                         </div>
                         <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-purple-300 shrink-0" />
                       </a>
