@@ -15,6 +15,7 @@ const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4.1-mini";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "",
+  timeout: 30 * 1000, // 30s — generous enough for a single completion, short enough to fail fast and retry
 });
 
 type AnswerQuestion = { id: number; question: string };
@@ -135,22 +136,45 @@ async function runJsonCompletion<T>(
 ): Promise<T | null> {
   const aiStarted = performance.now();
 
+  // Retry logic: real production apps don't give up after one dropped connection.
+  // OpenAI (and any LLM API) can occasionally drop a streaming/network connection
+  // (e.g. ERR_STREAM_PREMATURE_CLOSE) especially right after a cold server start.
+  // We retry up to 2 extra times with a short backoff before giving up entirely.
+  const MAX_ATTEMPTS = 3;
   let completion;
-  try {
-    completion = await openai.chat.completions.create({
-      model: OPENAI_MODEL,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      response_format: { type: "json_object" },
-    });
-  } catch (error) {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      completion = await openai.chat.completions.create({
+        model: OPENAI_MODEL,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        response_format: { type: "json_object" },
+      });
+      lastError = undefined;
+      break;
+    } catch (error) {
+      lastError = error;
+      console.warn(
+        `[benchmark] ${label} attempt=${attempt}/${MAX_ATTEMPTS} ai=failed after ${formatMs(performance.now() - aiStarted)} model=${OPENAI_MODEL}`,
+        error
+      );
+      if (attempt < MAX_ATTEMPTS) {
+        // Short backoff before retrying: 500ms, then 1000ms
+        await new Promise((resolve) => setTimeout(resolve, attempt * 500));
+      }
+    }
+  }
+
+  if (lastError || !completion) {
     console.error(
-      `[benchmark] ${label} ai=failed after ${formatMs(performance.now() - aiStarted)} model=${OPENAI_MODEL}`,
-      error
+      `[benchmark] ${label} ai=failed after ${MAX_ATTEMPTS} attempts, ${formatMs(performance.now() - aiStarted)} model=${OPENAI_MODEL}`,
+      lastError
     );
-    throw error;
+    throw lastError ?? new Error("AI completion failed with no response");
   }
 
   const aiMs = performance.now() - aiStarted;
