@@ -16,12 +16,10 @@ const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4.1-mini";
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "",
   timeout: 30 * 1000,
-  // Render's network + node-fetch's gzip handling has a known issue causing
-  // ERR_STREAM_PREMATURE_CLOSE on compressed responses. Disabling compression
-  // for these requests avoids the gunzip step entirely and fixes it.
-  defaultHeaders: {
-    "Accept-Encoding": "identity",
-  },
+  // Force Node's native fetch (available in Node 18+) instead of the SDK's bundled
+  // node-fetch, which has a known ERR_STREAM_PREMATURE_CLOSE bug on some hosts
+  // (including Render) when gzip-decompressing chat completion responses.
+  fetch: globalThis.fetch,
 });
 
 type AnswerQuestion = { id: number; question: string };
