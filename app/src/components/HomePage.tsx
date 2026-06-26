@@ -55,16 +55,18 @@ export function HomePage({ onStartQuiz, onLogin, onDashboard, user }: HomePagePr
   return (
     <div className="w-full min-h-screen bg-[#050505] text-white">
       <header className="bg-[#050505] border-b border-purple-900/40 sticky top-0 z-20 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-8 py-3 md:py-4 flex flex-wrap items-center justify-between gap-2 sm:gap-3">
           <BrandLogo
             label={t("common.brand")}
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="shrink-0"
           />
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-wrap justify-end">
             {user && (
               <Button
                 onClick={onDashboard}
-                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold"
+                size="sm"
+                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-xs sm:text-sm px-2.5 sm:px-4"
               >
                 {t("dashboard.title", { defaultValue: "My Dashboard" })}
               </Button>
@@ -72,19 +74,23 @@ export function HomePage({ onStartQuiz, onLogin, onDashboard, user }: HomePagePr
             {user ? (
               <Button
                 onClick={handleSignOut}
-                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold"
+                size="sm"
+                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-xs sm:text-sm px-2.5 sm:px-4"
               >
                 {t("login.signOut", { defaultValue: "Sign out" })}
               </Button>
             ) : (
               <Button
                 onClick={onLogin}
-                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold"
+                size="sm"
+                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-xs sm:text-sm px-2.5 sm:px-4"
               >
                 {t("login.signIn", { defaultValue: "Login" })}
               </Button>
             )}
-            <LanguageSwitcher />
+            <div className="max-w-[110px] sm:max-w-none shrink-0">
+              <LanguageSwitcher />
+            </div>
           </div>
         </div>
       </header>
