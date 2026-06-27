@@ -107,7 +107,19 @@ export function PageHeader({
                 </span>
               </Button>
             )}
-            <div className="max-w-[100px] sm:max-w-none shrink-0">
+            <div
+              className="max-w-[100px] sm:max-w-none shrink-0 cursor-pointer"
+              onClick={(e) => {
+                // Clicking anywhere in this wrapper (including a decorative globe
+                // icon rendered by LanguageSwitcher) opens the language <select>,
+                // since browsers only open a <select> from a direct click on it.
+                const target = e.target as HTMLElement;
+                if (target.tagName.toLowerCase() === "select") return; // already handled natively
+                const select = e.currentTarget.querySelector("select");
+                select?.focus();
+                select?.click();
+              }}
+            >
               <LanguageSwitcher />
             </div>
           </div>
