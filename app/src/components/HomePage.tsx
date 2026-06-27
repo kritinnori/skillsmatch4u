@@ -5,6 +5,7 @@ import {
   Zap,
   BarChart3,
   ChevronRight,
+  MapPin,
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { Button } from "./ui/button";
@@ -16,12 +17,13 @@ interface HomePageProps {
   onStartQuiz: () => void;
   onLogin: () => void;
   onDashboard: () => void;
+  onShowOpportunities?: () => void;
   user: User | null;
 }
 
 const featureIcons = [Target, Zap, BarChart3] as const;
 
-export function HomePage({ onStartQuiz, onLogin, onDashboard, user }: HomePageProps) {
+export function HomePage({ onStartQuiz, onLogin, onDashboard, onShowOpportunities, user }: HomePageProps) {
   const { t } = useTranslation();
 
   const handleSignOut = async () => {
@@ -62,6 +64,17 @@ export function HomePage({ onStartQuiz, onLogin, onDashboard, user }: HomePagePr
             className="shrink-0"
           />
           <div className="flex items-center gap-1.5 sm:gap-3 flex-wrap justify-end">
+            {onShowOpportunities && (
+              <button
+                type="button"
+                onClick={onShowOpportunities}
+                className="p-1.5 sm:p-2 text-purple-300 hover:bg-purple-900/30 rounded-lg transition-colors shrink-0"
+                aria-label={t("opportunities.title", { defaultValue: "Explore Opportunities Near You" })}
+                title={t("opportunities.title", { defaultValue: "Explore Opportunities Near You" })}
+              >
+                <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+            )}
             {user && (
               <Button
                 onClick={onDashboard}
