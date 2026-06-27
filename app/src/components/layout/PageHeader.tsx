@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, MapPin } from "lucide-react";
 import { BrandLogo } from "./BrandLogo";
 import { LanguageSwitcher } from "../LanguageSwitcher";
 import { Button } from "../ui/button";
@@ -16,6 +16,7 @@ interface PageHeaderProps {
   onSignOut?: () => void;
   onHome?: () => void;
   onDashboard?: () => void;
+  onShowOpportunities?: () => void;
 }
 
 export function PageHeader({
@@ -29,6 +30,7 @@ export function PageHeader({
   onSignOut,
   onHome,
   onDashboard,
+  onShowOpportunities,
 }: PageHeaderProps) {
   const { t } = useTranslation();
   return (
@@ -37,9 +39,9 @@ export function PageHeader({
         sticky ? "sticky top-0 z-20" : ""
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 md:py-5">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-8 py-3 md:py-5">
+        <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
             <BrandLogo
               label={brand}
               onClick={onHome}
@@ -49,23 +51,35 @@ export function PageHeader({
               <button
                 type="button"
                 onClick={onBack}
-                className="p-2 text-gray-300 hover:bg-purple-900/30 rounded-lg transition-colors shrink-0"
+                className="p-1.5 sm:p-2 text-gray-300 hover:bg-purple-900/30 rounded-lg transition-colors shrink-0"
                 aria-label={backLabel}
               >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             )}
             {title && (
-              <h1 className="text-lg md:text-xl font-bold text-white truncate">
+              <h1 className="text-sm sm:text-lg md:text-xl font-bold text-white truncate">
                 {title}
               </h1>
             )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-wrap justify-end">
+            {onShowOpportunities && (
+              <button
+                type="button"
+                onClick={onShowOpportunities}
+                className="p-1.5 sm:p-2 text-purple-300 hover:bg-purple-900/30 rounded-lg transition-colors shrink-0"
+                aria-label={t("opportunities.title", { defaultValue: "Explore Opportunities Near You" })}
+                title={t("opportunities.title", { defaultValue: "Explore Opportunities Near You" })}
+              >
+                <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+            )}
             {user && onDashboard && (
               <Button
                 onClick={onDashboard}
-                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold"
+                size="sm"
+                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-xs sm:text-sm px-2.5 sm:px-4"
               >
                 {t("dashboard.title", { defaultValue: "My Dashboard" })}
               </Button>
@@ -73,12 +87,15 @@ export function PageHeader({
             {user && onSignOut && (
               <Button
                 onClick={onSignOut}
-                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold"
+                size="sm"
+                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-xs sm:text-sm px-2.5 sm:px-4"
               >
                 {t("login.signOut", { defaultValue: "Sign out" })}
               </Button>
             )}
-            <LanguageSwitcher />
+            <div className="max-w-[100px] sm:max-w-none shrink-0">
+              <LanguageSwitcher />
+            </div>
           </div>
         </div>
         {children}

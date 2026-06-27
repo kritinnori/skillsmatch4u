@@ -5,6 +5,7 @@ import {
   Zap,
   BarChart3,
   ChevronRight,
+  MapPin,
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { Button } from "./ui/button";
@@ -16,12 +17,13 @@ interface HomePageProps {
   onStartQuiz: () => void;
   onLogin: () => void;
   onDashboard: () => void;
+  onShowOpportunities?: () => void;
   user: User | null;
 }
 
 const featureIcons = [Target, Zap, BarChart3] as const;
 
-export function HomePage({ onStartQuiz, onLogin, onDashboard, user }: HomePageProps) {
+export function HomePage({ onStartQuiz, onLogin, onDashboard, onShowOpportunities, user }: HomePageProps) {
   const { t } = useTranslation();
 
   const handleSignOut = async () => {
@@ -55,16 +57,29 @@ export function HomePage({ onStartQuiz, onLogin, onDashboard, user }: HomePagePr
   return (
     <div className="w-full min-h-screen bg-[#050505] text-white">
       <header className="bg-[#050505] border-b border-purple-900/40 sticky top-0 z-20 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-8 py-3 md:py-4 flex flex-wrap items-center justify-between gap-2 sm:gap-3">
           <BrandLogo
             label={t("common.brand")}
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="shrink-0"
           />
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-wrap justify-end">
+            {onShowOpportunities && (
+              <button
+                type="button"
+                onClick={onShowOpportunities}
+                className="p-1.5 sm:p-2 text-purple-300 hover:bg-purple-900/30 rounded-lg transition-colors shrink-0"
+                aria-label={t("opportunities.title", { defaultValue: "Explore Opportunities Near You" })}
+                title={t("opportunities.title", { defaultValue: "Explore Opportunities Near You" })}
+              >
+                <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+            )}
             {user && (
               <Button
                 onClick={onDashboard}
-                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold"
+                size="sm"
+                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-xs sm:text-sm px-2.5 sm:px-4"
               >
                 {t("dashboard.title", { defaultValue: "My Dashboard" })}
               </Button>
@@ -72,19 +87,23 @@ export function HomePage({ onStartQuiz, onLogin, onDashboard, user }: HomePagePr
             {user ? (
               <Button
                 onClick={handleSignOut}
-                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold"
+                size="sm"
+                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-xs sm:text-sm px-2.5 sm:px-4"
               >
                 {t("login.signOut", { defaultValue: "Sign out" })}
               </Button>
             ) : (
               <Button
                 onClick={onLogin}
-                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold"
+                size="sm"
+                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-xs sm:text-sm px-2.5 sm:px-4"
               >
                 {t("login.signIn", { defaultValue: "Login" })}
               </Button>
             )}
-            <LanguageSwitcher />
+            <div className="max-w-[110px] sm:max-w-none shrink-0">
+              <LanguageSwitcher />
+            </div>
           </div>
         </div>
       </header>

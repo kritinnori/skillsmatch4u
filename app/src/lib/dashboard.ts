@@ -18,6 +18,7 @@ export interface UserProgress {
   career_skills: string[];
   courses_clicked: ClickedItem[];
   jobs_clicked: ClickedItem[];
+  courses_completed: ClickedItem[];
   recommended_courses: CourseRecommendation[];
   recommended_jobs: JobRecommendation[];
   quiz_completed_at: string | null;
@@ -112,6 +113,54 @@ export async function logJobClick(userId: string, item: Omit<ClickedItem, "click
   }
 }
 
+
+// Mark a course as fully completed by the user (manual action — there's no way to
+// detect real completion on an external site like Coursera/NPTEL, so the student
+// confirms it themselves via a "Mark as Complete" button)
+export async function markCourseComplete(userId: string, item: Omit<ClickedItem, "clickedAt">) {
+  try {
+    const { data } = await supabase
+      .from("user_progress")
+      .select("courses_completed")
+      .eq("user_id", userId)
+      .single();
+
+    const existing: ClickedItem[] = data?.courses_completed ?? [];
+    const alreadyLogged = existing.some((c) => c.title === item.title && c.url === item.url);
+    const updated = alreadyLogged
+      ? existing
+      : [...existing, { ...item, clickedAt: new Date().toISOString() }];
+
+    await supabase
+      .from("user_progress")
+      .update({ courses_completed: updated, updated_at: new Date().toISOString() })
+      .eq("user_id", userId);
+  } catch (err) {
+    console.error("Failed to mark course complete:", err);
+  }
+}
+
+// Undo a completion mark (in case the user clicks it by mistake)
+export async function unmarkCourseComplete(userId: string, title: string) {
+  try {
+    const { data } = await supabase
+      .from("user_progress")
+      .select("courses_completed")
+      .eq("user_id", userId)
+      .single();
+
+    const existing: ClickedItem[] = data?.courses_completed ?? [];
+    const updated = existing.filter((c) => c.title !== title);
+
+    await supabase
+      .from("user_progress")
+      .update({ courses_completed: updated, updated_at: new Date().toISOString() })
+      .eq("user_id", userId);
+  } catch (err) {
+    console.error("Failed to unmark course complete:", err);
+  }
+}
+
 // Fetch the user's full dashboard data
 export async function fetchUserProgress(userId: string): Promise<UserProgress | null> {
   const { data, error } = await supabase
@@ -131,6 +180,7 @@ export async function fetchUserProgress(userId: string): Promise<UserProgress | 
     career_skills: data.career_skills ?? [],
     courses_clicked: data.courses_clicked ?? [],
     jobs_clicked: data.jobs_clicked ?? [],
+    courses_completed: data.courses_completed ?? [],
     recommended_courses: data.recommended_courses ?? [],
     recommended_jobs: data.recommended_jobs ?? [],
     quiz_completed_at: data.quiz_completed_at,

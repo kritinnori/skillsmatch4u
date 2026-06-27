@@ -16,12 +16,10 @@ const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4.1-mini";
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "",
   timeout: 30 * 1000,
-  // Render's network + node-fetch's gzip handling has a known issue causing
-  // ERR_STREAM_PREMATURE_CLOSE on compressed responses. Disabling compression
-  // for these requests avoids the gunzip step entirely and fixes it.
-  defaultHeaders: {
-    "Accept-Encoding": "identity",
-  },
+  // Force Node's native fetch (available in Node 18+) instead of the SDK's bundled
+  // node-fetch, which has a known ERR_STREAM_PREMATURE_CLOSE bug on some hosts
+  // (including Render) when gzip-decompressing chat completion responses.
+  fetch: globalThis.fetch,
 });
 
 type AnswerQuestion = { id: number; question: string };
@@ -609,6 +607,154 @@ Always return valid JSON only.`;
     });
   }
 });
+
+// --- Geocoding + distance-based job ranking ---
+
+interface GeoPoint {
+  lat: number;
+  lon: number;
+}
+
+// Simple in-memory cache so we don't re-geocode the same place repeatedly in a session
+const geocodeCache = new Map<string, GeoPoint | null>();
+
+async function geocodeLocation(place: string): Promise<GeoPoint | null> {
+  const cacheKey = place.trim().toLowerCase();
+  if (geocodeCache.has(cacheKey)) return geocodeCache.get(cacheKey) ?? null;
+
+  try {
+    const query = encodeURIComponent(`${place}, India`);
+    const url = `https://geocode.maps.co/search?q=${query}`;
+    const response = await fetch(url, {
+      headers: { "User-Agent": "SkillsMatch4U/1.0" },
+    });
+    if (!response.ok) {
+      geocodeCache.set(cacheKey, null);
+      return null;
+    }
+    const results = (await response.json()) as Array<{ lat: string; lon: string }>;
+    if (!results || results.length === 0) {
+      geocodeCache.set(cacheKey, null);
+      return null;
+    }
+    const point: GeoPoint = {
+      lat: parseFloat(results[0].lat),
+      lon: parseFloat(results[0].lon),
+    };
+    geocodeCache.set(cacheKey, point);
+    return point;
+  } catch (error) {
+    console.error(`Geocoding failed for "${place}":`, error);
+    geocodeCache.set(cacheKey, null);
+    return null;
+  }
+}
+
+// Haversine formula: real great-circle distance in km between two lat/long points
+function distanceKm(a: GeoPoint, b: GeoPoint): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLon = ((b.lon - a.lon) * Math.PI) / 180;
+  const lat1 = (a.lat * Math.PI) / 180;
+  const lat2 = (b.lat * Math.PI) / 180;
+  const sinDLat = Math.sin(dLat / 2);
+  const sinDLon = Math.sin(dLon / 2);
+  const h =
+    sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLon * sinDLon;
+  return R * 2 * Math.asin(Math.sqrt(h));
+}
+
+app.post("/jobs-by-distance", async (req, res) => {
+  const requestStarted = performance.now();
+  try {
+    const { state, district, career, language } = req.body as {
+      state: string;
+      district?: string;
+      career?: { title: string };
+      language?: string;
+    };
+
+    if (!state) {
+      res.json({ error: "Invalid request: state is required" });
+      return;
+    }
+
+    const lang = normalizeLanguage(language);
+    const userLocationLabel = district ? `${district}, ${state}` : state;
+
+    // Step 1: geocode the user's own location
+    const userPoint = await geocodeLocation(userLocationLabel);
+
+    // Step 2: ask the AI for real job opportunities near/around this location,
+    // each with a city/town name we can geocode for actual distance ranking
+    const prompt = `You are a job search assistant for India. The student is matched to the career "${
+      career?.title ?? "a suitable role"
+    }" and is located in ${userLocationLabel}.
+
+Suggest up to 8 real, plausible job opportunities for this career, spread across nearby cities/towns in and around ${state} (include some in ${district || "the user's district"} itself if realistic, plus nearby major cities in the same state or neighboring areas known for this industry).
+
+Return JSON in this exact shape:
+{
+  "jobs": [
+    {
+      "title": "Job title",
+      "company": "Company or organization name",
+      "city": "Specific city or town name, India",
+      "reason": "Why this role fits the matched career (1 sentence)"
+    }
+  ]
+}
+${languageInstruction(lang)}
+Always return valid JSON only.`;
+
+    const parsed = await runJsonCompletion<{
+      jobs?: Array<{ title: string; company: string; city: string; reason: string }>;
+    }>(
+      "POST /jobs-by-distance",
+      "You are a job market assistant for India with deep knowledge of which cities/regions host which industries. Always respond with valid JSON only.",
+      prompt
+    );
+
+    const rawJobs = parsed?.jobs?.slice(0, 8) ?? [];
+
+    // Step 3: geocode each job's city and compute real distance from the user
+    const jobsWithDistance = await Promise.all(
+      rawJobs.map(async (job) => {
+        const jobPoint = await geocodeLocation(job.city);
+        const distance =
+          userPoint && jobPoint ? distanceKm(userPoint, jobPoint) : null;
+        return {
+          ...job,
+          distanceKm: distance !== null ? Math.round(distance) : null,
+        };
+      })
+    );
+
+    // Step 4: sort by distance (closest first); jobs with unknown distance go last
+    jobsWithDistance.sort((a, b) => {
+      if (a.distanceKm === null && b.distanceKm === null) return 0;
+      if (a.distanceKm === null) return 1;
+      if (b.distanceKm === null) return -1;
+      return a.distanceKm - b.distanceKm;
+    });
+
+    logRequestTotal("POST /jobs-by-distance", requestStarted);
+    res.json({
+      userLocation: userLocationLabel,
+      jobs: jobsWithDistance.slice(0, 5), // top 5 by fit + distance
+    });
+  } catch (error) {
+    console.error(
+      `[benchmark] POST /jobs-by-distance request=failed after ${formatMs(performance.now() - requestStarted)}`
+    );
+    console.error("Error ranking jobs by distance:", error);
+    res.json({
+      error: "Internal server error",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
 
 app.listen(PORT, () => {
   console.log(`Quiz API running at http://localhost:${PORT}`);

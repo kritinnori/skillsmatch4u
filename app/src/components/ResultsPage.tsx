@@ -115,6 +115,7 @@ interface ResultsPageProps {
   onDashboard?: () => void;
   onViewLocalEcosystem?: () => void;
   onAddLocation?: () => void;
+  onShowOpportunities?: () => void;
   hasLocation?: boolean;
 }
 
@@ -137,6 +138,7 @@ function ResultsShell({
   onSignOut,
   onHome,
   onDashboard,
+  onShowOpportunities,
 }: {
   children: ReactNode;
   brand: string;
@@ -147,6 +149,7 @@ function ResultsShell({
   onSignOut?: () => void;
   onHome?: () => void;
   onDashboard?: () => void;
+  onShowOpportunities?: () => void;
 }) {
   return (
     <div className="min-h-screen bg-[#050505] text-white">
@@ -161,6 +164,7 @@ function ResultsShell({
           onSignOut={onSignOut}
           onHome={onHome}
           onDashboard={onDashboard}
+          onShowOpportunities={onShowOpportunities}
           sticky
         />
         <main className="max-w-5xl mx-auto px-4 md:px-8 py-8 pb-16">
@@ -181,6 +185,7 @@ export function ResultsPage({
   onDashboard,
   onViewLocalEcosystem,
   onAddLocation,
+  onShowOpportunities,
   hasLocation,
 }: ResultsPageProps) {
   const { t, i18n } = useTranslation();
@@ -342,6 +347,7 @@ export function ResultsPage({
         onSignOut={onSignOut}
         onHome={onBack}
         onDashboard={onDashboard}
+        onShowOpportunities={onShowOpportunities}
       >
         <p className="text-center text-gray-300 text-body-sm mb-8">
           {t("results.analyzingHint")}
@@ -391,6 +397,7 @@ export function ResultsPage({
       onSignOut={onSignOut}
       onHome={onBack}
       onDashboard={onDashboard}
+      onShowOpportunities={onShowOpportunities}
     >
       <div className="space-y-10">
         <div className="bg-[#111111] rounded-xl overflow-hidden shadow-lg border border-purple-900/40">
