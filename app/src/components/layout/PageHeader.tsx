@@ -17,6 +17,7 @@ interface PageHeaderProps {
   onHome?: () => void;
   onDashboard?: () => void;
   onShowOpportunities?: () => void;
+  onLoginRequired?: () => void;
 }
 
 export function PageHeader({
@@ -31,6 +32,7 @@ export function PageHeader({
   onHome,
   onDashboard,
   onShowOpportunities,
+  onLoginRequired,
 }: PageHeaderProps) {
   const { t } = useTranslation();
   return (
@@ -67,7 +69,13 @@ export function PageHeader({
             {onShowOpportunities && (
               <button
                 type="button"
-                onClick={onShowOpportunities}
+                onClick={() => {
+                  if (!user && onLoginRequired) {
+                    onLoginRequired();
+                  } else {
+                    onShowOpportunities();
+                  }
+                }}
                 className="p-1.5 sm:p-2 text-purple-300 hover:bg-purple-900/30 rounded-lg transition-colors shrink-0"
                 aria-label={t("opportunities.title", { defaultValue: "Explore Opportunities Near You" })}
                 title={t("opportunities.title", { defaultValue: "Explore Opportunities Near You" })}
