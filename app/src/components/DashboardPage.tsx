@@ -1,10 +1,17 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ExternalLink, BookOpen, Briefcase, RefreshCw } from "lucide-react";
+import { ExternalLink, BookOpen, Briefcase, RefreshCw, CheckCircle2, Circle } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { PageHeader } from "./layout/PageHeader";
 import { Button } from "./ui/button";
-import { fetchUserProgress, logCourseClick, logJobClick, type UserProgress } from "../lib/dashboard";
+import {
+  fetchUserProgress,
+  logCourseClick,
+  logJobClick,
+  markCourseComplete,
+  unmarkCourseComplete,
+  type UserProgress,
+} from "../lib/dashboard";
 
 interface DashboardPageProps {
   user: User | null;
@@ -12,9 +19,17 @@ interface DashboardPageProps {
   onSignOut?: () => void;
   onHome?: () => void;
   onRetakeQuiz: () => void;
+  onShowOpportunities?: () => void;
 }
 
-export function DashboardPage({ user, onBack, onSignOut, onHome, onRetakeQuiz }: DashboardPageProps) {
+export function DashboardPage({
+  user,
+  onBack,
+  onSignOut,
+  onHome,
+  onRetakeQuiz,
+  onShowOpportunities,
+}: DashboardPageProps) {
   const { t } = useTranslation();
   const [progress, setProgress] = useState<UserProgress | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,18 +45,59 @@ export function DashboardPage({ user, onBack, onSignOut, onHome, onRetakeQuiz }:
     });
   }, [user]);
 
+  const refresh = () => {
+    if (user?.id) fetchUserProgress(user.id).then(setProgress);
+  };
+
   const brand = t("common.brand");
 
-  // Split recommended courses/jobs into two buckets based on what's been clicked.
-  // If nothing has been clicked yet, everything recommended falls into "not started".
-  const startedCourses = progress?.courses_clicked ?? [];
-  const notStartedCourses = (progress?.recommended_courses ?? []).filter(
-    (course) => !startedCourses.some((c) => c.title === course.title)
+  const completedCourses = progress?.courses_completed ?? [];
+  const clickedCourses = progress?.courses_clicked ?? [];
+  const inProgressCourses = clickedCourses.filter(
+    (c) => !completedCourses.some((done) => done.title === c.title)
   );
+  const notStartedCourses = (progress?.recommended_courses ?? []).filter(
+    (course) =>
+      !clickedCourses.some((c) => c.title === course.title) &&
+      !completedCourses.some((c) => c.title === course.title)
+  );
+
   const exploredJobs = progress?.jobs_clicked ?? [];
   const notExploredJobs = (progress?.recommended_jobs ?? []).filter(
     (job) => !exploredJobs.some((j) => j.title === job.title)
   );
+
+  const handleMarkComplete = (course: { title: string; provider?: string; url?: string }) => {
+    if (!user?.id) return;
+    markCourseComplete(user.id, {
+      title: course.title,
+      provider: course.provider,
+      url: course.url || "",
+    }).then(refresh);
+  };
+
+  const handleUnmarkComplete = (title: string) => {
+    if (!user?.id) return;
+    unmarkCourseComplete(user.id, title).then(refresh);
+  };
+
+  const handleStartCourse = (course: { title: string; provider?: string; url?: string }) => {
+    if (!user?.id) return;
+    logCourseClick(user.id, {
+      title: course.title,
+      provider: course.provider,
+      url: course.url || "",
+    }).then(refresh);
+  };
+
+  const handleExploreJob = (job: { title: string; company?: string; url?: string }) => {
+    if (!user?.id) return;
+    logJobClick(user.id, {
+      title: job.title,
+      company: job.company,
+      url: job.url || "",
+    }).then(refresh);
+  };
 
   return (
     <div className="min-h-screen bg-[#050505] text-white">
@@ -55,10 +111,11 @@ export function DashboardPage({ user, onBack, onSignOut, onHome, onRetakeQuiz }:
           user={user}
           onSignOut={onSignOut}
           onHome={onHome}
+          onShowOpportunities={onShowOpportunities}
           sticky
         />
 
-        <main className="max-w-5xl mx-auto px-4 md:px-8 py-8 pb-16 space-y-8">
+        <main className="max-w-6xl mx-auto px-4 md:px-8 py-8 pb-16 space-y-8">
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <div className="w-8 h-8 border-4 border-purple-900/40 border-t-purple-500 rounded-full animate-spin" />
@@ -124,17 +181,26 @@ export function DashboardPage({ user, onBack, onSignOut, onHome, onRetakeQuiz }:
                 </div>
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid sm:grid-cols-3 gap-4">
+                <div className="bg-[#111111] rounded-xl p-5 border border-purple-900/40 flex items-center gap-4">
+                  <div className="p-3 bg-green-900/30 rounded-lg">
+                    <CheckCircle2 className="w-6 h-6 text-green-400" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-white">{completedCourses.length}</p>
+                    <p className="text-body-sm text-gray-400">
+                      {t("dashboard.coursesFinished", { defaultValue: "Courses Finished" })}
+                    </p>
+                  </div>
+                </div>
                 <div className="bg-[#111111] rounded-xl p-5 border border-purple-900/40 flex items-center gap-4">
                   <div className="p-3 bg-purple-900/30 rounded-lg">
                     <BookOpen className="w-6 h-6 text-purple-300" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-white">
-                      {progress.courses_clicked.length}
-                    </p>
+                    <p className="text-2xl font-bold text-white">{inProgressCourses.length}</p>
                     <p className="text-body-sm text-gray-400">
-                      {t("dashboard.coursesStarted", { defaultValue: "Courses Started" })}
+                      {t("dashboard.coursesInProgress", { defaultValue: "In Progress" })}
                     </p>
                   </div>
                 </div>
@@ -143,9 +209,7 @@ export function DashboardPage({ user, onBack, onSignOut, onHome, onRetakeQuiz }:
                     <Briefcase className="w-6 h-6 text-purple-300" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-white">
-                      {progress.jobs_clicked.length}
-                    </p>
+                    <p className="text-2xl font-bold text-white">{exploredJobs.length}</p>
                     <p className="text-body-sm text-gray-400">
                       {t("dashboard.jobsSaved", { defaultValue: "Jobs Explored" })}
                     </p>
@@ -153,161 +217,164 @@ export function DashboardPage({ user, onBack, onSignOut, onHome, onRetakeQuiz }:
                 </div>
               </div>
 
-              <section className="space-y-3">
+              <section className="space-y-4">
                 <h3 className="text-h4 font-bold text-white">
-                  {t("dashboard.coursesStartedTitle", { defaultValue: "Courses You've Started" })}
+                  {t("dashboard.yourCoursesSection", { defaultValue: "Your Courses" })}
                 </h3>
-                {startedCourses.length === 0 ? (
-                  <p className="text-body-sm text-gray-400">
-                    {t("dashboard.noCourses", {
-                      defaultValue: "You haven't started any courses yet.",
-                    })}
-                  </p>
-                ) : (
-                  <div className="grid gap-3">
-                    {startedCourses.map((course, i) => (
-                      <a
-                        key={i}
-                        href={course.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group flex items-center justify-between rounded-lg border border-purple-900/40 bg-[#111111] p-4 hover:border-purple-500 transition-colors"
-                      >
-                        <div>
-                          <p className="font-semibold text-white group-hover:text-purple-300">
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-green-400" />
+                      <h4 className="text-sm font-bold text-green-400 uppercase tracking-wide">
+                        {t("dashboard.finished", { defaultValue: "Finished" })}
+                      </h4>
+                    </div>
+                    {completedCourses.length === 0 ? (
+                      <p className="text-body-xs text-gray-500">
+                        {t("dashboard.noFinished", { defaultValue: "Nothing finished yet." })}
+                      </p>
+                    ) : (
+                      completedCourses.map((course, i) => (
+                        <div key={i} className="rounded-lg border border-green-900/40 bg-green-950/20 p-3">
+                          <a
+                            href={course.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-semibold text-white hover:text-green-300 text-sm flex items-center justify-between gap-2"
+                          >
                             {course.title}
-                          </p>
+                            <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                          </a>
                           {course.provider && (
-                            <p className="text-body-xs text-gray-400">{course.provider}</p>
+                            <p className="text-body-xs text-gray-400 mt-0.5">{course.provider}</p>
                           )}
+                          <button
+                            type="button"
+                            onClick={() => handleUnmarkComplete(course.title)}
+                            className="text-body-xs text-gray-500 hover:text-gray-300 mt-2 underline"
+                          >
+                            {t("dashboard.undoComplete", { defaultValue: "Undo" })}
+                          </button>
                         </div>
-                        <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-purple-300 shrink-0" />
-                      </a>
-                    ))}
+                      ))
+                    )}
                   </div>
-                )}
-              </section>
 
-              <section className="space-y-3">
-                <h3 className="text-h4 font-bold text-white">
-                  {t("dashboard.coursesNotStartedTitle", { defaultValue: "Courses You Haven't Started" })}
-                </h3>
-                {notStartedCourses.length === 0 ? (
-                  <p className="text-body-sm text-gray-400">
-                    {t("dashboard.noRecommendedCourses", {
-                      defaultValue: "No course recommendations yet.",
-                    })}
-                  </p>
-                ) : (
-                  <div className="grid gap-3">
-                    {notStartedCourses.map((course, i) => (
-                      <a
-                        key={i}
-                        href={course.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => {
-                          if (user?.id) {
-                            logCourseClick(user.id, {
-                              title: course.title,
-                              provider: course.provider,
-                              url: course.url || "",
-                            }).then(() => {
-                              fetchUserProgress(user.id).then(setProgress);
-                            });
-                          }
-                        }}
-                        className="group flex items-center justify-between rounded-lg border border-purple-900/40 bg-[#111111] p-4 hover:border-purple-500 transition-colors"
-                      >
-                        <div>
-                          <p className="font-semibold text-white group-hover:text-purple-300">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-purple-300" />
+                      <h4 className="text-sm font-bold text-purple-300 uppercase tracking-wide">
+                        {t("dashboard.inProgress", { defaultValue: "In Progress" })}
+                      </h4>
+                    </div>
+                    {inProgressCourses.length === 0 ? (
+                      <p className="text-body-xs text-gray-500">
+                        {t("dashboard.noInProgress", { defaultValue: "Nothing in progress." })}
+                      </p>
+                    ) : (
+                      inProgressCourses.map((course, i) => (
+                        <div key={i} className="rounded-lg border border-purple-900/40 bg-[#111111] p-3">
+                          <a
+                            href={course.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-semibold text-white hover:text-purple-300 text-sm flex items-center justify-between gap-2"
+                          >
                             {course.title}
-                          </p>
-                          <p className="text-body-xs text-gray-400">{course.provider}</p>
-                        </div>
-                        <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-purple-300 shrink-0" />
-                      </a>
-                    ))}
-                  </div>
-                )}
-              </section>
-
-              <section className="space-y-3">
-                <h3 className="text-h4 font-bold text-white">
-                  {t("dashboard.jobsExploredTitle", { defaultValue: "Jobs You've Explored" })}
-                </h3>
-                {exploredJobs.length === 0 ? (
-                  <p className="text-body-sm text-gray-400">
-                    {t("dashboard.noJobs", {
-                      defaultValue: "You haven't explored any job listings yet.",
-                    })}
-                  </p>
-                ) : (
-                  <div className="grid gap-3">
-                    {exploredJobs.map((job, i) => (
-                      <a
-                        key={i}
-                        href={job.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group flex items-center justify-between rounded-lg border border-purple-900/40 bg-[#111111] p-4 hover:border-purple-500 transition-colors"
-                      >
-                        <div>
-                          <p className="font-semibold text-white group-hover:text-purple-300">
-                            {job.title}
-                          </p>
-                          {job.company && (
-                            <p className="text-body-xs text-gray-400">{job.company}</p>
+                            <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                          </a>
+                          {course.provider && (
+                            <p className="text-body-xs text-gray-400 mt-0.5">{course.provider}</p>
                           )}
+                          <button
+                            type="button"
+                            onClick={() => handleMarkComplete(course)}
+                            className="flex items-center gap-1 text-body-xs text-purple-300 hover:text-purple-200 mt-2"
+                          >
+                            <Circle className="w-3 h-3" />
+                            {t("dashboard.markComplete", { defaultValue: "Mark as Complete" })}
+                          </button>
                         </div>
-                        <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-purple-300 shrink-0" />
-                      </a>
-                    ))}
+                      ))
+                    )}
                   </div>
-                )}
+
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Circle className="w-4 h-4 text-gray-500" />
+                      <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wide">
+                        {t("dashboard.notStarted", { defaultValue: "Not Started" })}
+                      </h4>
+                    </div>
+                    {notStartedCourses.length === 0 ? (
+                      <p className="text-body-xs text-gray-500">
+                        {t("dashboard.noRecommendedCourses", { defaultValue: "No course recommendations yet." })}
+                      </p>
+                    ) : (
+                      notStartedCourses.map((course, i) => (
+                        <div key={i} className="rounded-lg border border-purple-900/40 bg-[#0b0b0b] p-3">
+                          <a
+                            href={course.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => handleStartCourse(course)}
+                            className="font-semibold text-gray-300 hover:text-white text-sm flex items-center justify-between gap-2"
+                          >
+                            {course.title}
+                            <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                          </a>
+                          <p className="text-body-xs text-gray-500 mt-0.5">{course.provider}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
               </section>
 
-              <section className="space-y-3">
+              <section className="space-y-4">
                 <h3 className="text-h4 font-bold text-white">
-                  {t("dashboard.jobsNotExploredTitle", { defaultValue: "Jobs You Haven't Explored" })}
+                  {t("dashboard.bestJobOpportunities", { defaultValue: "Best Job Opportunities for This Career" })}
                 </h3>
-                {notExploredJobs.length === 0 ? (
-                  <p className="text-body-sm text-gray-400">
-                    {t("dashboard.noRecommendedJobs", {
-                      defaultValue: "No job recommendations yet.",
-                    })}
-                  </p>
-                ) : (
-                  <div className="grid gap-3">
-                    {notExploredJobs.map((job, i) => (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[
+                    ...exploredJobs.map((j) => ({ ...j, explored: true })),
+                    ...notExploredJobs.map((j) => ({ ...j, explored: false })),
+                  ]
+                    .slice(0, 6)
+                    .map((job, i) => (
                       <a
                         key={i}
                         href={job.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        onClick={() => {
-                          if (user?.id) {
-                            logJobClick(user.id, {
-                              title: job.title,
-                              company: job.company,
-                              url: job.url || "",
-                            }).then(() => {
-                              fetchUserProgress(user.id).then(setProgress);
-                            });
-                          }
-                        }}
-                        className="group flex items-center justify-between rounded-lg border border-purple-900/40 bg-[#111111] p-4 hover:border-purple-500 transition-colors"
+                        onClick={() => !job.explored && handleExploreJob(job)}
+                        className={`group rounded-xl border p-4 transition-colors ${
+                          job.explored
+                            ? "border-purple-500 bg-purple-950/20"
+                            : "border-purple-900/40 bg-[#111111] hover:border-purple-500"
+                        }`}
                       >
-                        <div>
-                          <p className="font-semibold text-white group-hover:text-purple-300">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-semibold text-white group-hover:text-purple-300 text-sm">
                             {job.title}
                           </p>
-                          <p className="text-body-xs text-gray-400">{job.company}</p>
+                          <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-purple-300 shrink-0" />
                         </div>
-                        <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-purple-300 shrink-0" />
+                        {job.company && (
+                          <p className="text-body-xs text-gray-400 mt-1">{job.company}</p>
+                        )}
+                        {job.explored && (
+                          <span className="text-body-xs text-purple-300 mt-2 inline-block">
+                            {t("dashboard.explored", { defaultValue: "Explored" })}
+                          </span>
+                        )}
                       </a>
                     ))}
-                  </div>
+                </div>
+                {exploredJobs.length === 0 && notExploredJobs.length === 0 && (
+                  <p className="text-body-sm text-gray-400">
+                    {t("dashboard.noRecommendedJobs", { defaultValue: "No job recommendations yet." })}
+                  </p>
                 )}
               </section>
             </>
