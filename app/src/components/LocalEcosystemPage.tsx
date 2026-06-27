@@ -14,6 +14,7 @@ interface LocalEcosystemPageProps {
   user?: { id: string; email?: string } | null;
   onSignOut?: () => void;
   onDashboard?: () => void;
+  onShowOpportunities?: () => void;
 }
 
 const CardSkeleton = () => (
@@ -33,6 +34,7 @@ export function LocalEcosystemPage({
   user,
   onSignOut,
   onDashboard,
+  onShowOpportunities,
 }: LocalEcosystemPageProps) {
   const { t, i18n } = useTranslation();
   const language = i18n.resolvedLanguage || i18n.language || "en";
@@ -85,6 +87,7 @@ export function LocalEcosystemPage({
           onSignOut={onSignOut}
           onHome={onHome}
           onDashboard={onDashboard}
+          onShowOpportunities={onShowOpportunities}
           sticky
         />
 
