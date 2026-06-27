@@ -67,7 +67,13 @@ export function HomePage({ onStartQuiz, onLogin, onDashboard, onShowOpportunitie
             {onShowOpportunities && (
               <button
                 type="button"
-                onClick={onShowOpportunities}
+                onClick={() => {
+                  if (!user) {
+                    onLogin();
+                  } else {
+                    onShowOpportunities();
+                  }
+                }}
                 className="p-1.5 sm:p-2 text-purple-300 hover:bg-purple-900/30 rounded-lg transition-colors shrink-0"
                 aria-label={t("opportunities.title", { defaultValue: "Explore Opportunities Near You" })}
                 title={t("opportunities.title", { defaultValue: "Explore Opportunities Near You" })}
