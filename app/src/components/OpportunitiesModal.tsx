@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { X, MapPin, TrendingUp, ExternalLink } from "lucide-react";
-import { Button } from "./ui/button";
 import {
   fetchJobsByDistance,
   fetchLocalIndustries,
