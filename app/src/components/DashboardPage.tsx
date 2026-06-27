@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ExternalLink, BookOpen, Briefcase, RefreshCw, CheckCircle2, Circle } from "lucide-react";
+import { ExternalLink, BookOpen, Briefcase, RefreshCw, CheckCircle2, Circle, MapPin } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { PageHeader } from "./layout/PageHeader";
 import { Button } from "./ui/button";
@@ -20,6 +20,9 @@ interface DashboardPageProps {
   onHome?: () => void;
   onRetakeQuiz: () => void;
   onShowOpportunities?: () => void;
+  onLoginRequired?: () => void;
+  onGoToCourses?: () => void;
+  onChangeLocation?: () => void;
 }
 
 export function DashboardPage({
@@ -29,6 +32,9 @@ export function DashboardPage({
   onHome,
   onRetakeQuiz,
   onShowOpportunities,
+  onLoginRequired,
+  onGoToCourses,
+  onChangeLocation,
 }: DashboardPageProps) {
   const { t } = useTranslation();
   const [progress, setProgress] = useState<UserProgress | null>(null);
@@ -112,6 +118,7 @@ export function DashboardPage({
           onSignOut={onSignOut}
           onHome={onHome}
           onShowOpportunities={onShowOpportunities}
+          onLoginRequired={onLoginRequired}
           sticky
         />
 
@@ -170,14 +177,26 @@ export function DashboardPage({
                       <p className="font-bold text-white">{progress.career_growth}</p>
                     </div>
                   </div>
-                  <Button
-                    onClick={onRetakeQuiz}
-                    variant="outline"
-                    className="border-purple-900/50 bg-[#0b0b0b] text-white hover:bg-purple-950/50"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    {t("dashboard.retakeQuiz", { defaultValue: "Retake Assessment" })}
-                  </Button>
+                  <div className="flex flex-wrap gap-3">
+                    <Button
+                      onClick={onRetakeQuiz}
+                      variant="outline"
+                      className="border-purple-900/50 bg-[#0b0b0b] text-white hover:bg-purple-950/50"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      {t("dashboard.retakeQuiz", { defaultValue: "Retake Assessment" })}
+                    </Button>
+                    {onChangeLocation && (
+                      <Button
+                        onClick={onChangeLocation}
+                        variant="outline"
+                        className="border-purple-900/50 bg-[#0b0b0b] text-white hover:bg-purple-950/50"
+                      >
+                        <MapPin className="w-4 h-4" />
+                        {t("dashboard.changeLocation", { defaultValue: "Change Location" })}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -377,6 +396,18 @@ export function DashboardPage({
                   </p>
                 )}
               </section>
+
+              {onGoToCourses && (
+                <div className="flex justify-center pt-4">
+                  <Button
+                    onClick={onGoToCourses}
+                    size="lg"
+                    className="bg-purple-700 hover:bg-purple-600 text-white font-bold px-10 py-6 text-lg shadow-lg"
+                  >
+                    {t("dashboard.goToCourses", { defaultValue: "Go to Courses" })}
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </main>
