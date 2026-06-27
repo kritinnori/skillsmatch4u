@@ -263,7 +263,6 @@ function App() {
               onSignOut={handleSignOut}
               onDashboard={() => setCurrentPage("dashboard")}
               onShowOpportunities={() => setShowOpportunitiesModal(true)}
-          onShowOpportunities={() => setShowOpportunitiesModal(true)}
             />
           )}
         </>
