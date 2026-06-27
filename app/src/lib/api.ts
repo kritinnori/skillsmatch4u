@@ -151,3 +151,40 @@ export async function fetchLocalIndustries(
     industries: Array.isArray(data.industries) ? data.industries : [],
   };
 }
+
+export interface JobByDistance {
+  title: string;
+  company: string;
+  city: string;
+  reason: string;
+  distanceKm: number | null;
+}
+
+export interface JobsByDistanceRequest {
+  state: string;
+  district?: string;
+  career?: { title: string };
+  language?: string;
+}
+
+export async function fetchJobsByDistance(
+  request: JobsByDistanceRequest
+): Promise<{ userLocation: string; jobs: JobByDistance[] }> {
+  const response = await fetch(`${API_BASE_URL}/jobs-by-distance`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || "Failed to fetch nearby job opportunities");
+  }
+
+  const data = await response.json();
+  if (data.error) throw new Error(data.error);
+  return {
+    userLocation: data.userLocation ?? request.district ?? request.state,
+    jobs: Array.isArray(data.jobs) ? data.jobs : [],
+  };
+}
