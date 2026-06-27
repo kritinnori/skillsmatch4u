@@ -59,13 +59,13 @@ export function HomePage({ onStartQuiz, onLogin, onDashboard, onShowOpportunitie
   return (
     <div className="w-full min-h-screen bg-[#050505] text-white">
       <header className="bg-[#050505] border-b border-purple-900/40 sticky top-0 z-20 shadow-sm">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-8 py-3 md:py-4 flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-8 py-2.5 md:py-4 flex flex-nowrap items-center justify-between gap-1 sm:gap-3 overflow-x-auto">
           <BrandLogo
             label={t("common.brand")}
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="shrink-0"
+            className="min-w-0 flex-1 sm:flex-initial"
           />
-          <div className="flex items-center gap-1.5 sm:gap-3 flex-wrap justify-end">
+          <div className="flex items-center gap-1 sm:gap-3 flex-nowrap justify-end shrink-0">
             {onShowOpportunities && (
               <button
                 type="button"
@@ -116,7 +116,7 @@ export function HomePage({ onStartQuiz, onLogin, onDashboard, onShowOpportunitie
               </Button>
             )}
             <div
-              className="max-w-[110px] sm:max-w-none shrink-0 cursor-pointer"
+              className="max-w-[80px] sm:max-w-none shrink-0 cursor-pointer"
               onClick={(e) => {
                 const target = e.target as HTMLElement;
                 if (target.tagName.toLowerCase() === "select") return;
