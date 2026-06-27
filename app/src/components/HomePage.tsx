@@ -6,6 +6,8 @@ import {
   BarChart3,
   ChevronRight,
   MapPin,
+  LayoutDashboard,
+  LogOut,
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { Button } from "./ui/button";
@@ -85,18 +87,24 @@ export function HomePage({ onStartQuiz, onLogin, onDashboard, onShowOpportunitie
               <Button
                 onClick={onDashboard}
                 size="sm"
-                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-xs sm:text-sm px-2.5 sm:px-4"
+                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-xs sm:text-sm px-2 sm:px-4 min-w-[40px] sm:min-w-0"
               >
-                {t("dashboard.title", { defaultValue: "My Dashboard" })}
+                <LayoutDashboard className="w-4 h-4 sm:hidden" />
+                <span className="hidden sm:inline">
+                  {t("dashboard.title", { defaultValue: "My Dashboard" })}
+                </span>
               </Button>
             )}
             {user ? (
               <Button
                 onClick={handleSignOut}
                 size="sm"
-                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-xs sm:text-sm px-2.5 sm:px-4"
+                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-xs sm:text-sm px-2 sm:px-4 min-w-[40px] sm:min-w-0"
               >
-                {t("login.signOut", { defaultValue: "Sign out" })}
+                <LogOut className="w-4 h-4 sm:hidden" />
+                <span className="hidden sm:inline">
+                  {t("login.signOut", { defaultValue: "Sign out" })}
+                </span>
               </Button>
             ) : (
               <Button
