@@ -32,7 +32,7 @@ function readQuizSession<T>(key: string, fallback: T): T {
   }
 }
 
-export function QuizPage({ questions, onComplete, onBack, user, onSignOut, onDashboard, onShowOpportunities }: QuizPageProps) {
+export function QuizPage({ questions, onComplete, onBack, user, onSignOut, onDashboard, onShowOpportunities, onLoginRequired }: QuizPageProps) {
   const { t } = useTranslation();
 
   const SCALE_OPTIONS = useMemo(
