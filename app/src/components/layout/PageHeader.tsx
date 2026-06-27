@@ -42,7 +42,7 @@ export function PageHeader({
       }`}
     >
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-8 py-3 md:py-5">
-        <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
+        <div className="flex flex-nowrap items-center justify-between gap-1 sm:gap-4 overflow-x-auto">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
             <BrandLogo
               label={brand}
@@ -65,7 +65,7 @@ export function PageHeader({
               </h1>
             )}
           </div>
-          <div className="flex items-center gap-1.5 sm:gap-3 flex-wrap justify-end">
+          <div className="flex items-center gap-1 sm:gap-3 flex-nowrap justify-end shrink-0">
             {onShowOpportunities && (
               <button
                 type="button"
@@ -108,7 +108,7 @@ export function PageHeader({
               </Button>
             )}
             <div
-              className="max-w-[100px] sm:max-w-none shrink-0 cursor-pointer"
+              className="max-w-[70px] sm:max-w-none shrink-0 cursor-pointer"
               onClick={(e) => {
                 // Clicking anywhere in this wrapper (including a decorative globe
                 // icon rendered by LanguageSwitcher) opens the language <select>,
