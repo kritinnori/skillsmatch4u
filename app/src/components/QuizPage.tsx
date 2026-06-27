@@ -16,6 +16,7 @@ interface QuizPageProps {
   onSignOut?: () => void;
   onDashboard?: () => void;
   onShowOpportunities?: () => void;
+  onLoginRequired?: () => void;
   questions: Question[];
   onComplete: (answers: number[], additionalInfo?: string) => void;
   onBack: () => void;
@@ -31,7 +32,7 @@ function readQuizSession<T>(key: string, fallback: T): T {
   }
 }
 
-export function QuizPage({ questions, onComplete, onBack, user, onSignOut, onDashboard, onShowOpportunities }: QuizPageProps) {
+export function QuizPage({ questions, onComplete, onBack, user, onSignOut, onDashboard, onShowOpportunities, onLoginRequired }: QuizPageProps) {
   const { t } = useTranslation();
 
   const SCALE_OPTIONS = useMemo(
@@ -151,6 +152,7 @@ export function QuizPage({ questions, onComplete, onBack, user, onSignOut, onDas
 
       <div className="relative z-10">
         <PageHeader user={user} onSignOut={onSignOut} onHome={onBack} onDashboard={onDashboard} onShowOpportunities={onShowOpportunities}
+          onLoginRequired={onLoginRequired}
           brand={t("common.brand")}
           onBack={handleBack}
           backLabel={t("common.goBack")}

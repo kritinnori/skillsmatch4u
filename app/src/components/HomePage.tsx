@@ -6,6 +6,8 @@ import {
   BarChart3,
   ChevronRight,
   MapPin,
+  LayoutDashboard,
+  LogOut,
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { Button } from "./ui/button";
@@ -67,8 +69,14 @@ export function HomePage({ onStartQuiz, onLogin, onDashboard, onShowOpportunitie
             {onShowOpportunities && (
               <button
                 type="button"
-                onClick={onShowOpportunities}
-                className="p-1.5 sm:p-2 text-purple-300 hover:bg-purple-900/30 rounded-lg transition-colors shrink-0"
+                onClick={() => {
+                  if (!user) {
+                    onLogin();
+                  } else {
+                    onShowOpportunities();
+                  }
+                }}
+                className="min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center p-1.5 sm:p-2 text-purple-300 hover:bg-purple-900/30 active:bg-purple-900/50 rounded-lg transition-colors shrink-0" style={{ touchAction: "manipulation" }}
                 aria-label={t("opportunities.title", { defaultValue: "Explore Opportunities Near You" })}
                 title={t("opportunities.title", { defaultValue: "Explore Opportunities Near You" })}
               >
@@ -79,18 +87,24 @@ export function HomePage({ onStartQuiz, onLogin, onDashboard, onShowOpportunitie
               <Button
                 onClick={onDashboard}
                 size="sm"
-                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-xs sm:text-sm px-2.5 sm:px-4"
+                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-xs sm:text-sm px-2 sm:px-4 min-w-[40px] sm:min-w-0"
               >
-                {t("dashboard.title", { defaultValue: "My Dashboard" })}
+                <LayoutDashboard className="w-4 h-4 sm:hidden" />
+                <span className="hidden sm:inline">
+                  {t("dashboard.title", { defaultValue: "My Dashboard" })}
+                </span>
               </Button>
             )}
             {user ? (
               <Button
                 onClick={handleSignOut}
                 size="sm"
-                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-xs sm:text-sm px-2.5 sm:px-4"
+                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-xs sm:text-sm px-2 sm:px-4 min-w-[40px] sm:min-w-0"
               >
-                {t("login.signOut", { defaultValue: "Sign out" })}
+                <LogOut className="w-4 h-4 sm:hidden" />
+                <span className="hidden sm:inline">
+                  {t("login.signOut", { defaultValue: "Sign out" })}
+                </span>
               </Button>
             ) : (
               <Button
@@ -101,7 +115,16 @@ export function HomePage({ onStartQuiz, onLogin, onDashboard, onShowOpportunitie
                 {t("login.signIn", { defaultValue: "Login" })}
               </Button>
             )}
-            <div className="max-w-[110px] sm:max-w-none shrink-0">
+            <div
+              className="max-w-[110px] sm:max-w-none shrink-0 cursor-pointer"
+              onClick={(e) => {
+                const target = e.target as HTMLElement;
+                if (target.tagName.toLowerCase() === "select") return;
+                const select = e.currentTarget.querySelector("select");
+                select?.focus();
+                select?.click();
+              }}
+            >
               <LanguageSwitcher />
             </div>
           </div>

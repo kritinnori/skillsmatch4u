@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, MapPin } from "lucide-react";
+import { ArrowLeft, MapPin, LayoutDashboard, LogOut } from "lucide-react";
 import { BrandLogo } from "./BrandLogo";
 import { LanguageSwitcher } from "../LanguageSwitcher";
 import { Button } from "../ui/button";
@@ -17,6 +17,7 @@ interface PageHeaderProps {
   onHome?: () => void;
   onDashboard?: () => void;
   onShowOpportunities?: () => void;
+  onLoginRequired?: () => void;
 }
 
 export function PageHeader({
@@ -31,6 +32,7 @@ export function PageHeader({
   onHome,
   onDashboard,
   onShowOpportunities,
+  onLoginRequired,
 }: PageHeaderProps) {
   const { t } = useTranslation();
   return (
@@ -67,8 +69,14 @@ export function PageHeader({
             {onShowOpportunities && (
               <button
                 type="button"
-                onClick={onShowOpportunities}
-                className="p-1.5 sm:p-2 text-purple-300 hover:bg-purple-900/30 rounded-lg transition-colors shrink-0"
+                onClick={() => {
+                  if (!user && onLoginRequired) {
+                    onLoginRequired();
+                  } else {
+                    onShowOpportunities();
+                  }
+                }}
+                className="min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center p-1.5 sm:p-2 text-purple-300 hover:bg-purple-900/30 active:bg-purple-900/50 rounded-lg transition-colors shrink-0" style={{ touchAction: "manipulation" }}
                 aria-label={t("opportunities.title", { defaultValue: "Explore Opportunities Near You" })}
                 title={t("opportunities.title", { defaultValue: "Explore Opportunities Near You" })}
               >
@@ -79,21 +87,39 @@ export function PageHeader({
               <Button
                 onClick={onDashboard}
                 size="sm"
-                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-xs sm:text-sm px-2.5 sm:px-4"
+                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-xs sm:text-sm px-2 sm:px-4 min-w-[40px] sm:min-w-0"
               >
-                {t("dashboard.title", { defaultValue: "My Dashboard" })}
+                <LayoutDashboard className="w-4 h-4 sm:hidden" />
+                <span className="hidden sm:inline">
+                  {t("dashboard.title", { defaultValue: "My Dashboard" })}
+                </span>
               </Button>
             )}
             {user && onSignOut && (
               <Button
                 onClick={onSignOut}
                 size="sm"
-                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-xs sm:text-sm px-2.5 sm:px-4"
+                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-xs sm:text-sm px-2 sm:px-4 min-w-[40px] sm:min-w-0"
               >
-                {t("login.signOut", { defaultValue: "Sign out" })}
+                <LogOut className="w-4 h-4 sm:hidden" />
+                <span className="hidden sm:inline">
+                  {t("login.signOut", { defaultValue: "Sign out" })}
+                </span>
               </Button>
             )}
-            <div className="max-w-[100px] sm:max-w-none shrink-0">
+            <div
+              className="max-w-[100px] sm:max-w-none shrink-0 cursor-pointer"
+              onClick={(e) => {
+                // Clicking anywhere in this wrapper (including a decorative globe
+                // icon rendered by LanguageSwitcher) opens the language <select>,
+                // since browsers only open a <select> from a direct click on it.
+                const target = e.target as HTMLElement;
+                if (target.tagName.toLowerCase() === "select") return; // already handled natively
+                const select = e.currentTarget.querySelector("select");
+                select?.focus();
+                select?.click();
+              }}
+            >
               <LanguageSwitcher />
             </div>
           </div>

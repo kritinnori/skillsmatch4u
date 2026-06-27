@@ -153,10 +153,11 @@ function App() {
     setLoginIntent("normal");
   };
 
-  // Lets a user revisit the location prompt anytime (e.g. from Results "Add Your Location")
-  // without resetting their "already asked" status globally.
-  const handleAddLocation = () => {
-    setLocationReturnTo("results");
+  // Lets a user revisit/change the location prompt anytime (e.g. from Results
+  // "Add Your Location" or Dashboard "Change Location") without resetting their
+  // "already asked" status globally. Returns to whichever page triggered it.
+  const handleAddLocation = (returnTo: Page = "results") => {
+    setLocationReturnTo(returnTo);
     setCurrentPage("location");
   };
 
@@ -263,6 +264,7 @@ function App() {
               onSignOut={handleSignOut}
               onDashboard={() => setCurrentPage("dashboard")}
               onShowOpportunities={() => setShowOpportunitiesModal(true)}
+          onLoginRequired={() => { setLoginIntent("normal"); setCurrentPage("login"); }}
             />
           )}
         </>
@@ -279,6 +281,7 @@ function App() {
           onSignOut={handleSignOut}
           onDashboard={() => setCurrentPage("dashboard")}
           onShowOpportunities={() => setShowOpportunitiesModal(true)}
+          onLoginRequired={() => { setLoginIntent("normal"); setCurrentPage("login"); }}
           onViewLocalEcosystem={() => setCurrentPage("localEcosystem")}
           onAddLocation={handleAddLocation}
           hasLocation={!!userState && !!userDistrict}
@@ -292,6 +295,10 @@ function App() {
           onHome={() => setCurrentPage("home")}
           onSignOut={handleSignOut}
           onRetakeQuiz={handleStartQuiz}
+          onShowOpportunities={() => setShowOpportunitiesModal(true)}
+          onLoginRequired={() => { setLoginIntent("normal"); setCurrentPage("login"); }}
+          onGoToCourses={() => setCurrentPage("results")}
+          onChangeLocation={() => handleAddLocation("dashboard")}
         />
       )}
 
@@ -313,6 +320,7 @@ function App() {
           onHome={() => setCurrentPage("home")}
           onDashboard={() => setCurrentPage("dashboard")}
           onShowOpportunities={() => setShowOpportunitiesModal(true)}
+          onLoginRequired={() => { setLoginIntent("normal"); setCurrentPage("login"); }}
         />
       )}
 
