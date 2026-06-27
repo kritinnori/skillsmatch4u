@@ -7,6 +7,7 @@ import { ResultsPage } from "./components/ResultsPage";
 import { DashboardPage } from "./components/DashboardPage";
 import { LocationPage } from "./components/LocationPage";
 import { LocalEcosystemPage } from "./components/LocalEcosystemPage";
+import { OpportunitiesModal } from "./components/OpportunitiesModal";
 import { LoginPage } from "./components/LoginPage";
 import { fetchQuestions } from "./lib/api";
 import { supabase } from "./lib/supabase";
@@ -41,6 +42,7 @@ function App() {
   const [loginIntent, setLoginIntent] = useState<"startQuiz" | "normal">("normal");
   const [userState, setUserState] = useState<string>(() => localStorage.getItem("sm_state") || "");
   const [userDistrict, setUserDistrict] = useState<string>(() => localStorage.getItem("sm_district") || "");
+  const [showOpportunitiesModal, setShowOpportunitiesModal] = useState(false);
   const [locationReturnTo, setLocationReturnTo] = useState<Page>("home");
 
   const setCurrentPage = (page: Page) => {
@@ -167,6 +169,10 @@ function App() {
     setAnswers(quizAnswers);
     setAdditionalInfo(info || "");
     setCurrentPage("results");
+    // Auto-prompt opportunities popup right after results, only if location is known
+    if (userState && userDistrict) {
+      setShowOpportunitiesModal(true);
+    }
   };
 
   const handleRestart = () => {
@@ -201,6 +207,7 @@ function App() {
             setCurrentPage("login");
           }}
           onDashboard={() => setCurrentPage("dashboard")}
+          onShowOpportunities={() => setShowOpportunitiesModal(true)}
         />
       )}
 
@@ -255,6 +262,8 @@ function App() {
               user={user}
               onSignOut={handleSignOut}
               onDashboard={() => setCurrentPage("dashboard")}
+              onShowOpportunities={() => setShowOpportunitiesModal(true)}
+          onShowOpportunities={() => setShowOpportunitiesModal(true)}
             />
           )}
         </>
@@ -270,6 +279,7 @@ function App() {
           user={user}
           onSignOut={handleSignOut}
           onDashboard={() => setCurrentPage("dashboard")}
+          onShowOpportunities={() => setShowOpportunitiesModal(true)}
           onViewLocalEcosystem={() => setCurrentPage("localEcosystem")}
           onAddLocation={handleAddLocation}
           hasLocation={!!userState && !!userDistrict}
@@ -303,6 +313,24 @@ function App() {
           onBack={() => setCurrentPage("results")}
           onHome={() => setCurrentPage("home")}
           onDashboard={() => setCurrentPage("dashboard")}
+          onShowOpportunities={() => setShowOpportunitiesModal(true)}
+        />
+      )}
+
+      {showOpportunitiesModal && userState && userDistrict && (
+        <OpportunitiesModal
+          state={userState}
+          district={userDistrict}
+          careerTitle={(() => {
+            try {
+              const lang = i18n.resolvedLanguage || i18n.language || "en";
+              const cached = sessionStorage.getItem(`sm_career_${lang}`);
+              return cached ? JSON.parse(cached).title : undefined;
+            } catch {
+              return undefined;
+            }
+          })()}
+          onClose={() => setShowOpportunitiesModal(false)}
         />
       )}
     </>
