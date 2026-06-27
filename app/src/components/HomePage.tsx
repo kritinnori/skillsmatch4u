@@ -115,7 +115,16 @@ export function HomePage({ onStartQuiz, onLogin, onDashboard, onShowOpportunitie
                 {t("login.signIn", { defaultValue: "Login" })}
               </Button>
             )}
-            <div className="max-w-[110px] sm:max-w-none shrink-0">
+            <div
+              className="max-w-[110px] sm:max-w-none shrink-0 cursor-pointer"
+              onClick={(e) => {
+                const target = e.target as HTMLElement;
+                if (target.tagName.toLowerCase() === "select") return;
+                const select = e.currentTarget.querySelector("select");
+                select?.focus();
+                select?.click();
+              }}
+            >
               <LanguageSwitcher />
             </div>
           </div>
