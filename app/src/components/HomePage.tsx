@@ -8,6 +8,7 @@ import {
   ChevronRight,
   MapPin,
   LayoutDashboard,
+  UserCircle,
   LogOut,
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
@@ -94,6 +95,18 @@ export function HomePage({ onStartQuiz, onLogin, onDashboard, onShowOpportunitie
                 title={t("opportunities.title", { defaultValue: "Explore Opportunities Near You" })}
               >
                 <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+            )}
+            {user && (
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent("sm4u:openProfile"))}
+                className="min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center p-1.5 sm:p-2 text-purple-300 hover:bg-purple-900/30 active:bg-purple-900/50 rounded-lg transition-colors shrink-0"
+                style={{ touchAction: "manipulation" }}
+                aria-label={t("profile.title", { defaultValue: "My Profile" })}
+                title={t("profile.title", { defaultValue: "My Profile" })}
+              >
+                <UserCircle className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             )}
             {user && (
