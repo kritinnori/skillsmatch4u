@@ -263,6 +263,22 @@ const translations: Translations = {
 
 
 
+  profile: {
+    title: "माझी प्रोफाइल",
+    account: "खाते",
+    subtitle: "तुमचे SkillsMatch4U खाते व्यवस्थापित करा",
+    username: "वापरकर्ता नाव",
+    email: "ईमेल",
+    noEmail: "उपलब्ध नाही",
+    memberSince: "सदस्यत्व सुरुवात",
+    dangerZone: "धोक्याचे क्षेत्र",
+    deleteWarning: "खाते हटवल्यास तुमचे लॉगिन, क्विझ निकाल आणि जतन केलेली सर्व प्रगती कायमची हटवली जाईल. हे परत करता येणार नाही.",
+    deleteAccount: "खाते हटवा",
+    confirmTitle: "तुमचे खाते हटवायचे?",
+    confirmBody: "हे कायमचे आहे. पुष्टी करण्यासाठी खाली DELETE टाइप करा.",
+    deleting: "हटवत आहे...",
+    cancel: "रद्द करा",
+  },
 };
 
 export default translations;
