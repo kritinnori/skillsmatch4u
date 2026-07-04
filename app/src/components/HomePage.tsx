@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Brain,
@@ -14,6 +15,7 @@ import { Button } from "./ui/button";
 import { BrandLogo } from "./layout/BrandLogo";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { supabase } from "../lib/supabase";
+import { AIExplainabilityModal } from "./AIExplainabilityModal";
 
 interface HomePageProps {
   onStartQuiz: () => void;
@@ -27,6 +29,7 @@ const featureIcons = [Target, Zap, BarChart3] as const;
 
 export function HomePage({ onStartQuiz, onLogin, onDashboard, onShowOpportunities, user }: HomePageProps) {
   const { t } = useTranslation();
+  const [showAIModal, setShowAIModal] = useState(false);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -66,6 +69,16 @@ export function HomePage({ onStartQuiz, onLogin, onDashboard, onShowOpportunitie
             className="min-w-0 flex-1 sm:flex-initial"
           />
           <div className="flex items-center gap-1 sm:gap-3 flex-nowrap justify-end shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowAIModal(true)}
+              className="min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center px-1.5 sm:px-2 py-1 text-purple-300 hover:bg-purple-900/30 active:bg-purple-900/50 rounded-lg transition-colors shrink-0 border border-purple-700/60 text-xs font-bold"
+              style={{ touchAction: "manipulation" }}
+              aria-label={t("ai.title", { defaultValue: "How AI is Used" })}
+              title={t("ai.title", { defaultValue: "How AI is Used" })}
+            >
+              AI
+            </button>
             {onShowOpportunities && (
               <button
                 type="button"
@@ -235,14 +248,39 @@ export function HomePage({ onStartQuiz, onLogin, onDashboard, onShowOpportunitie
         </div>
       </section>
 
-      <footer className="bg-black text-white py-10 border-t border-purple-900/40">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 text-center">
-          <p className="text-body-sm text-gray-400">{t("common.trustBadge")}</p>
-          <p className="text-body-xs text-gray-500 mt-2">
-            © {new Date().getFullYear()} {t("common.brand")}
-          </p>
+      <footer className="bg-black text-white py-8 border-t border-purple-900/40">
+        <div className="max-w-7xl mx-auto px-4 md:px-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-body-xs text-gray-500">
+              &copy; {new Date().getFullYear()} {t("common.brand")}. {t("common.trustBadge")}
+            </p>
+            <div className="flex items-center gap-4">
+              <a
+                href="/about"
+                className="text-body-xs text-gray-400 hover:text-purple-300 transition-colors"
+              >
+                About
+              </a>
+              <span className="text-gray-700">|</span>
+              <a
+                href="/privacy-policy"
+                className="text-body-xs text-gray-400 hover:text-purple-300 transition-colors"
+              >
+                {t("privacy.title", { defaultValue: "Privacy Policy" })}
+              </a>
+              <span className="text-gray-700">|</span>
+              <a
+                href="/terms"
+                className="text-body-xs text-gray-400 hover:text-purple-300 transition-colors"
+              >
+                {t("terms.title", { defaultValue: "Terms & Conditions" })}
+              </a>
+            </div>
+          </div>
         </div>
       </footer>
+
+      {showAIModal && <AIExplainabilityModal onClose={() => setShowAIModal(false)} />}
     </div>
   );
 }
