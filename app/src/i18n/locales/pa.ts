@@ -265,6 +265,22 @@ const translations: Translations = {
 
 
 
+  profile: {
+    title: "ਮੇਰੀ ਪ੍ਰੋਫਾਈਲ",
+    account: "ਖਾਤਾ",
+    subtitle: "ਆਪਣਾ SkillsMatch4U ਖਾਤਾ ਪ੍ਰਬੰਧਿਤ ਕਰੋ",
+    username: "ਵਰਤੋਂਕਾਰ ਨਾਮ",
+    email: "ਈਮੇਲ",
+    noEmail: "ਉਪਲਬਧ ਨਹੀਂ",
+    memberSince: "ਮੈਂਬਰਸ਼ਿਪ ਸ਼ੁਰੂਆਤ",
+    dangerZone: "ਖ਼ਤਰੇ ਦਾ ਖੇਤਰ",
+    deleteWarning: "ਖਾਤਾ ਮਿਟਾਉਣ ਨਾਲ ਤੁਹਾਡਾ ਲੌਗਇਨ, ਕੁਇਜ਼ ਨਤੀਜੇ ਅਤੇ ਸੰਭਾਲੀ ਸਾਰੀ ਤਰੱਕੀ ਪੱਕੇ ਤੌਰ ਤੇ ਮਿਟ ਜਾਵੇਗੀ। ਇਹ ਵਾਪਸ ਨਹੀਂ ਹੋ ਸਕਦਾ।",
+    deleteAccount: "ਖਾਤਾ ਮਿਟਾਓ",
+    confirmTitle: "ਆਪਣਾ ਖਾਤਾ ਮਿਟਾਉਣਾ ਹੈ?",
+    confirmBody: "ਇਹ ਪੱਕਾ ਹੈ। ਪੁਸ਼ਟੀ ਲਈ ਹੇਠਾਂ DELETE ਟਾਈਪ ਕਰੋ।",
+    deleting: "ਮਿਟਾਇਆ ਜਾ ਰਿਹਾ ਹੈ...",
+    cancel: "ਰੱਦ ਕਰੋ",
+  },
 };
 
 export default translations;
