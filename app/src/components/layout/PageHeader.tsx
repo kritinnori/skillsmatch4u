@@ -1,9 +1,10 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, MapPin, LayoutDashboard, LogOut } from "lucide-react";
 import { BrandLogo } from "./BrandLogo";
 import { LanguageSwitcher } from "../LanguageSwitcher";
 import { Button } from "../ui/button";
+import { AIExplainabilityModal } from "../AIExplainabilityModal";
 
 interface PageHeaderProps {
   brand: string;
@@ -35,6 +36,8 @@ export function PageHeader({
   onLoginRequired,
 }: PageHeaderProps) {
   const { t } = useTranslation();
+  const [showAIModal, setShowAIModal] = useState(false);
+
   return (
     <header
       className={`bg-[#050505] border-b border-purple-900/40 shadow-sm ${
@@ -66,6 +69,16 @@ export function PageHeader({
             )}
           </div>
           <div className="flex items-center gap-1 sm:gap-3 flex-nowrap justify-end shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowAIModal(true)}
+              className="min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center px-1.5 sm:px-2 py-1 text-purple-300 hover:bg-purple-900/30 active:bg-purple-900/50 rounded-lg transition-colors shrink-0 border border-purple-700/60 text-xs font-bold"
+              style={{ touchAction: "manipulation" }}
+              aria-label={t("ai.title", { defaultValue: "How AI is Used" })}
+              title={t("ai.title", { defaultValue: "How AI is Used" })}
+            >
+              AI
+            </button>
             {onShowOpportunities && (
               <button
                 type="button"
@@ -126,6 +139,7 @@ export function PageHeader({
         </div>
         {children}
       </div>
+      {showAIModal && <AIExplainabilityModal onClose={() => setShowAIModal(false)} />}
     </header>
   );
 }
