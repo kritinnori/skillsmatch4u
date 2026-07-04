@@ -264,6 +264,22 @@ const translations: Translations = {
 
 
 
+  profile: {
+    title: "আমার প্রোফাইল",
+    account: "অ্যাকাউন্ট",
+    subtitle: "আপনার SkillsMatch4U অ্যাকাউন্ট পরিচালনা করুন",
+    username: "ব্যবহারকারীর নাম",
+    email: "ইমেইল",
+    noEmail: "উপলব্ধ নয়",
+    memberSince: "সদস্য হওয়ার তারিখ",
+    dangerZone: "বিপজ্জনক এলাকা",
+    deleteWarning: "অ্যাকাউন্ট মুছে ফেললে আপনার লগইন, কুইজের ফলাফল এবং সংরক্ষিত সব অগ্রগতি স্থায়ীভাবে মুছে যাবে। এটি ফেরানো যাবে না।",
+    deleteAccount: "অ্যাকাউন্ট মুছুন",
+    confirmTitle: "আপনার অ্যাকাউন্ট মুছবেন?",
+    confirmBody: "এটি স্থায়ী। নিশ্চিত করতে নিচে DELETE লিখুন।",
+    deleting: "মুছে ফেলা হচ্ছে...",
+    cancel: "বাতিল",
+  },
 };
 
 export default translations;
