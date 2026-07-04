@@ -264,6 +264,22 @@ const translations: Translations = {
 
 
 
+  profile: {
+    title: "মোৰ প্ৰফাইল",
+    account: "একাউণ্ট",
+    subtitle: "আপোনাৰ SkillsMatch4U একাউণ্ট পৰিচালনা কৰক",
+    username: "ব্যৱহাৰকাৰীৰ নাম",
+    email: "ইমেইল",
+    noEmail: "উপলব্ধ নহয়",
+    memberSince: "সদস্যতা আৰম্ভ",
+    dangerZone: "বিপদ অঞ্চল",
+    deleteWarning: "একাউণ্ট মচি পেলালে আপোনাৰ লগইন, কুইজৰ ফলাফল আৰু সংৰক্ষিত সকলো অগ্ৰগতি স্থায়ীভাৱে মচি যাব। ইয়াক ঘূৰাই অনা নাযায়।",
+    deleteAccount: "একাউণ্ট মচক",
+    confirmTitle: "আপোনাৰ একাউণ্ট মচিব নেকি?",
+    confirmBody: "ই স্থায়ী। নিশ্চিত কৰিবলৈ তলত DELETE টাইপ কৰক।",
+    deleting: "মচি থকা হৈছে...",
+    cancel: "বাতিল কৰক",
+  },
 };
 
 export default translations;
