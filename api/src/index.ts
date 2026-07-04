@@ -243,6 +243,62 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// --- Account deletion (requires SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY env vars) ---
+// The frontend cannot delete auth users with the public anon key; this endpoint
+// verifies the caller's own JWT, then deletes their data and auth record.
+app.post("/account/delete", async (req, res) => {
+  try {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceRoleKey) {
+      res.status(500).json({ error: "Account deletion is not configured on the server" });
+      return;
+    }
+
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    if (!token) {
+      res.status(401).json({ error: "Missing authorization token" });
+      return;
+    }
+
+    const { createClient } = await import("@supabase/supabase-js");
+    const admin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    // Verify the token belongs to a real user — callers can only delete themselves.
+    const { data: userData, error: userError } = await admin.auth.getUser(token);
+    if (userError || !userData?.user) {
+      res.status(401).json({ error: "Invalid or expired session" });
+      return;
+    }
+    const userId = userData.user.id;
+
+    // Delete the user's saved progress first, then the auth record.
+    const { error: progressError } = await admin
+      .from("user_progress")
+      .delete()
+      .eq("user_id", userId);
+    if (progressError) {
+      console.error("Failed to delete user_progress:", progressError);
+      // Continue anyway — the auth deletion is the critical part.
+    }
+
+    const { error: deleteError } = await admin.auth.admin.deleteUser(userId);
+    if (deleteError) {
+      console.error("Failed to delete auth user:", deleteError);
+      res.status(500).json({ error: "Failed to delete account" });
+      return;
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Account deletion error:", err);
+    res.status(500).json({ error: "Failed to delete account" });
+  }
+});
+
 app.get("/", (_req, res) => {
   res.json({ message: "Quiz API is running" });
 });
