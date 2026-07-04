@@ -263,6 +263,22 @@ const translations: Translations = {
 
 
 
+  profile: {
+    title: "میری پروفائل",
+    account: "اکاؤنٹ",
+    subtitle: "اپنا SkillsMatch4U اکاؤنٹ منظم کریں",
+    username: "صارف نام",
+    email: "ای میل",
+    noEmail: "دستیاب نہیں",
+    memberSince: "رکنیت کا آغاز",
+    dangerZone: "خطرے کا علاقہ",
+    deleteWarning: "اکاؤنٹ حذف کرنے سے آپ کا لاگ اِن، کوئز کے نتائج اور محفوظ کردہ تمام پیش رفت مستقل طور پر حذف ہو جائے گی۔ اسے واپس نہیں کیا جا سکتا۔",
+    deleteAccount: "اکاؤنٹ حذف کریں",
+    confirmTitle: "اپنا اکاؤنٹ حذف کریں؟",
+    confirmBody: "یہ مستقل ہے۔ تصدیق کے لیے نیچے DELETE ٹائپ کریں۔",
+    deleting: "حذف کیا جا رہا ہے...",
+    cancel: "منسوخ کریں",
+  },
 };
 
 export default translations;
