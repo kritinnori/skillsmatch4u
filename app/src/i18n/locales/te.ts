@@ -263,6 +263,22 @@ const translations: Translations = {
 
 
 
+  profile: {
+    title: "నా ప్రొఫైల్",
+    account: "ఖాతా",
+    subtitle: "మీ SkillsMatch4U ఖాతాను నిర్వహించండి",
+    username: "వినియోగదారు పేరు",
+    email: "ఇమెయిల్",
+    noEmail: "అందుబాటులో లేదు",
+    memberSince: "సభ్యత్వం ప్రారంభం",
+    dangerZone: "ప్రమాద ప్రాంతం",
+    deleteWarning: "ఖాతాను తొలగిస్తే మీ లాగిన్, క్విజ్ ఫలితాలు మరియు సేవ్ చేసిన పురోగతి అంతా శాశ్వతంగా తొలగించబడుతుంది. దీన్ని వెనక్కి తీసుకోలేరు.",
+    deleteAccount: "ఖాతాను తొలగించండి",
+    confirmTitle: "మీ ఖాతాను తొలగించాలా?",
+    confirmBody: "ఇది శాశ్వతం. నిర్ధారించడానికి క్రింద DELETE అని టైప్ చేయండి.",
+    deleting: "తొలగిస్తోంది...",
+    cancel: "రద్దు చేయండి",
+  },
 };
 
 export default translations;
