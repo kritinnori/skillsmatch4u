@@ -265,6 +265,22 @@ const translations: Translations = {
 
 
 
+  profile: {
+    title: "என் சுயவிவரம்",
+    account: "கணக்கு",
+    subtitle: "உங்கள் SkillsMatch4U கணக்கை நிர்வகிக்கவும்",
+    username: "பயனர் பெயர்",
+    email: "மின்னஞ்சல்",
+    noEmail: "கிடைக்கவில்லை",
+    memberSince: "உறுப்பினரான தேதி",
+    dangerZone: "ஆபத்து பகுதி",
+    deleteWarning: "கணக்கை நீக்கினால் உங்கள் உள்நுழைவு, வினாடி வினா முடிவுகள் மற்றும் சேமிக்கப்பட்ட அனைத்து முன்னேற்றமும் நிரந்தரமாக நீக்கப்படும். இதை மீட்டெடுக்க முடியாது.",
+    deleteAccount: "கணக்கை நீக்கு",
+    confirmTitle: "உங்கள் கணக்கை நீக்கவா?",
+    confirmBody: "இது நிரந்தரமானது. உறுதிப்படுத்த கீழே DELETE என தட்டச்சு செய்யவும்.",
+    deleting: "நீக்கப்படுகிறது...",
+    cancel: "ரத்து செய்",
+  },
 };
 
 export default translations;

@@ -9,11 +9,12 @@ import { LocationPage } from "./components/LocationPage";
 import { LocalEcosystemPage } from "./components/LocalEcosystemPage";
 import { OpportunitiesModal } from "./components/OpportunitiesModal";
 import { LoginPage } from "./components/LoginPage";
+import { ProfilePage } from "./components/ProfilePage";
 import { fetchQuestions } from "./lib/api";
 import { supabase } from "./lib/supabase";
 import type { Question } from "./types/question";
 
-type Page = "home" | "quiz" | "results" | "login" | "dashboard" | "location" | "localEcosystem";
+type Page = "home" | "quiz" | "results" | "login" | "dashboard" | "location" | "localEcosystem" | "profile";
 
 function readSession<T>(key: string, fallback: T): T {
   try {
@@ -197,8 +198,28 @@ function App() {
     handleRestart();
   };
 
+  // Header profile buttons (rendered inside deeply nested page components)
+  // navigate here via a global event to avoid threading a prop through every page.
+  useEffect(() => {
+    const openProfile = () => setCurrentPage("profile");
+    window.addEventListener("sm4u:openProfile", openProfile);
+    return () => window.removeEventListener("sm4u:openProfile", openProfile);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <>
+      {currentPage === "profile" && (
+        <ProfilePage
+          user={user}
+          onBack={() => setCurrentPage("home")}
+          onHome={() => setCurrentPage("home")}
+          onSignOut={handleSignOut}
+          onDashboard={() => setCurrentPage("dashboard")}
+          onAccountDeleted={handleRestart}
+        />
+      )}
+
       {currentPage === "home" && (
         <HomePage
           user={user}

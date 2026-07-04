@@ -264,6 +264,22 @@ const translations: Translations = {
 
 
 
+  profile: {
+    title: "ನನ್ನ ಪ್ರೊಫೈಲ್",
+    account: "ಖಾತೆ",
+    subtitle: "ನಿಮ್ಮ SkillsMatch4U ಖಾತೆಯನ್ನು ನಿರ್ವಹಿಸಿ",
+    username: "ಬಳಕೆದಾರ ಹೆಸರು",
+    email: "ಇಮೇಲ್",
+    noEmail: "ಲಭ್ಯವಿಲ್ಲ",
+    memberSince: "ಸದಸ್ಯತ್ವ ಆರಂಭ",
+    dangerZone: "ಅಪಾಯ ವಲಯ",
+    deleteWarning: "ಖಾತೆಯನ್ನು ಅಳಿಸಿದರೆ ನಿಮ್ಮ ಲಾಗಿನ್, ಕ್ವಿಜ್ ಫಲಿತಾಂಶಗಳು ಮತ್ತು ಉಳಿಸಿದ ಎಲ್ಲಾ ಪ್ರಗತಿ ಶಾಶ್ವತವಾಗಿ ಅಳಿಸಲ್ಪಡುತ್ತದೆ. ಇದನ್ನು ಹಿಂತಿರುಗಿಸಲಾಗುವುದಿಲ್ಲ.",
+    deleteAccount: "ಖಾತೆಯನ್ನು ಅಳಿಸಿ",
+    confirmTitle: "ನಿಮ್ಮ ಖಾತೆಯನ್ನು ಅಳಿಸಬೇಕೇ?",
+    confirmBody: "ಇದು ಶಾಶ್ವತ. ದೃಢೀಕರಿಸಲು ಕೆಳಗೆ DELETE ಎಂದು ಟೈಪ್ ಮಾಡಿ.",
+    deleting: "ಅಳಿಸಲಾಗುತ್ತಿದೆ...",
+    cancel: "ರದ್ದುಮಾಡಿ",
+  },
 };
 
 export default translations;

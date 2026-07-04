@@ -272,6 +272,22 @@ const translations = {
     contact:
       "To exercise your data rights or for any privacy-related inquiries, please contact us at the email address associated with your account registration.",
   },
+  profile: {
+    title: "My Profile",
+    account: "Account",
+    subtitle: "Manage your SkillsMatch4U account",
+    username: "Username",
+    email: "Email",
+    noEmail: "Not available",
+    memberSince: "Member since",
+    dangerZone: "Danger Zone",
+    deleteWarning: "Deleting your account permanently removes your login, quiz results, and all saved progress. This cannot be undone.",
+    deleteAccount: "Delete account",
+    confirmTitle: "Delete your account?",
+    confirmBody: "This is permanent. Type DELETE below to confirm.",
+    deleting: "Deleting...",
+    cancel: "Cancel",
+  },
 };
 
 export default translations;

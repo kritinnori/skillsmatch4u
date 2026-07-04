@@ -265,6 +265,22 @@ const translations: Translations = {
 
 
 
+  profile: {
+    title: "എന്റെ പ്രൊഫൈൽ",
+    account: "അക്കൗണ്ട്",
+    subtitle: "നിങ്ങളുടെ SkillsMatch4U അക്കൗണ്ട് നിയന്ത്രിക്കുക",
+    username: "ഉപയോക്തൃനാമം",
+    email: "ഇമെയിൽ",
+    noEmail: "ലഭ്യമല്ല",
+    memberSince: "അംഗത്വം ആരംഭിച്ചത്",
+    dangerZone: "അപകട മേഖല",
+    deleteWarning: "അക്കൗണ്ട് ഇല്ലാതാക്കിയാൽ നിങ്ങളുടെ ലോഗിൻ, ക്വിസ് ഫലങ്ങൾ, സംരക്ഷിച്ച എല്ലാ പുരോഗതിയും ശാശ്വതമായി നീക്കം ചെയ്യപ്പെടും. ഇത് പഴയപടിയാക്കാനാവില്ല.",
+    deleteAccount: "അക്കൗണ്ട് ഇല്ലാതാക്കുക",
+    confirmTitle: "നിങ്ങളുടെ അക്കൗണ്ട് ഇല്ലാതാക്കണോ?",
+    confirmBody: "ഇത് ശാശ്വതമാണ്. സ്ഥിരീകരിക്കാൻ താഴെ DELETE എന്ന് ടൈപ്പ് ചെയ്യുക.",
+    deleting: "ഇല്ലാതാക്കുന്നു...",
+    cancel: "റദ്ദാക്കുക",
+  },
 };
 
 export default translations;

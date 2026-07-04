@@ -1,6 +1,6 @@
 import type { Question } from "../types/question";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "https://skillsmatch4u.onrender.com";
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "https://skillsmatch4u.onrender.com";
 
 function withLanguageQuery(path: string, language?: string) {
   if (!language) return path;

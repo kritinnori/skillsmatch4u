@@ -265,6 +265,22 @@ const translations: Translations = {
 
 
 
+  profile: {
+    title: "ମୋ ପ୍ରୋଫାଇଲ୍",
+    account: "ଖାତା",
+    subtitle: "ଆପଣଙ୍କ SkillsMatch4U ଖାତା ପରିଚାଳନା କରନ୍ତୁ",
+    username: "ବ୍ୟବହାରକାରୀ ନାମ",
+    email: "ଇମେଲ୍",
+    noEmail: "ଉପଲବ୍ଧ ନାହିଁ",
+    memberSince: "ସଦସ୍ୟତା ଆରମ୍ଭ",
+    dangerZone: "ବିପଦ ଅଞ୍ଚଳ",
+    deleteWarning: "ଖାତା ଡିଲିଟ୍ କଲେ ଆପଣଙ୍କ ଲଗଇନ୍, କୁଇଜ୍ ଫଳାଫଳ ଏବଂ ସଂରକ୍ଷିତ ସମସ୍ତ ଅଗ୍ରଗତି ସ୍ଥାୟୀ ଭାବରେ ଡିଲିଟ୍ ହୋଇଯିବ। ଏହା ଫେରାଇ ହେବ ନାହିଁ।",
+    deleteAccount: "ଖାତା ଡିଲିଟ୍ କରନ୍ତୁ",
+    confirmTitle: "ଆପଣଙ୍କ ଖାତା ଡିଲିଟ୍ କରିବେ?",
+    confirmBody: "ଏହା ସ୍ଥାୟୀ। ନିଶ୍ଚିତ କରିବାକୁ ତଳେ DELETE ଟାଇପ୍ କରନ୍ତୁ।",
+    deleting: "ଡିଲିଟ୍ ହେଉଛି...",
+    cancel: "ବାତିଲ୍ କରନ୍ତୁ",
+  },
 };
 
 export default translations;

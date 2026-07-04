@@ -263,6 +263,22 @@ const translations: Translations = {
 
 
 
+  profile: {
+    title: "મારી પ્રોફાઇલ",
+    account: "ખાતું",
+    subtitle: "તમારું SkillsMatch4U ખાતું મેનેજ કરો",
+    username: "વપરાશકર્તા નામ",
+    email: "ઇમેઇલ",
+    noEmail: "ઉપલબ્ધ નથી",
+    memberSince: "સભ્યપદ શરૂઆત",
+    dangerZone: "જોખમ વિસ્તાર",
+    deleteWarning: "ખાતું કાઢી નાખવાથી તમારું લૉગિન, ક્વિઝ પરિણામો અને સાચવેલી બધી પ્રગતિ કાયમ માટે દૂર થઈ જશે. આ પાછું ફેરવી શકાતું નથી.",
+    deleteAccount: "ખાતું કાઢી નાખો",
+    confirmTitle: "તમારું ખાતું કાઢી નાખવું છે?",
+    confirmBody: "આ કાયમી છે. પુષ્ટિ કરવા નીચે DELETE ટાઇપ કરો.",
+    deleting: "કાઢી નાખી રહ્યાં છીએ...",
+    cancel: "રદ કરો",
+  },
 };
 
 export default translations;
