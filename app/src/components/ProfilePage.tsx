@@ -8,9 +8,13 @@ import {
   ShieldAlert,
   CalendarDays,
   AtSign,
+  LayoutDashboard,
+  ArrowLeft,
 } from "lucide-react";
-import { PageHeader } from "./layout/PageHeader";
+import { BrandLogo } from "./layout/BrandLogo";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import { Button } from "./ui/button";
+import { SignOutModal } from "./SignOutModal";
 import { supabase } from "../lib/supabase";
 import { API_BASE_URL } from "../lib/api";
 
@@ -43,15 +47,15 @@ export function ProfilePage({
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleted, setDeleted] = useState(false);
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
-  // Username: prefer the name from signup metadata, fall back to email prefix
   const username =
     user?.user_metadata?.name ||
     user?.user_metadata?.full_name ||
     user?.email?.split("@")[0] ||
     t("profile.noEmail");
 
-  // Member-since date, localized to the current UI language
   const memberSince = user?.created_at
     ? new Date(user.created_at).toLocaleDateString(
         i18n.resolvedLanguage || i18n.language || "en",
@@ -76,125 +80,200 @@ export function ProfilePage({
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || "Failed to delete account");
       }
-      // Server deleted the auth user + data; clear the local session too.
       await supabase.auth.signOut();
-      onAccountDeleted();
+      setDeleted(true);
+      setDeleting(false);
+      setTimeout(() => onAccountDeleted(), 4000);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
       setDeleting(false);
     }
   };
 
-  return (
-    <div className="page-shell">
-      <PageHeader
-        brand="SkillsMatch4U"
-        onBack={onBack}
-        onHome={onHome}
-        title={t("profile.title")}
-        user={user}
-        onSignOut={onSignOut}
-        onDashboard={onDashboard}
-        sticky
-      />
+  const goHome = onHome || onBack;
 
-      <main className="max-w-2xl mx-auto px-3 sm:px-4 py-6 sm:py-8 space-y-4 sm:space-y-6">
-        {/* Account info card */}
-        <section className="bg-[#111111] rounded-xl border border-purple-900/40 p-4 sm:p-8">
-          <div className="flex items-center gap-3 sm:gap-4 mb-5 sm:mb-6">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-purple-900/40 border border-purple-700/60 flex items-center justify-center shrink-0">
-              <UserCircle className="w-7 h-7 sm:w-9 sm:h-9 text-purple-300" />
-            </div>
-            <div className="min-w-0">
-              <h2 className="text-base sm:text-xl font-bold text-white truncate">
-                {username}
-              </h2>
-              <p className="text-xs sm:text-sm text-gray-400">
-                {t("profile.subtitle")}
+  return (
+    <div className="min-h-screen bg-[#050505] text-white">
+      {/* Header */}
+      <header className="border-b border-purple-900/40 bg-[#050505] sticky top-0 z-20">
+        <div className="w-full px-4 md:px-10 py-3 flex items-center justify-between">
+          <BrandLogo label={t("common.brand")} onClick={goHome} />
+          <LanguageSwitcher />
+        </div>
+      </header>
+
+      {/* Content */}
+      <div className="w-full px-4 md:px-10 py-10 md:py-14">
+        {/* Account deleted success */}
+        {deleted && (
+          <div className="flex items-center justify-center min-h-[50vh]">
+            <div className="text-center space-y-4 bg-[#111111] rounded-xl border border-purple-900/40 p-8 sm:p-12 max-w-md mx-auto">
+              <div className="w-16 h-16 rounded-full bg-green-900/30 border border-green-700/50 flex items-center justify-center mx-auto">
+                <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-white">Account Deleted</h2>
+              <p className="text-sm text-gray-400">
+                Your account and all associated data have been permanently removed. Thank you for using SkillsMatch4U.
               </p>
+              <p className="text-xs text-gray-500">Redirecting to home page...</p>
             </div>
           </div>
+        )}
 
-          <div className="space-y-3">
-            <div className="flex items-center gap-3 bg-[#0a0a0a] border border-purple-900/30 rounded-lg px-3 sm:px-4 py-3">
-              <AtSign className="w-4 h-4 text-purple-400 shrink-0" />
-              <div className="min-w-0">
-                <p className="text-xs text-gray-500">
-                  {t("profile.username")}
-                </p>
-                <p className="text-sm text-white truncate">{username}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 bg-[#0a0a0a] border border-purple-900/30 rounded-lg px-3 sm:px-4 py-3">
-              <Mail className="w-4 h-4 text-purple-400 shrink-0" />
-              <div className="min-w-0">
-                <p className="text-xs text-gray-500">{t("profile.email")}</p>
-                <p className="text-sm text-white truncate">
-                  {user?.email || t("profile.noEmail")}
-                </p>
-              </div>
-            </div>
-
-            {memberSince && (
-              <div className="flex items-center gap-3 bg-[#0a0a0a] border border-purple-900/30 rounded-lg px-3 sm:px-4 py-3">
-                <CalendarDays className="w-4 h-4 text-purple-400 shrink-0" />
+        {/* Profile content */}
+        {!deleted && (
+          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-10 lg:gap-16">
+            {/* Sidebar */}
+            <aside className="lg:sticky lg:top-24 lg:self-start">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-16 h-16 rounded-full bg-purple-900/40 border-2 border-purple-700/60 flex items-center justify-center shrink-0">
+                  <UserCircle className="w-9 h-9 text-purple-300" />
+                </div>
                 <div className="min-w-0">
-                  <p className="text-xs text-gray-500">
-                    {t("profile.memberSince")}
+                  <h2 className="text-lg font-bold text-white truncate">{username}</h2>
+                  <p className="text-sm text-gray-400 truncate">
+                    {user?.email || t("profile.noEmail")}
                   </p>
-                  <p className="text-sm text-white truncate">{memberSince}</p>
                 </div>
               </div>
-            )}
-          </div>
 
-          <div className="mt-5 sm:mt-6">
-            <Button
-              onClick={onSignOut}
-              className="w-full sm:w-auto bg-purple-700 hover:bg-purple-600 text-white font-semibold"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              {t("login.signOut")}
-            </Button>
-          </div>
-        </section>
+              {/* Sidebar nav / actions */}
+              <nav className="space-y-2">
+                <button
+                  type="button"
+                  onClick={onDashboard}
+                  className="w-full flex items-center gap-3 text-sm text-gray-300 hover:text-white hover:bg-purple-900/20 rounded-lg px-3 py-2.5 transition-colors text-left"
+                >
+                  <LayoutDashboard className="w-4 h-4 text-purple-400" />
+                  {t("dashboard.title", { defaultValue: "My Dashboard" })}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowSignOutConfirm(true)}
+                  className="w-full flex items-center gap-3 text-sm text-gray-300 hover:text-white hover:bg-purple-900/20 rounded-lg px-3 py-2.5 transition-colors text-left"
+                >
+                  <LogOut className="w-4 h-4 text-purple-400" />
+                  {t("login.signOut")}
+                </button>
+              </nav>
 
-        {/* Danger zone */}
-        <section className="bg-[#111111] rounded-xl border border-red-900/50 p-4 sm:p-8">
-          <div className="flex items-start gap-3 mb-4">
-            <ShieldAlert className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-            <div>
-              <h3 className="text-sm sm:text-base font-bold text-red-400">
-                {t("profile.dangerZone")}
-              </h3>
-              <p className="text-xs sm:text-sm text-gray-400 mt-1">
-                {t("profile.deleteWarning")}
-              </p>
-            </div>
+              {memberSince && (
+                <p className="text-xs text-gray-600 mt-6 px-3">
+                  {t("profile.memberSince")}: {memberSince}
+                </p>
+              )}
+            </aside>
+
+            {/* Main content */}
+            <main className="space-y-8">
+              {/* Back navigation */}
+              <button
+                type="button"
+                onClick={goHome}
+                className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-purple-300 transition-colors -mt-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                {t("common.goBackButton", { defaultValue: "Back to Home" })}
+              </button>
+
+              {/* Section: Account details */}
+              <section>
+                <h1 className="text-2xl font-bold text-white mb-1">
+                  {t("profile.title")}
+                </h1>
+                <p className="text-sm text-gray-500 mb-6">
+                  {t("profile.subtitle")}
+                </p>
+
+                <div className="space-y-4">
+                  {/* Username */}
+                  <div className="bg-[#111111] border border-purple-900/20 rounded-lg px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <AtSign className="w-4 h-4 text-purple-400 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs text-gray-500 mb-0.5">{t("profile.username")}</p>
+                        <p className="text-sm text-white truncate">{username}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <div className="bg-[#111111] border border-purple-900/20 rounded-lg px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <Mail className="w-4 h-4 text-purple-400 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs text-gray-500 mb-0.5">{t("profile.email")}</p>
+                        <p className="text-sm text-white truncate">
+                          {user?.email || t("profile.noEmail")}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Member since */}
+                  {memberSince && (
+                    <div className="bg-[#111111] border border-purple-900/20 rounded-lg px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <CalendarDays className="w-4 h-4 text-purple-400 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs text-gray-500 mb-0.5">{t("profile.memberSince")}</p>
+                          <p className="text-sm text-white truncate">{memberSince}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* Section: Danger zone */}
+              <section className="pt-4 border-t border-purple-900/20">
+                <div className="flex items-start gap-3 mb-4">
+                  <ShieldAlert className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="text-base font-bold text-red-400">
+                      {t("profile.dangerZone")}
+                    </h3>
+                    <p className="text-sm text-gray-400 mt-1 leading-relaxed">
+                      {t("profile.deleteWarning")}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => {
+                    setShowConfirm(true);
+                    setConfirmText("");
+                    setError(null);
+                  }}
+                  className="bg-red-900/60 hover:bg-red-800 text-red-200 font-semibold border border-red-800/60"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  {t("profile.deleteAccount")}
+                </Button>
+              </section>
+            </main>
           </div>
-          <Button
-            onClick={() => {
-              setShowConfirm(true);
-              setConfirmText("");
-              setError(null);
-            }}
-            className="w-full sm:w-auto bg-red-800 hover:bg-red-700 text-white font-semibold"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            {t("profile.deleteAccount")}
-          </Button>
-        </section>
-      </main>
+        )}
+      </div>
+
+      {/* Footer */}
+      <footer className="border-t border-purple-900/40 py-6 mt-auto">
+        <div className="w-full px-4 md:px-10">
+          <p className="text-xs text-gray-600">
+            &copy; {new Date().getFullYear()} {t("common.brand")}
+          </p>
+        </div>
+      </footer>
 
       {/* Confirmation modal */}
-      {showConfirm && (
+      {showConfirm && !deleted && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center px-4">
-          <div className="bg-[#111111] border border-red-900/60 rounded-xl p-5 sm:p-8 max-w-md w-full shadow-2xl">
-            <h3 className="text-base sm:text-lg font-bold text-white mb-2">
+          <div className="bg-[#111111] border border-red-900/60 rounded-xl p-6 sm:p-8 max-w-md w-full shadow-2xl">
+            <h3 className="text-lg font-bold text-white mb-2">
               {t("profile.confirmTitle")}
             </h3>
-            <p className="text-xs sm:text-sm text-gray-400 mb-4">
+            <p className="text-sm text-gray-400 mb-4">
               {t("profile.confirmBody")}
             </p>
             <input
@@ -228,6 +307,14 @@ export function ProfilePage({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Sign out confirmation modal */}
+      {showSignOutConfirm && (
+        <SignOutModal
+          onConfirm={onSignOut}
+          onCancel={() => setShowSignOutConfirm(false)}
+        />
       )}
     </div>
   );

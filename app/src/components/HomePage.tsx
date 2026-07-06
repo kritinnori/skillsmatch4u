@@ -7,7 +7,6 @@ import {
   BarChart3,
   ChevronRight,
   MapPin,
-  LayoutDashboard,
   UserCircle,
   LogOut,
 } from "lucide-react";
@@ -17,6 +16,7 @@ import { BrandLogo } from "./layout/BrandLogo";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { supabase } from "../lib/supabase";
 import { AIExplainabilityModal } from "./AIExplainabilityModal";
+import { SignOutModal } from "./SignOutModal";
 
 interface HomePageProps {
   onStartQuiz: () => void;
@@ -31,8 +31,10 @@ const featureIcons = [Target, Zap, BarChart3] as const;
 export function HomePage({ onStartQuiz, onLogin, onDashboard, onShowOpportunities, user }: HomePageProps) {
   const { t } = useTranslation();
   const [showAIModal, setShowAIModal] = useState(false);
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
   const handleSignOut = async () => {
+    setShowSignOutConfirm(false);
     await supabase.auth.signOut();
   };
 
@@ -63,18 +65,16 @@ export function HomePage({ onStartQuiz, onLogin, onDashboard, onShowOpportunitie
   return (
     <div className="w-full min-h-screen bg-[#050505] text-white">
       <header className="bg-[#050505] border-b border-purple-900/40 sticky top-0 z-20 shadow-sm">
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-8 py-2.5 md:py-4 flex flex-nowrap items-center justify-between gap-1 sm:gap-3 overflow-x-auto">
+        <div className="w-full px-4 md:px-10 py-3 flex items-center justify-between">
           <BrandLogo
             label={t("common.brand")}
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="min-w-0 flex-1 sm:flex-initial"
           />
-          <div className="flex items-center gap-1 sm:gap-3 flex-nowrap justify-end shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               type="button"
               onClick={() => setShowAIModal(true)}
-              className="min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center px-1.5 sm:px-2 py-1 text-purple-300 hover:bg-purple-900/30 active:bg-purple-900/50 rounded-lg transition-colors shrink-0 border border-purple-700/60 text-xs font-bold"
-              style={{ touchAction: "manipulation" }}
+              className="flex items-center justify-center px-2 py-1.5 text-purple-300 hover:bg-purple-900/30 rounded-lg transition-colors border border-purple-700/60 text-xs font-bold"
               aria-label={t("ai.title", { defaultValue: "How AI is Used" })}
               title={t("ai.title", { defaultValue: "How AI is Used" })}
             >
@@ -90,69 +90,51 @@ export function HomePage({ onStartQuiz, onLogin, onDashboard, onShowOpportunitie
                     onShowOpportunities();
                   }
                 }}
-                className="min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center p-1.5 sm:p-2 text-purple-300 hover:bg-purple-900/30 active:bg-purple-900/50 rounded-lg transition-colors shrink-0" style={{ touchAction: "manipulation" }}
+                className="flex items-center justify-center p-2 text-purple-300 hover:bg-purple-900/30 rounded-lg transition-colors"
                 aria-label={t("opportunities.title", { defaultValue: "Explore Opportunities Near You" })}
                 title={t("opportunities.title", { defaultValue: "Explore Opportunities Near You" })}
               >
-                <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
+                <MapPin className="w-5 h-5" />
               </button>
             )}
             {user && (
               <button
                 type="button"
                 onClick={() => window.dispatchEvent(new CustomEvent("sm4u:openProfile"))}
-                className="min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center p-1.5 sm:p-2 text-purple-300 hover:bg-purple-900/30 active:bg-purple-900/50 rounded-lg transition-colors shrink-0"
-                style={{ touchAction: "manipulation" }}
+                className="flex items-center justify-center p-2 text-purple-300 hover:bg-purple-900/30 rounded-lg transition-colors"
                 aria-label={t("profile.title", { defaultValue: "My Profile" })}
                 title={t("profile.title", { defaultValue: "My Profile" })}
               >
-                <UserCircle className="w-5 h-5 sm:w-6 sm:h-6" />
+                <UserCircle className="w-5 h-5" />
               </button>
             )}
             {user && (
               <Button
                 onClick={onDashboard}
                 size="sm"
-                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-xs sm:text-sm px-2 sm:px-4 min-w-[40px] sm:min-w-0"
+                className="hidden sm:inline-flex bg-purple-700 hover:bg-purple-600 text-white font-semibold text-sm px-4"
               >
-                <LayoutDashboard className="w-4 h-4 sm:hidden" />
-                <span className="hidden sm:inline">
-                  {t("dashboard.title", { defaultValue: "My Dashboard" })}
-                </span>
+                {t("dashboard.title", { defaultValue: "My Dashboard" })}
               </Button>
             )}
             {user ? (
               <Button
-                onClick={handleSignOut}
+                onClick={() => setShowSignOutConfirm(true)}
                 size="sm"
-                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-xs sm:text-sm px-2 sm:px-4 min-w-[40px] sm:min-w-0"
+                className="hidden sm:inline-flex bg-gray-800 hover:bg-gray-700 text-white font-semibold text-sm px-4"
               >
-                <LogOut className="w-4 h-4 sm:hidden" />
-                <span className="hidden sm:inline">
-                  {t("login.signOut", { defaultValue: "Sign out" })}
-                </span>
+                {t("login.signOut", { defaultValue: "Sign out" })}
               </Button>
             ) : (
               <Button
                 onClick={onLogin}
                 size="sm"
-                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-xs sm:text-sm px-2.5 sm:px-4"
+                className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-sm px-4"
               >
                 {t("login.signIn", { defaultValue: "Login" })}
               </Button>
             )}
-            <div
-              className="max-w-[80px] sm:max-w-none shrink-0 cursor-pointer"
-              onClick={(e) => {
-                const target = e.target as HTMLElement;
-                if (target.tagName.toLowerCase() === "select") return;
-                const select = e.currentTarget.querySelector("select");
-                select?.focus();
-                select?.click();
-              }}
-            >
-              <LanguageSwitcher />
-            </div>
+            <LanguageSwitcher />
           </div>
         </div>
       </header>
@@ -294,6 +276,12 @@ export function HomePage({ onStartQuiz, onLogin, onDashboard, onShowOpportunitie
       </footer>
 
       {showAIModal && <AIExplainabilityModal onClose={() => setShowAIModal(false)} />}
+      {showSignOutConfirm && (
+        <SignOutModal
+          onConfirm={handleSignOut}
+          onCancel={() => setShowSignOutConfirm(false)}
+        />
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Mail, Lock, ArrowLeft, Sparkles } from "lucide-react";
+import { Mail, Lock, ArrowLeft, CheckCircle2, Shield, Zap } from "lucide-react";
 import { Button } from "./ui/button";
 import { BrandLogo } from "./layout/BrandLogo";
 import { LanguageSwitcher } from "./LanguageSwitcher";
@@ -21,6 +21,7 @@ export function LoginPage({
   const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -72,6 +73,12 @@ export function LoginPage({
         return;
       }
 
+      if (!isLogin && password !== confirmPassword) {
+        setError(tr("login.passwordMismatch", "Passwords do not match. Please try again."));
+        setLoading(false);
+        return;
+      }
+
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -108,73 +115,125 @@ export function LoginPage({
     setMessage("");
     setError("");
     setPassword("");
+    setConfirmPassword("");
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white">
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_bottom_left,rgba(126,34,206,0.28),transparent_42%)]" />
+    <div className="min-h-screen bg-[#050505] text-white flex flex-col">
+      {/* Header */}
+      <header className="border-b border-purple-900/40 bg-[#050505] sticky top-0 z-20">
+        <div className="w-full px-4 md:px-10 py-3 flex items-center justify-between">
+          <BrandLogo label={t("common.brand")} onClick={onBack} />
+          <LanguageSwitcher />
+        </div>
+      </header>
 
-      <div className="relative z-10">
-        <header className="border-b border-purple-900/40 bg-[#050505]">
-          <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
-            <BrandLogo label={t("common.brand")} onClick={onBack} />
-            <LanguageSwitcher />
-          </div>
-        </header>
+      {/* Main content */}
+      <main className="flex-1 flex items-center justify-center px-4 py-10 md:py-16">
+        <div className="w-full max-w-5xl grid md:grid-cols-2 gap-12 lg:gap-20 items-center">
+          {/* Left side — value prop */}
+          <section className="hidden md:block">
+            <button
+              type="button"
+              onClick={onBack}
+              className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-purple-300 transition-colors mb-8"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              {t("common.goBack", { defaultValue: "Go back" })}
+            </button>
 
-        <main className="max-w-6xl mx-auto px-4 md:px-8 py-12 md:py-20">
-          <button
-            type="button"
-            onClick={onBack}
-            className="inline-flex items-center gap-2 text-gray-300 hover:text-white mb-8 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {t("common.goBack")}
-          </button>
+            <h1 className="text-3xl lg:text-4xl font-bold leading-tight mb-4">
+              {isForgot
+                ? tr("login.forgotTitle", "Reset your password")
+                : isLogin
+                  ? tr("login.welcomeBack", "Welcome back")
+                  : tr("login.createAccountTitle", "Create your account")}
+            </h1>
 
-          <div className="grid md:grid-cols-2 gap-10 items-center">
-            <section>
-              <div className="inline-flex items-center gap-2 rounded-full border border-purple-800/50 bg-purple-950/40 px-4 py-2 text-sm text-purple-200 mb-6">
-                <Sparkles className="w-4 h-4" />
-                {tr("login.badge", "Personalized career matching")}
-              </div>
-
-              <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-5">
-                {isForgot
-                  ? tr("login.forgotTitle", "Reset your password")
-                  : isLogin
-                    ? tr("login.welcomeBack", "Welcome back")
-                    : tr("login.createAccountTitle", "Create your account")}
-              </h1>
-
-              <p className="text-gray-300 text-lg max-w-xl">
-                {isForgot
+            <p className="text-gray-400 text-base lg:text-lg mb-10 leading-relaxed">
+              {isForgot
+                ? tr(
+                    "login.forgotDescription",
+                    "Enter your email and we'll send you a link to reset your password."
+                  )
+                : isLogin
                   ? tr(
-                      "login.forgotDescription",
-                      "Enter your email and we'll send you a link to reset your password."
+                      "login.signInDescription",
+                      "Sign in to continue your career assessment and view your recommendations."
                     )
-                  : isLogin
-                    ? tr(
-                        "login.signInDescription",
-                        "Sign in to continue your career assessment and view your recommendations."
-                      )
-                    : tr(
-                        "login.signUpDescription",
-                        "Create an account to save your quiz progress and access your career results later."
-                      )}
-              </p>
-            </section>
+                  : tr(
+                      "login.signUpDescription",
+                      "Create an account to save your quiz progress and access your career results later."
+                    )}
+            </p>
 
-            <section className="bg-[#111111] border border-purple-900/40 rounded-2xl p-6 md:p-8 shadow-xl">
+            {/* Trust signals */}
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-purple-900/30 border border-purple-800/40 flex items-center justify-center shrink-0">
+                  <Zap className="w-4 h-4 text-purple-300" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white">
+                    {tr("login.trust1Title", "AI-powered career matching")}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {tr("login.trust1Body", "Get personalized recommendations based on your skills and interests")}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-purple-900/30 border border-purple-800/40 flex items-center justify-center shrink-0">
+                  <Shield className="w-4 h-4 text-purple-300" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white">
+                    {tr("login.trust2Title", "Your data stays private")}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {tr("login.trust2Body", "We never share your information with third parties for advertising")}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-purple-900/30 border border-purple-800/40 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-4 h-4 text-purple-300" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white">
+                    {tr("login.trust3Title", "Free to use, always")}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {tr("login.trust3Body", "No credit card required, no hidden fees")}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Right side — form card */}
+          <section>
+            {/* Mobile back button */}
+            <button
+              type="button"
+              onClick={onBack}
+              className="md:hidden inline-flex items-center gap-2 text-sm text-gray-400 hover:text-purple-300 transition-colors mb-6"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              {t("common.goBack", { defaultValue: "Go back" })}
+            </button>
+
+            <div className="bg-[#0c0c0c] border border-purple-900/30 rounded-2xl p-6 sm:p-8 shadow-2xl">
+              {/* Form header */}
               <div className="mb-6">
-                <h2 className="text-2xl font-bold mb-2">
+                <h2 className="text-xl font-bold text-white mb-1">
                   {isForgot
                     ? tr("login.forgotTitle", "Reset your password")
                     : isLogin
                       ? tr("login.signIn", "Sign in")
                       : tr("login.signUp", "Sign up")}
                 </h2>
-                <p className="text-gray-400 text-sm">
+                <p className="text-sm text-gray-500">
                   {isForgot
                     ? tr("login.forgotSubtitle", "We'll email you a reset link.")
                     : isLogin
@@ -183,8 +242,9 @@ export function LoginPage({
                 </p>
               </div>
 
+              {/* Continue without account */}
               {onContinueWithoutAccount && (
-                <div className="mb-5 rounded-xl border border-purple-900/50 bg-purple-950/20 p-4">
+                <div className="mb-6 rounded-lg border border-purple-900/40 bg-purple-950/20 p-4">
                   <p className="text-sm text-gray-300 mb-3">
                     {tr(
                       "login.promptText",
@@ -194,49 +254,75 @@ export function LoginPage({
                   <Button
                     type="button"
                     onClick={onContinueWithoutAccount}
-                    className="w-full bg-black text-white hover:bg-gray-900 border border-purple-900/50"
+                    className="w-full bg-[#050505] text-white hover:bg-gray-900 border border-purple-900/40 font-medium"
                   >
                     {tr("login.continueWithoutAccount", "No thanks, continue")}
                   </Button>
                 </div>
               )}
 
-              <form className="space-y-4" onSubmit={handleSubmit}>
-                <label className="block">
-                  <span className="text-sm font-medium text-gray-300">
+              {/* Form */}
+              <form className="space-y-5" onSubmit={handleSubmit}>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     {tr("login.email", "Email")}
-                  </span>
-                  <div className="mt-2 flex items-center gap-3 rounded-lg border border-purple-900/50 bg-[#080808] px-4 py-3 focus-within:border-purple-500">
-                    <Mail className="w-5 h-5 text-purple-300" />
+                  </label>
+                  <div className="flex items-center gap-3 rounded-lg border border-purple-900/40 bg-[#050505] px-4 py-3 focus-within:border-purple-500 transition-colors">
+                    <Mail className="w-4 h-4 text-gray-500 shrink-0" />
                     <input
                       type="email"
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@example.com"
-                      className="w-full bg-transparent text-white placeholder:text-gray-500 outline-none"
+                      className="w-full bg-transparent text-white text-sm placeholder:text-gray-600 outline-none"
                     />
                   </div>
-                </label>
+                </div>
 
                 {!isForgot && (
-                <label className="block">
-                  <span className="text-sm font-medium text-gray-300">
-                    {tr("login.password", "Password")}
-                  </span>
-                  <div className="mt-2 flex items-center gap-3 rounded-lg border border-purple-900/50 bg-[#080808] px-4 py-3 focus-within:border-purple-500">
-                    <Lock className="w-5 h-5 text-purple-300" />
-                    <input
-                      type="password"
-                      required
-                      minLength={6}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full bg-transparent text-white placeholder:text-gray-500 outline-none"
-                    />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      {tr("login.password", "Password")}
+                    </label>
+                    <div className="flex items-center gap-3 rounded-lg border border-purple-900/40 bg-[#050505] px-4 py-3 focus-within:border-purple-500 transition-colors">
+                      <Lock className="w-4 h-4 text-gray-500 shrink-0" />
+                      <input
+                        type="password"
+                        required
+                        minLength={6}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full bg-transparent text-white text-sm placeholder:text-gray-600 outline-none"
+                      />
+                    </div>
+                    {!isLogin && (
+                      <p className="text-xs text-gray-600 mt-1.5">
+                        {tr("login.passwordHint", "Must be at least 6 characters")}
+                      </p>
+                    )}
                   </div>
-                </label>
+                )}
+
+                {!isForgot && !isLogin && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      {tr("login.confirmPassword", "Confirm password")}
+                    </label>
+                    <div className="flex items-center gap-3 rounded-lg border border-purple-900/40 bg-[#050505] px-4 py-3 focus-within:border-purple-500 transition-colors">
+                      <Lock className="w-4 h-4 text-gray-500 shrink-0" />
+                      <input
+                        type="password"
+                        required
+                        minLength={6}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full bg-transparent text-white text-sm placeholder:text-gray-600 outline-none"
+                      />
+                    </div>
+                  </div>
                 )}
 
                 {isLogin && (
@@ -249,7 +335,7 @@ export function LoginPage({
                         setError("");
                         setPassword("");
                       }}
-                      className="text-sm text-purple-300 hover:text-purple-200 font-medium"
+                      className="text-xs text-purple-400 hover:text-purple-300 font-medium transition-colors"
                     >
                       {tr("login.forgotPassword", "Forgot password?")}
                     </button>
@@ -257,21 +343,21 @@ export function LoginPage({
                 )}
 
                 {error && (
-                  <p className="rounded-lg border border-red-900/50 bg-red-950/30 px-4 py-3 text-sm text-red-300">
-                    {error}
-                  </p>
+                  <div className="rounded-lg border border-red-900/50 bg-red-950/30 px-4 py-3">
+                    <p className="text-sm text-red-300">{error}</p>
+                  </div>
                 )}
 
                 {message && (
-                  <p className="rounded-lg border border-green-900/50 bg-green-950/30 px-4 py-3 text-sm text-green-300 font-semibold">
-                    {message}
-                  </p>
+                  <div className="rounded-lg border border-green-900/50 bg-green-950/30 px-4 py-3">
+                    <p className="text-sm text-green-300 font-medium">{message}</p>
+                  </div>
                 )}
 
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-purple-700 hover:bg-purple-600 text-white font-semibold py-6 disabled:opacity-60"
+                  className="w-full bg-purple-700 hover:bg-purple-600 text-white font-semibold py-3 text-sm disabled:opacity-60 transition-colors"
                 >
                   {loading
                     ? tr("login.pleaseWait", "Please wait...")
@@ -283,7 +369,8 @@ export function LoginPage({
                 </Button>
               </form>
 
-              <div className="mt-6 text-center text-sm text-gray-400">
+              {/* Mode switch */}
+              <div className="mt-6 pt-5 border-t border-purple-900/20 text-center text-sm text-gray-500">
                 {isForgot ? (
                   <button
                     type="button"
@@ -292,7 +379,7 @@ export function LoginPage({
                       setMessage("");
                       setError("");
                     }}
-                    className="text-purple-300 hover:text-purple-200 font-semibold"
+                    className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
                   >
                     {tr("login.backToSignIn", "Back to sign in")}
                   </button>
@@ -304,17 +391,36 @@ export function LoginPage({
                     <button
                       type="button"
                       onClick={switchMode}
-                      className="text-purple-300 hover:text-purple-200 font-semibold"
+                      className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
                     >
                       {isLogin ? tr("login.signUp", "Sign up") : tr("login.signIn", "Sign in")}
                     </button>
                   </>
                 )}
               </div>
-            </section>
-          </div>
-        </main>
-      </div>
+            </div>
+
+            {/* Terms note */}
+            {!isForgot && !isLogin && (
+              <p className="text-xs text-gray-600 text-center mt-4 leading-relaxed">
+                {tr(
+                  "login.termsNote",
+                  "By creating an account, you agree to our Terms of Service and Privacy Policy."
+                )}
+              </p>
+            )}
+          </section>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-purple-900/40 py-4">
+        <div className="w-full px-4 md:px-10">
+          <p className="text-xs text-gray-600">
+            &copy; {new Date().getFullYear()} {t("common.brand")}
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

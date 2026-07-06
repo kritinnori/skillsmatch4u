@@ -5,6 +5,7 @@ import { BrandLogo } from "./BrandLogo";
 import { LanguageSwitcher } from "../LanguageSwitcher";
 import { Button } from "../ui/button";
 import { AIExplainabilityModal } from "../AIExplainabilityModal";
+import { SignOutModal } from "../SignOutModal";
 
 interface PageHeaderProps {
   brand: string;
@@ -37,6 +38,7 @@ export function PageHeader({
 }: PageHeaderProps) {
   const { t } = useTranslation();
   const [showAIModal, setShowAIModal] = useState(false);
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
   return (
     <header
@@ -122,7 +124,7 @@ export function PageHeader({
             )}
             {user && onSignOut && (
               <Button
-                onClick={onSignOut}
+                onClick={() => setShowSignOutConfirm(true)}
                 size="sm"
                 className="bg-purple-700 hover:bg-purple-600 text-white font-semibold text-xs sm:text-sm px-2 sm:px-4 min-w-[40px] sm:min-w-0"
               >
@@ -152,6 +154,12 @@ export function PageHeader({
         {children}
       </div>
       {showAIModal && <AIExplainabilityModal onClose={() => setShowAIModal(false)} />}
+      {showSignOutConfirm && onSignOut && (
+        <SignOutModal
+          onConfirm={onSignOut}
+          onCancel={() => setShowSignOutConfirm(false)}
+        />
+      )}
     </header>
   );
 }
