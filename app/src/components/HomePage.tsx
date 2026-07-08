@@ -8,7 +8,6 @@ import {
   ChevronRight,
   MapPin,
   UserCircle,
-  LogOut,
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { Button } from "./ui/button";
