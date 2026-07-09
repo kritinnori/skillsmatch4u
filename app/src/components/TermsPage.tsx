@@ -249,7 +249,12 @@ export function TermsPage({ onBack, onHome }: TermsPageProps) {
                   13. Contact
                 </h2>
                 <div className="text-body-sm text-gray-300 space-y-3 leading-relaxed">
-                  <p>If you have any questions or concerns about these Terms, please contact us at the email address associated with your account registration.</p>
+                  <p>If you have any questions, concerns, or requests regarding these Terms, you may contact us using the information below:</p>
+                  <div className="mt-4 space-y-1">
+                    <p className="font-medium text-white">SkillsMatch4U</p>
+                    <p>Email: <a href="mailto:contact@skillsmatch4u.com" className="text-purple-400 hover:text-purple-300 underline">contact@skillsmatch4u.com</a></p>
+                  </div>
+                  <p className="mt-4">We aim to respond to all inquiries within 48 hours.</p>
                 </div>
               </section>
             </div>
