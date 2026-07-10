@@ -163,12 +163,14 @@ export function PrivacyPolicyPage({ onBack, onHome }: PrivacyPolicyPageProps) {
                 <h2 className="text-lg font-semibold text-white mb-4 pb-2 border-b border-purple-900/30">
                   6. {tr("privacy.contactTitle", "Contact")}
                 </h2>
-                <p className="text-body-sm text-gray-300 leading-relaxed">
-                  {tr(
-                    "privacy.contact",
-                    "To exercise your data rights or for any privacy-related inquiries, please contact us at the email address associated with your account registration."
-                  )}
-                </p>
+                <div className="text-body-sm text-gray-300 space-y-3 leading-relaxed">
+                  <p>If you have any questions, concerns, or requests regarding this Privacy Policy, or wish to exercise your data rights, you may contact us using the information below:</p>
+                  <div className="mt-4 space-y-1">
+                    <p className="font-medium text-white">SkillsMatch4U</p>
+                    <p>Email: <a href="mailto:contact@skillsmatch4u.com" className="text-purple-400 hover:text-purple-300 underline">contact@skillsmatch4u.com</a></p>
+                  </div>
+                  <p className="mt-4">We aim to respond to all inquiries within 48 hours.</p>
+                </div>
               </section>
             </div>
           </main>
