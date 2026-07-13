@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import type { User } from "@supabase/supabase-js";
 import { HomePage } from "./components/HomePage";
 import { QuizPage } from "./components/QuizPage";
 import { ResultsPage } from "./components/ResultsPage";
@@ -10,7 +9,9 @@ import { LocalEcosystemPage } from "./components/LocalEcosystemPage";
 import { OpportunitiesModal } from "./components/OpportunitiesModal";
 import { LoginPage } from "./components/LoginPage";
 import { fetchQuestions } from "./lib/api";
-import { supabase } from "./lib/supabase";
+import { getAuthUser, signOut as cognitoSignOut, onAuthStateChange } from "./lib/auth";
+import { fetchUserProgress } from "./lib/dashboard";
+import type { AuthUser } from "./lib/auth";
 import type { Question } from "./types/question";
 
 type Page = "home" | "quiz" | "results" | "login" | "dashboard" | "location" | "localEcosystem";
@@ -38,12 +39,13 @@ function App() {
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loginIntent, setLoginIntent] = useState<"startQuiz" | "normal">("normal");
   const [userState, setUserState] = useState<string>(() => localStorage.getItem("sm_state") || "");
   const [userDistrict, setUserDistrict] = useState<string>(() => localStorage.getItem("sm_district") || "");
   const [showOpportunitiesModal, setShowOpportunitiesModal] = useState(false);
   const [locationReturnTo, setLocationReturnTo] = useState<Page>("home");
+  const [hasCompletedQuiz, setHasCompletedQuiz] = useState(false);
 
   const setCurrentPage = (page: Page) => {
     sessionStorage.setItem("sm_page", JSON.stringify(page));
@@ -60,19 +62,29 @@ function App() {
 
   const language = i18n.resolvedLanguage || i18n.language || "en";
 
+  // --- Auth state listener (replaces supabase.auth.onAuthStateChange) ---
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-    });
-
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+    const unsubscribe = onAuthStateChange((authUser) => {
+      setUser(authUser);
     });
 
     return () => {
-      data.subscription.unsubscribe();
+      unsubscribe();
     };
   }, []);
+
+  // --- Check if user has already completed a quiz ---
+  useEffect(() => {
+    if (!user) {
+      setHasCompletedQuiz(false);
+      return;
+    }
+    fetchUserProgress(user.id).then((progress) => {
+      setHasCompletedQuiz(!!progress?.quiz_completed_at);
+    }).catch(() => {
+      setHasCompletedQuiz(false);
+    });
+  }, [user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -117,6 +129,11 @@ function App() {
   };
 
   const handleLoginSuccess = () => {
+    // Re-fetch user after login
+    getAuthUser().then((authUser) => {
+      setUser(authUser);
+    });
+
     const hasSavedLocation = !!localStorage.getItem("sm_state") && !!localStorage.getItem("sm_district");
     if (!hasSavedLocation) {
       setCurrentPage("location");
@@ -170,6 +187,7 @@ function App() {
     setAnswers(quizAnswers);
     setAdditionalInfo(info || "");
     setCurrentPage("results");
+    setHasCompletedQuiz(true);
     // Auto-prompt opportunities popup right after results, only if location is known
     if (userState && userDistrict) {
       setShowOpportunitiesModal(true);
@@ -193,7 +211,8 @@ function App() {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    cognitoSignOut();
+    setUser(null);
     handleRestart();
   };
 
@@ -211,6 +230,7 @@ function App() {
       {currentPage === "home" && (
         <HomePage
           user={user}
+          hasCompletedQuiz={hasCompletedQuiz}
           onStartQuiz={handleStartQuiz}
           onLogin={() => {
             setLoginIntent("normal");

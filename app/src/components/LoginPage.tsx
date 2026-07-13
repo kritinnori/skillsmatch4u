@@ -4,7 +4,13 @@ import { Mail, Lock, ArrowLeft, CheckCircle2, Shield, Zap } from "lucide-react";
 import { Button } from "./ui/button";
 import { BrandLogo } from "./layout/BrandLogo";
 import { LanguageSwitcher } from "./LanguageSwitcher";
-import { supabase } from "../lib/supabase";
+import {
+  signIn,
+  signUp,
+  forgotPassword,
+  confirmSignUp,
+  resendConfirmationCode,
+} from "../lib/auth";
 
 interface LoginPageProps {
   onBack: () => void;
@@ -18,10 +24,11 @@ export function LoginPage({
   onContinueWithoutAccount,
 }: LoginPageProps) {
   const { t } = useTranslation();
-  const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
+  const [mode, setMode] = useState<"login" | "signup" | "forgot" | "confirm">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -29,6 +36,7 @@ export function LoginPage({
 
   const isLogin = mode === "login";
   const isForgot = mode === "forgot";
+  const isConfirm = mode === "confirm";
 
   const tr = (key: string, fallback: string) =>
     t(key, { defaultValue: fallback });
@@ -36,19 +44,27 @@ export function LoginPage({
   const getFriendlyError = (rawMessage: string) => {
     const lower = rawMessage.toLowerCase();
 
-    if (
-      lower.includes("invalid login credentials") ||
-      lower.includes("user not found") ||
-      lower.includes("failed to fetch")
-    ) {
+    if (lower.includes("user does not exist") || lower.includes("incorrect username or password")) {
       return tr(
         "login.accountDoesNotExist",
-        "Sorry, account does not exist. Please create an account."
+        "Sorry, account does not exist or incorrect password. Please check your credentials."
       );
     }
 
-    if (lower.includes("already registered") || lower.includes("already exists")) {
+    if (lower.includes("user already exists") || lower.includes("already registered")) {
       return tr("login.accountAlreadyExists", "Account already exists. Please sign in.");
+    }
+
+    if (lower.includes("user is not confirmed")) {
+      return tr("login.userNotConfirmed", "Please verify your email first. Check your inbox for a verification code.");
+    }
+
+    if (lower.includes("invalid verification code") || lower.includes("invalid code")) {
+      return tr("login.invalidCode", "Invalid verification code. Please try again.");
+    }
+
+    if (lower.includes("password") && lower.includes("policy")) {
+      return tr("login.passwordPolicy", "Password must be at least 8 characters with uppercase, lowercase, and a number.");
     }
 
     return tr("login.genericError", "Something went wrong. Please try again.");
@@ -63,13 +79,18 @@ export function LoginPage({
 
     try {
       if (isForgot) {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin,
-        });
-        if (error) throw error;
+        await forgotPassword(email);
         setMessage(
-          tr("login.resetEmailSent", "Check your email for a password reset link.")
+          tr("login.resetEmailSent", "Check your email for a password reset code.")
         );
+        return;
+      }
+
+      if (isConfirm) {
+        await confirmSignUp(email, verificationCode);
+        setMessage(tr("login.emailVerified", "Email verified! You can now sign in."));
+        setMode("login");
+        setVerificationCode("");
         return;
       }
 
@@ -80,31 +101,40 @@ export function LoginPage({
       }
 
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (error) throw error;
-
+        await signIn(email, password);
         setMessage(tr("login.signedIn", "Signed in successfully."));
         setTimeout(onAuthSuccess, 600);
       } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-
-        if (error) throw error;
-
-        setMode("login");
-        setPassword("");
-        setMessage(tr("login.accountCreated", "Success! Account created. Please sign in."));
+        await signUp(email, password);
+        // Cognito requires email verification — switch to confirm mode
+        setMode("confirm");
+        setMessage(tr("login.verificationSent", "A verification code has been sent to your email. Please enter it below."));
       }
     } catch (err) {
       const rawMessage =
         err instanceof Error ? err.message : "Something went wrong.";
-      setError(getFriendlyError(rawMessage));
+
+      // If user is not confirmed, offer to resend code
+      if (rawMessage.toLowerCase().includes("user is not confirmed")) {
+        setMode("confirm");
+        setError(getFriendlyError(rawMessage));
+      } else {
+        setError(getFriendlyError(rawMessage));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    setLoading(true);
+    setError("");
+    setMessage("");
+    try {
+      await resendConfirmationCode(email);
+      setMessage(tr("login.codeSent", "A new verification code has been sent to your email."));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to resend code");
     } finally {
       setLoading(false);
     }
@@ -116,6 +146,7 @@ export function LoginPage({
     setError("");
     setPassword("");
     setConfirmPassword("");
+    setVerificationCode("");
   };
 
   return (
@@ -145,26 +176,33 @@ export function LoginPage({
             <h1 className="text-3xl lg:text-4xl font-bold leading-tight mb-4">
               {isForgot
                 ? tr("login.forgotTitle", "Reset your password")
-                : isLogin
-                  ? tr("login.welcomeBack", "Welcome back")
-                  : tr("login.createAccountTitle", "Create your account")}
+                : isConfirm
+                  ? tr("login.confirmTitle", "Verify your email")
+                  : isLogin
+                    ? tr("login.welcomeBack", "Welcome back")
+                    : tr("login.createAccountTitle", "Create your account")}
             </h1>
 
             <p className="text-gray-400 text-base lg:text-lg mb-10 leading-relaxed">
               {isForgot
                 ? tr(
                     "login.forgotDescription",
-                    "Enter your email and we'll send you a link to reset your password."
+                    "Enter your email and we'll send you a code to reset your password."
                   )
-                : isLogin
+                : isConfirm
                   ? tr(
-                      "login.signInDescription",
-                      "Sign in to continue your career assessment and view your recommendations."
+                      "login.confirmDescription",
+                      "Enter the verification code sent to your email to activate your account."
                     )
-                  : tr(
-                      "login.signUpDescription",
-                      "Create an account to save your quiz progress and access your career results later."
-                    )}
+                  : isLogin
+                    ? tr(
+                        "login.signInDescription",
+                        "Sign in to continue your career assessment and view your recommendations."
+                      )
+                    : tr(
+                        "login.signUpDescription",
+                        "Create an account to save your quiz progress and access your career results later."
+                      )}
             </p>
 
             {/* Trust signals */}
@@ -229,21 +267,25 @@ export function LoginPage({
                 <h2 className="text-xl font-bold text-white mb-1">
                   {isForgot
                     ? tr("login.forgotTitle", "Reset your password")
-                    : isLogin
-                      ? tr("login.signIn", "Sign in")
-                      : tr("login.signUp", "Sign up")}
+                    : isConfirm
+                      ? tr("login.confirmTitle", "Verify your email")
+                      : isLogin
+                        ? tr("login.signIn", "Sign in")
+                        : tr("login.signUp", "Sign up")}
                 </h2>
                 <p className="text-sm text-gray-500">
                   {isForgot
-                    ? tr("login.forgotSubtitle", "We'll email you a reset link.")
-                    : isLogin
-                      ? tr("login.signInSubtitle", "Enter your email and password to continue.")
-                      : tr("login.signUpSubtitle", "Start with your email and create a password.")}
+                    ? tr("login.forgotSubtitle", "We'll email you a reset code.")
+                    : isConfirm
+                      ? tr("login.confirmSubtitle", "Check your inbox for a 6-digit code.")
+                      : isLogin
+                        ? tr("login.signInSubtitle", "Enter your email and password to continue.")
+                        : tr("login.signUpSubtitle", "Start with your email and create a password.")}
                 </p>
               </div>
 
               {/* Continue without account */}
-              {onContinueWithoutAccount && (
+              {onContinueWithoutAccount && !isConfirm && (
                 <div className="mb-6 rounded-lg border border-purple-900/40 bg-purple-950/20 p-4">
                   <p className="text-sm text-gray-300 mb-3">
                     {tr(
@@ -263,24 +305,57 @@ export function LoginPage({
 
               {/* Form */}
               <form className="space-y-5" onSubmit={handleSubmit}>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    {tr("login.email", "Email")}
-                  </label>
-                  <div className="flex items-center gap-3 rounded-lg border border-purple-900/40 bg-[#050505] px-4 py-3 focus-within:border-purple-500 transition-colors">
-                    <Mail className="w-4 h-4 text-gray-500 shrink-0" />
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="you@example.com"
-                      className="w-full bg-transparent text-white text-sm placeholder:text-gray-600 outline-none"
-                    />
+                {/* Email field — shown in all modes except confirm */}
+                {!isConfirm && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      {tr("login.email", "Email")}
+                    </label>
+                    <div className="flex items-center gap-3 rounded-lg border border-purple-900/40 bg-[#050505] px-4 py-3 focus-within:border-purple-500 transition-colors">
+                      <Mail className="w-4 h-4 text-gray-500 shrink-0" />
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="you@example.com"
+                        className="w-full bg-transparent text-white text-sm placeholder:text-gray-600 outline-none"
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {!isForgot && (
+                {/* Verification code — shown only in confirm mode */}
+                {isConfirm && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      {tr("login.verificationCode", "Verification code")}
+                    </label>
+                    <div className="flex items-center gap-3 rounded-lg border border-purple-900/40 bg-[#050505] px-4 py-3 focus-within:border-purple-500 transition-colors">
+                      <Lock className="w-4 h-4 text-gray-500 shrink-0" />
+                      <input
+                        type="text"
+                        required
+                        value={verificationCode}
+                        onChange={(e) => setVerificationCode(e.target.value)}
+                        placeholder="123456"
+                        maxLength={6}
+                        className="w-full bg-transparent text-white text-sm placeholder:text-gray-600 outline-none tracking-widest"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleResendCode}
+                      disabled={loading}
+                      className="text-xs text-purple-400 hover:text-purple-300 font-medium transition-colors mt-2"
+                    >
+                      {tr("login.resendCode", "Resend code")}
+                    </button>
+                  </div>
+                )}
+
+                {/* Password fields — hidden in forgot and confirm modes */}
+                {!isForgot && !isConfirm && (
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
                       {tr("login.password", "Password")}
@@ -299,13 +374,13 @@ export function LoginPage({
                     </div>
                     {!isLogin && (
                       <p className="text-xs text-gray-600 mt-1.5">
-                        {tr("login.passwordHint", "Must be at least 6 characters")}
+                        {tr("login.passwordHint", "Must be at least 8 characters with uppercase, lowercase, and a number")}
                       </p>
                     )}
                   </div>
                 )}
 
-                {!isForgot && !isLogin && (
+                {!isForgot && !isLogin && !isConfirm && (
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
                       {tr("login.confirmPassword", "Confirm password")}
@@ -362,22 +437,25 @@ export function LoginPage({
                   {loading
                     ? tr("login.pleaseWait", "Please wait...")
                     : isForgot
-                      ? tr("login.sendResetLink", "Send reset link")
-                      : isLogin
-                        ? tr("login.signIn", "Sign in")
-                        : tr("login.createAccountButton", "Create account")}
+                      ? tr("login.sendResetLink", "Send reset code")
+                      : isConfirm
+                        ? tr("login.verifyButton", "Verify email")
+                        : isLogin
+                          ? tr("login.signIn", "Sign in")
+                          : tr("login.createAccountButton", "Create account")}
                 </Button>
               </form>
 
               {/* Mode switch */}
               <div className="mt-6 pt-5 border-t border-purple-900/20 text-center text-sm text-gray-500">
-                {isForgot ? (
+                {isForgot || isConfirm ? (
                   <button
                     type="button"
                     onClick={() => {
                       setMode("login");
                       setMessage("");
                       setError("");
+                      setVerificationCode("");
                     }}
                     className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
                   >
@@ -401,7 +479,7 @@ export function LoginPage({
             </div>
 
             {/* Terms note */}
-            {!isForgot && !isLogin && (
+            {!isForgot && !isLogin && !isConfirm && (
               <p className="text-xs text-gray-600 text-center mt-4 leading-relaxed">
                 {tr(
                   "login.termsNote",

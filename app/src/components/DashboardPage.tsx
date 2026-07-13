@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ExternalLink, BookOpen, Briefcase, RefreshCw, CheckCircle2, Circle, MapPin } from "lucide-react";
-import type { User } from "@supabase/supabase-js";
+import type { AuthUser } from "../lib/auth";
 import { PageHeader } from "./layout/PageHeader";
 import { Button } from "./ui/button";
 import {
@@ -14,7 +14,7 @@ import {
 } from "../lib/dashboard";
 
 interface DashboardPageProps {
-  user: User | null;
+  user: AuthUser | null;
   onBack: () => void;
   onSignOut?: () => void;
   onHome?: () => void;

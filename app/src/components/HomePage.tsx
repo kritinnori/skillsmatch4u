@@ -9,11 +9,11 @@ import {
   MapPin,
   UserCircle,
 } from "lucide-react";
-import type { User } from "@supabase/supabase-js";
+import type { AuthUser } from "../lib/auth";
 import { Button } from "./ui/button";
 import { BrandLogo } from "./layout/BrandLogo";
 import { LanguageSwitcher } from "./LanguageSwitcher";
-import { supabase } from "../lib/supabase";
+import { signOut as cognitoSignOut } from "../lib/auth";
 import { AIExplainabilityModal } from "./AIExplainabilityModal";
 import { SignOutModal } from "./SignOutModal";
 
@@ -22,19 +22,20 @@ interface HomePageProps {
   onLogin: () => void;
   onDashboard: () => void;
   onShowOpportunities?: () => void;
-  user: User | null;
+  user: AuthUser | null;
+  hasCompletedQuiz?: boolean;
 }
 
 const featureIcons = [Target, Zap, BarChart3] as const;
 
-export function HomePage({ onStartQuiz, onLogin, onDashboard, onShowOpportunities, user }: HomePageProps) {
+export function HomePage({ onStartQuiz, onLogin, onDashboard, onShowOpportunities, user, hasCompletedQuiz }: HomePageProps) {
   const { t } = useTranslation();
   const [showAIModal, setShowAIModal] = useState(false);
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
   const handleSignOut = async () => {
     setShowSignOutConfirm(false);
-    await supabase.auth.signOut();
+    cognitoSignOut();
   };
 
   const features = [
@@ -153,9 +154,14 @@ export function HomePage({ onStartQuiz, onLogin, onDashboard, onShowOpportunitie
                 size="lg"
                 className="bg-purple-700 hover:bg-purple-600 text-white font-semibold px-8 py-6 text-lg shadow-md hover:shadow-lg"
               >
-                {t("home.startCta")}
+                {hasCompletedQuiz ? t("home.retakeCta", { defaultValue: "Retake Career Assessment" }) : t("home.startCta")}
                 <ChevronRight className="w-5 h-5" />
               </Button>
+              {hasCompletedQuiz && (
+                <p className="text-sm text-purple-300/80 mt-3">
+                  {t("home.retakeNote", { defaultValue: "You've already completed the assessment. Retaking will update your career recommendations." })}
+                </p>
+              )}
             </div>
 
             <div className="hidden md:flex justify-center">
@@ -234,7 +240,7 @@ export function HomePage({ onStartQuiz, onLogin, onDashboard, onShowOpportunitie
             size="lg"
             className="bg-purple-700 hover:bg-purple-600 text-white font-bold px-10 py-6 text-lg shadow-lg"
           >
-            {t("home.startCta")}
+            {hasCompletedQuiz ? t("home.retakeCta", { defaultValue: "Retake Career Assessment" }) : t("home.startCta")}
           </Button>
           <p className="text-purple-100 text-body-sm mt-4">
             {t("home.ctaNote")}

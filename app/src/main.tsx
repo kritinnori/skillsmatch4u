@@ -1,7 +1,6 @@
 import { StrictMode, useState, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import type { User } from '@supabase/supabase-js'
 import './index.css'
 import './i18n'
 import App from './App.tsx'
@@ -10,7 +9,8 @@ import { TermsPage } from './components/TermsPage.tsx'
 import { AboutPage } from './components/AboutPage.tsx'
 import { DeleteAccountPage } from './components/DeleteAccountPage.tsx'
 import { ProfilePage } from './components/ProfilePage.tsx'
-import { supabase } from './lib/supabase.ts'
+import { signOut as cognitoSignOut, onAuthStateChange } from './lib/auth.ts'
+import type { AuthUser } from './lib/auth.ts'
 
 function PrivacyRoute() {
   const navigate = () => { window.location.href = '/'; };
@@ -52,20 +52,18 @@ function DeleteAccountRoute() {
 }
 
 function ProfileRoute() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
+    const unsubscribe = onAuthStateChange((authUser) => {
+      setUser(authUser);
     });
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => { data.subscription.unsubscribe(); };
+    return () => { unsubscribe(); };
   }, []);
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
+  const handleSignOut = () => {
+    cognitoSignOut();
+    setUser(null);
     window.location.href = '/';
   };
 

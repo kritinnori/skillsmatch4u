@@ -15,7 +15,7 @@ import { BrandLogo } from "./layout/BrandLogo";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { Button } from "./ui/button";
 import { SignOutModal } from "./SignOutModal";
-import { supabase } from "../lib/supabase";
+import { getAccessToken, signOut } from "../lib/auth";
 import { API_BASE_URL } from "../lib/api";
 
 interface ProfileUser {
@@ -68,9 +68,7 @@ export function ProfilePage({
     setDeleting(true);
     setError(null);
     try {
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
-      if (!token) throw new Error("Not signed in");
+      const token = await getAccessToken();
 
       const res = await fetch(`${API_BASE_URL}/account/delete`, {
         method: "POST",
@@ -80,7 +78,7 @@ export function ProfilePage({
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || "Failed to delete account");
       }
-      await supabase.auth.signOut();
+      signOut();
       setDeleted(true);
       setDeleting(false);
       setTimeout(() => onAccountDeleted(), 4000);

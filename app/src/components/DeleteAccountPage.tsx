@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Trash2, AlertTriangle, LogIn } from "lucide-react";
 import { BrandLogo } from "./layout/BrandLogo";
 import { LanguageSwitcher } from "./LanguageSwitcher";
-import { supabase } from "../lib/supabase";
+import { signIn, signOut, getAuthUser, getAccessToken } from "../lib/auth";
 import { API_BASE_URL } from "../lib/api";
 import { Button } from "./ui/button";
 
@@ -30,8 +30,8 @@ export function DeleteAccountPage({ onHome }: DeleteAccountPageProps) {
   const [deleted, setDeleted] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user ? { id: data.user.id, email: data.user.email ?? undefined } : null);
+    getAuthUser().then((authUser) => {
+      setUser(authUser ? { id: authUser.id, email: authUser.email ?? undefined } : null);
       setLoading(false);
     });
   }, []);
@@ -41,10 +41,9 @@ export function DeleteAccountPage({ onHome }: DeleteAccountPageProps) {
     setLoginLoading(true);
     setLoginError("");
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      const { data } = await supabase.auth.getUser();
-      setUser(data.user ? { id: data.user.id, email: data.user.email ?? undefined } : null);
+      await signIn(email, password);
+      const authUser = await getAuthUser();
+      setUser(authUser ? { id: authUser.id, email: authUser.email ?? undefined } : null);
     } catch (err) {
       setLoginError(err instanceof Error ? err.message : "Login failed");
     } finally {
@@ -57,9 +56,7 @@ export function DeleteAccountPage({ onHome }: DeleteAccountPageProps) {
     setDeleting(true);
     setError(null);
     try {
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
-      if (!token) throw new Error("Not signed in");
+      const token = await getAccessToken();
 
       const res = await fetch(`${API_BASE_URL}/account/delete`, {
         method: "POST",
@@ -69,7 +66,7 @@ export function DeleteAccountPage({ onHome }: DeleteAccountPageProps) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || "Failed to delete account");
       }
-      await supabase.auth.signOut();
+      signOut();
       setDeleted(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
