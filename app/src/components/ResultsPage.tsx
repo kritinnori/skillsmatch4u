@@ -11,7 +11,7 @@ import {
 } from "../lib/api";
 import type { Question } from "../types/question";
 import { PageHeader } from "./layout/PageHeader";
-import { saveCareerResult, logCourseClick, logJobClick, saveRecommendedCourses, saveRecommendedJobs } from "../lib/dashboard";
+import { saveCareerResult, logCourseClick, logJobClick, saveRecommendedCourses, saveRecommendedJobs, fetchUserProgress } from "../lib/dashboard";
 import { ResultsPageSkeleton } from "./ResultsPageSkeleton";
 import { ResultsSectionEmptyState } from "./ResultsSectionEmptyState";
 import { Button } from "./ui/button";
@@ -108,7 +108,6 @@ interface ResultsPageProps {
   answers: number[];
   questions: Question[];
   additionalInfo?: string;
-  onRestart: () => void;
   onBack: () => void;
   user?: { id: string; email?: string } | null;
   onSignOut?: () => void;
@@ -121,11 +120,11 @@ interface ResultsPageProps {
 }
 
 const CardSkeleton = () => (
-  <div className="rounded-xl border border-purple-900/40 bg-[#111111] p-4 shadow-sm">
-    <div className="h-5 w-3/4 skeleton-shimmer rounded" />
-    <div className="h-3 w-1/3 skeleton-shimmer rounded mt-3" />
-    <div className="h-3 w-full skeleton-shimmer rounded mt-3" />
-    <div className="h-3 w-5/6 skeleton-shimmer rounded mt-2" />
+  <div className="rounded-xl border border-purple-900/40 bg-[#111111] p-4 shadow-sm animate-pulse">
+    <div className="h-5 w-3/4 bg-purple-900/30 rounded" />
+    <div className="h-3 w-1/3 bg-purple-900/20 rounded mt-3" />
+    <div className="h-3 w-full bg-purple-900/20 rounded mt-3" />
+    <div className="h-3 w-5/6 bg-purple-900/20 rounded mt-2" />
   </div>
 );
 
@@ -133,8 +132,6 @@ function ResultsShell({
   children,
   brand,
   onBack,
-  backLabel,
-  title,
   user,
   onSignOut,
   onHome,
@@ -145,8 +142,6 @@ function ResultsShell({
   children: ReactNode;
   brand: string;
   onBack: () => void;
-  backLabel: string;
-  title?: string;
   user?: { id: string; email?: string } | null;
   onSignOut?: () => void;
   onHome?: () => void;
@@ -154,15 +149,12 @@ function ResultsShell({
   onShowOpportunities?: () => void;
   onLoginRequired?: () => void;
 }) {
+  const { t } = useTranslation();
   return (
-    <div className="min-h-screen bg-[#050505] text-white">
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_bottom_left,rgba(126,34,206,0.28),transparent_42%)]" />
+    <div className="min-h-screen bg-[#050505] text-white overflow-x-hidden">
       <div className="relative z-10">
         <PageHeader
           brand={brand}
-          onBack={onBack}
-          backLabel={backLabel}
-          title={title}
           user={user}
           onSignOut={onSignOut}
           onHome={onHome}
@@ -171,7 +163,17 @@ function ResultsShell({
           onLoginRequired={onLoginRequired}
           sticky
         />
-        <main className="max-w-5xl mx-auto px-4 md:px-8 py-8 pb-16">
+        <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 pb-12">
+          {/* Back link below header */}
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors mb-6"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            <span>{t("common.goBack")}</span>
+          </button>
           {children}
         </main>
       </div>
@@ -228,13 +230,43 @@ export function ResultsPage({
     let cancelled = false;
 
     const run = async () => {
-      // Check cache first — instant load if already fetched for this language
+      // 1. Check sessionStorage cache first — instant load
       const cached = getCareerCache(language);
       if (cached) {
         setCareer(cached);
         setCareerLoading(false);
         return;
       }
+
+      // 2. For logged-in users, check DynamoDB (saved results)
+      if (user?.id) {
+        try {
+          const progress = await fetchUserProgress(user.id);
+          if (progress?.career_title && progress?.career_match_score) {
+            const fromDb: CareerCore = {
+              title: progress.career_title,
+              matchScore: progress.career_match_score,
+              salary: progress.career_salary || "",
+              growth: progress.career_growth || "",
+              description: progress.career_description || "",
+              skills: progress.career_skills || [],
+            };
+            if (!cancelled) {
+              setCareer(fromDb);
+              // Cache to sessionStorage for future visits
+              sessionStorage.setItem(`sm_career_${language}`, JSON.stringify(fromDb));
+              sessionStorage.setItem("sm_career_score", JSON.stringify(fromDb.matchScore));
+              setLockedScore(fromDb.matchScore);
+              setCareerLoading(false);
+              return;
+            }
+          }
+        } catch {
+          // DynamoDB fetch failed, fall through to LLM
+        }
+      }
+
+      // 3. No cache, no DB result — call LLM
       try {
         setCareerLoading(true);
         setCareerError(null);
@@ -245,8 +277,7 @@ export function ResultsPage({
           language,
         });
         if (cancelled) return;
-        // Cache per language so switching language gets translated result but % stays stable within a session
-        // Lock the score on first analysis, inject it on subsequent ones
+        // Lock the score on first analysis
         const score = lockedScore ?? recommendation.matchScore;
         if (!lockedScore) {
           sessionStorage.setItem("sm_career_score", JSON.stringify(score));
@@ -254,6 +285,8 @@ export function ResultsPage({
         }
         const stabilized = { ...recommendation, matchScore: score };
         setCareer(stabilized);
+        // Cache to sessionStorage for instant reload
+        sessionStorage.setItem(`sm_career_${language}`, JSON.stringify(stabilized));
         if (user?.id) {
           saveCareerResult(user.id, stabilized);
         }
@@ -272,6 +305,7 @@ export function ResultsPage({
     return () => {
       cancelled = true;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [answers, questions, additionalInfo, language]);
 
   useEffect(() => {
@@ -286,6 +320,30 @@ export function ResultsPage({
     };
 
     const loadCourses = async () => {
+      // 1. Check sessionStorage cache first
+      try {
+        const cached = sessionStorage.getItem(`sm_courses_${language}`);
+        if (cached) {
+          setCourses(JSON.parse(cached));
+          return;
+        }
+      } catch { /* ignore */ }
+
+      // 2. For logged-in users, check DynamoDB
+      if (user?.id) {
+        try {
+          const progress = await fetchUserProgress(user.id);
+          if (progress?.recommended_courses?.length) {
+            if (!cancelled) {
+              setCourses(progress.recommended_courses);
+              sessionStorage.setItem(`sm_courses_${language}`, JSON.stringify(progress.recommended_courses));
+              return;
+            }
+          }
+        } catch { /* fall through to LLM */ }
+      }
+
+      // 3. Call LLM
       try {
         setCoursesLoading(true);
         setCoursesError(null);
@@ -295,6 +353,7 @@ export function ResultsPage({
         });
         if (cancelled) return;
         setCourses(result);
+        sessionStorage.setItem(`sm_courses_${language}`, JSON.stringify(result));
         if (user?.id) {
           saveRecommendedCourses(user.id, result);
         }
@@ -309,6 +368,30 @@ export function ResultsPage({
     };
 
     const loadJobs = async () => {
+      // 1. Check sessionStorage cache first
+      try {
+        const cached = sessionStorage.getItem(`sm_jobs_${language}`);
+        if (cached) {
+          setJobs(JSON.parse(cached));
+          return;
+        }
+      } catch { /* ignore */ }
+
+      // 2. For logged-in users, check DynamoDB
+      if (user?.id) {
+        try {
+          const progress = await fetchUserProgress(user.id);
+          if (progress?.recommended_jobs?.length) {
+            if (!cancelled) {
+              setJobs(progress.recommended_jobs);
+              sessionStorage.setItem(`sm_jobs_${language}`, JSON.stringify(progress.recommended_jobs));
+              return;
+            }
+          }
+        } catch { /* fall through to LLM */ }
+      }
+
+      // 3. Call LLM
       try {
         setJobsLoading(true);
         setJobsError(null);
@@ -318,6 +401,7 @@ export function ResultsPage({
         });
         if (cancelled) return;
         setJobs(result);
+        sessionStorage.setItem(`sm_jobs_${language}`, JSON.stringify(result));
         if (user?.id) {
           saveRecommendedJobs(user.id, result);
         }
@@ -346,8 +430,6 @@ export function ResultsPage({
       <ResultsShell
         brand={brand}
         onBack={onBack}
-        backLabel={t("common.goBack")}
-        title={t("results.pageTitle")}
         user={user}
         onSignOut={onSignOut}
         onHome={onBack}
@@ -355,14 +437,7 @@ export function ResultsPage({
         onShowOpportunities={onShowOpportunities}
         onLoginRequired={onLoginRequired}
       >
-        <p className="text-center text-gray-300 text-body-sm mb-8">
-          {t("results.analyzingHint")}
-        </p>
-        <ResultsPageSkeleton
-          coursesTitle={t("results.coursesTitle")}
-          jobsTitle={t("results.jobsTitle")}
-          keySkillsLabel={t("results.keySkills")}
-        />
+        <ResultsPageSkeleton />
       </ResultsShell>
     );
   }
@@ -372,18 +447,17 @@ export function ResultsPage({
       <ResultsShell
         brand={brand}
         onBack={onBack}
-        backLabel={t("common.goBack")}
         onHome={onBack}
       >
         <div className="flex items-center justify-center min-h-[50vh]">
-          <div className="text-center bg-[#111111] rounded-xl border border-purple-900/40 p-10 shadow-sm max-w-md">
+          <div className="text-center bg-[#0d0d0d] rounded-2xl border border-purple-900/20 p-10 max-w-md">
             <p className="text-lg mb-4 text-red-400 font-medium">
               {t("common.errorPrefix")}:{" "}
               {careerError || t("results.failedToLoad")}
             </p>
             <Button
               onClick={onBack}
-              className="bg-purple-700 hover:bg-purple-600 text-white"
+              className="bg-purple-600 hover:bg-purple-500 text-white"
             >
               {t("common.goBackButton")}
             </Button>
@@ -397,8 +471,6 @@ export function ResultsPage({
     <ResultsShell
       brand={brand}
       onBack={onBack}
-      backLabel={t("common.goBack")}
-      title={t("results.pageTitle")}
       user={user}
       onSignOut={onSignOut}
       onHome={onBack}
@@ -406,28 +478,29 @@ export function ResultsPage({
       onShowOpportunities={onShowOpportunities}
       onLoginRequired={onLoginRequired}
     >
-      <div className="space-y-10">
-        <div className="bg-[#111111] rounded-xl overflow-hidden shadow-lg border border-purple-900/40">
-          <div className="bg-gradient-to-r from-purple-800 to-purple-950 px-6 md:px-10 py-10 text-white">
-            <p className="text-body-sm font-semibold opacity-90 mb-2 uppercase tracking-wide">
+      <div className="space-y-6">
+        {/* Career Card */}
+        <div className="bg-[#0d0d0d] rounded-2xl overflow-hidden border border-purple-900/20">
+          <div className="bg-gradient-to-r from-purple-800 to-purple-950 px-5 py-6 md:px-8 md:py-8">
+            <p className="text-xs font-semibold text-purple-200 uppercase tracking-wide mb-1">
               {t("results.idealCareer")}
             </p>
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-5">
               {career.title}
             </h2>
 
-            <div className="flex flex-wrap items-end gap-4">
+            <div className="flex items-end gap-4">
               <div>
-                <p className="text-body-sm opacity-90 mb-1">
+                <p className="text-xs text-purple-200 mb-1">
                   {t("results.heading")}
                 </p>
-                <span className="text-4xl md:text-5xl font-bold">
+                <span className="text-4xl md:text-5xl font-bold text-white">
                   {career.matchScore}%
                 </span>
               </div>
 
-              <div className="flex-1 min-w-[120px] max-w-md">
-                <div className="w-full h-2.5 bg-white/30 rounded-full overflow-hidden">
+              <div className="flex-1 max-w-xs">
+                <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-white rounded-full transition-all duration-700"
                     style={{ width: `${career.matchScore}%` }}
@@ -437,41 +510,41 @@ export function ResultsPage({
             </div>
           </div>
 
-          <div className="px-6 md:px-10 py-8 space-y-8">
+          <div className="px-5 py-5 md:px-8 md:py-6 space-y-5">
             <div>
-              <h3 className="text-h4 font-bold text-white mb-3">
+              <h3 className="text-base font-semibold text-white mb-2">
                 {t("results.aboutRole")}
               </h3>
-              <p className="text-body-sm text-gray-300 leading-relaxed">
+              <p className="text-sm text-gray-400 leading-relaxed">
                 {career.description}
               </p>
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-6">
-              <div className="rounded-lg border border-purple-900/40 bg-[#1a1a1a] p-5">
-                <p className="text-body-xs font-semibold text-gray-400 uppercase mb-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="rounded-xl border border-gray-800 bg-[#0a0a0a] p-4">
+                <p className="text-xs font-medium text-gray-500 uppercase mb-1">
                   {t("results.salaryRange")}
                 </p>
                 <p className="text-lg font-bold text-white">{career.salary}</p>
               </div>
 
-              <div className="rounded-lg border border-purple-900/40 bg-[#1a1a1a] p-5">
-                <p className="text-body-xs font-semibold text-gray-400 uppercase mb-1">
+              <div className="rounded-xl border border-gray-800 bg-[#0a0a0a] p-4">
+                <p className="text-xs font-medium text-gray-500 uppercase mb-1">
                   {t("results.jobGrowth")}
                 </p>
-                <p className="text-lg font-bold text-white">{career.growth}</p>
+                <p className="text-sm text-gray-300 leading-relaxed">{career.growth}</p>
               </div>
             </div>
 
             <div>
-              <h3 className="text-body-sm font-semibold text-gray-300 uppercase mb-4 text-center">
+              <h3 className="text-xs font-medium text-gray-500 uppercase mb-3 text-center">
                 {t("results.keySkills")}
               </h3>
               <div className="flex flex-wrap justify-center gap-2">
                 {career.skills.map((skill, index) => (
                   <span
                     key={index}
-                    className="px-4 py-2 bg-purple-950 text-purple-200 rounded-lg text-body-sm font-medium border border-purple-800"
+                    className="px-3 py-1.5 bg-purple-950/50 text-purple-200 rounded-lg text-xs font-medium border border-purple-800/50"
                   >
                     {skill}
                   </span>
@@ -481,80 +554,115 @@ export function ResultsPage({
           </div>
         </div>
 
+        {/* Location CTA - Purple Theme */}
         {hasLocation && onViewLocalEcosystem ? (
-          <div className="flex justify-center">
+          <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-3 sm:gap-4 bg-[#120a1a] border border-purple-800/40 rounded-xl px-5 py-4 text-center sm:text-left">
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-purple-600/20 flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <p className="text-sm text-gray-300">
+                {t("location.hasLocationPrompt", { defaultValue: "See what industries are thriving near you" })}
+              </p>
+            </div>
             <Button
               onClick={onViewLocalEcosystem}
-              className="bg-purple-700 hover:bg-purple-600 text-white font-semibold"
+              className="bg-purple-600 hover:bg-purple-500 text-white font-semibold text-sm px-5 w-full sm:w-auto shrink-0"
             >
-              {t("location.seeThriving", { defaultValue: "See What's Thriving Near You" })}
+              {t("location.seeThriving", { defaultValue: "View Local Trends" })}
             </Button>
           </div>
         ) : (
           onAddLocation && (
-            <div className="flex flex-col items-center text-center gap-2 bg-[#111111] border border-purple-900/40 rounded-xl p-5">
-              <p className="text-body-sm text-gray-300">
-                {t("location.addPrompt", {
-                  defaultValue: "Want to see what industries are thriving near you?",
-                })}
-              </p>
+            <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-3 sm:gap-4 bg-[#120a1a] border border-purple-800/40 rounded-xl px-5 py-4 text-center sm:text-left">
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-purple-600/20 flex items-center justify-center shrink-0">
+                  <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <p className="text-sm text-gray-300">
+                  {t("location.addPrompt", {
+                    defaultValue: "Want to see what industries are thriving near you?",
+                  })}
+                </p>
+              </div>
               <Button
                 onClick={onAddLocation}
-                variant="outline"
-                className="border-purple-700 text-purple-300 hover:bg-purple-900/30 hover:text-white"
+                className="bg-purple-600 hover:bg-purple-500 text-white font-semibold text-sm px-5 w-full sm:w-auto shrink-0"
               >
-                {t("location.addLocation", { defaultValue: "Add Your Location" })}
+                {t("location.addLocation", { defaultValue: "Add Location" })}
               </Button>
             </div>
           )
         )}
 
+        {/* Courses Section - Blue/Teal Theme */}
         <section className="space-y-4">
-          <h3 className="text-h4 font-bold text-white text-center">
-            {t("results.coursesTitle")}
-          </h3>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-blue-600/20 flex items-center justify-center">
+              <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-white">
+              {t("results.coursesTitle")}
+            </h3>
+          </div>
 
           <a
             href="https://skillsbuild.org/"
             target="_blank"
             rel="noopener noreferrer"
-            className="group block rounded-xl border-2 border-teal-700/60 bg-gradient-to-r from-teal-950/40 to-[#111111] p-5 shadow-sm transition-all hover:border-teal-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-teal-500/40"
+            className="group block rounded-xl border border-blue-800/50 bg-gradient-to-r from-blue-950/40 to-[#0d0d0d] p-4 transition-all hover:border-blue-500"
           >
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-lg font-semibold text-white group-hover:text-teal-300">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-base font-semibold text-white group-hover:text-blue-300">
                 {t("results.skillsBuildTitle", { defaultValue: "IBM SkillsBuild" })}
               </p>
-              <ExternalLink className="w-4 h-4 mt-1 shrink-0 text-gray-400 group-hover:text-teal-300" />
+              <ExternalLink className="w-4 h-4 mt-0.5 shrink-0 text-gray-500 group-hover:text-blue-300" />
             </div>
-            <p className="text-body-sm text-gray-400 mt-1">
+            <p className="text-xs text-blue-400/70 mt-1">
               {t("results.skillsBuildProvider", { defaultValue: "Free courses & IBM digital credentials" })}
             </p>
-            <p className="text-body-sm text-gray-300 mt-2">
+            <p className="text-sm text-gray-400 mt-2">
               {t("results.skillsBuildReason", { defaultValue: "Build the skills for this career with free, self-paced IBM courses — and earn digital badges employers recognize." })}
             </p>
           </a>
 
-          <div className="grid gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {coursesLoading ? (
               <>
+                <div className="col-span-full flex items-center gap-3 text-gray-400 mb-2">
+                  <div className="w-5 h-5 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+                  <span className="text-sm">Loading course recommendations...</span>
+                </div>
+                <CardSkeleton />
                 <CardSkeleton />
                 <CardSkeleton />
                 <CardSkeleton />
               </>
             ) : coursesError || !courses?.length ? (
-              <ResultsSectionEmptyState
-                kind="courses"
-                title={
-                  coursesError
-                    ? t("results.coursesUnavailableTitle")
-                    : t("results.noCoursesTitle")
-                }
-                description={
-                  coursesError
-                    ? t("results.coursesUnavailableDescription")
-                    : t("results.noCoursesDescription")
-                }
-              />
+              <div className="col-span-full">
+                <ResultsSectionEmptyState
+                  kind="courses"
+                  title={
+                    coursesError
+                      ? t("results.coursesUnavailableTitle")
+                      : t("results.noCoursesTitle")
+                  }
+                  description={
+                    coursesError
+                      ? t("results.coursesUnavailableDescription")
+                      : t("results.noCoursesDescription")
+                  }
+                />
+              </div>
             ) : (
               courses.map((course, index) => (
                 <a
@@ -571,18 +679,18 @@ export function ResultsPage({
                       });
                     }
                   }}
-                  className="group block rounded-xl border border-purple-900/40 bg-[#111111] p-5 shadow-sm transition-all hover:border-purple-500 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                  className="group block rounded-xl border border-blue-900/30 bg-[#0d0d0d] p-4 transition-all hover:border-blue-500 hover:bg-blue-950/20"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-lg font-semibold text-white group-hover:text-purple-300">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-base font-semibold text-white group-hover:text-blue-300">
                       {course.title}
                     </p>
-                    <ExternalLink className="w-4 h-4 mt-1 shrink-0 text-gray-400 group-hover:text-purple-300" />
+                    <ExternalLink className="w-4 h-4 mt-0.5 shrink-0 text-gray-500 group-hover:text-blue-300" />
                   </div>
-                  <p className="text-body-sm text-gray-400 mt-1">
+                  <p className="text-xs text-blue-400/60 mt-1">
                     {course.provider}
                   </p>
-                  <p className="text-body-sm text-gray-300 mt-2">
+                  <p className="text-sm text-gray-400 mt-2">
                     {course.reason}
                   </p>
                 </a>
@@ -591,32 +699,46 @@ export function ResultsPage({
           </div>
         </section>
 
+        {/* Jobs Section - Green/Emerald Theme */}
         <section className="space-y-4">
-          <h3 className="text-h4 font-bold text-white text-center">
-            {t("results.jobsTitle")}
-          </h3>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-emerald-600/20 flex items-center justify-center">
+              <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-white">
+              {t("results.jobsTitle")}
+            </h3>
+          </div>
 
-          <div className="grid gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {jobsLoading ? (
               <>
+                <div className="col-span-full flex items-center gap-3 text-gray-400 mb-2">
+                  <div className="w-5 h-5 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+                  <span className="text-sm">Loading job recommendations...</span>
+                </div>
                 <CardSkeleton />
                 <CardSkeleton />
                 <CardSkeleton />
               </>
             ) : jobsError || !jobs?.length ? (
-              <ResultsSectionEmptyState
-                kind="jobs"
-                title={
-                  jobsError
-                    ? t("results.jobsUnavailableTitle")
-                    : t("results.noJobsTitle")
-                }
-                description={
-                  jobsError
-                    ? t("results.jobsUnavailableDescription")
-                    : t("results.noJobsDescription")
-                }
-              />
+              <div className="col-span-full">
+                <ResultsSectionEmptyState
+                  kind="jobs"
+                  title={
+                    jobsError
+                      ? t("results.jobsUnavailableTitle")
+                      : t("results.noJobsTitle")
+                  }
+                  description={
+                    jobsError
+                      ? t("results.jobsUnavailableDescription")
+                      : t("results.noJobsDescription")
+                  }
+                />
+              </div>
             ) : (
               jobs.map((job, index) => (
                 <a
@@ -633,23 +755,18 @@ export function ResultsPage({
                       });
                     }
                   }}
-                  className="group block rounded-xl border border-purple-900/40 bg-[#111111] p-5 shadow-sm transition-all hover:border-purple-500 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                  className="group block rounded-xl border border-emerald-900/30 bg-[#0d0d0d] p-4 transition-all hover:border-emerald-500 hover:bg-emerald-950/20"
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <p className="text-lg font-semibold text-white group-hover:text-purple-300">
-                        {job.title}
-                      </p>
-                      <ExternalLink className="w-4 h-4 shrink-0 text-gray-400 group-hover:text-purple-300" />
-                    </div>
-                    <span className="text-body-xs uppercase tracking-wide text-gray-400">
-                      {job.location}
-                    </span>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-base font-semibold text-white group-hover:text-emerald-300">
+                      {job.title}
+                    </p>
+                    <ExternalLink className="w-4 h-4 mt-0.5 shrink-0 text-gray-500 group-hover:text-emerald-300" />
                   </div>
-                  <p className="text-body-sm text-gray-400 mt-1">
-                    {job.company}
+                  <p className="text-xs text-emerald-400/60 mt-1">
+                    {job.company} • {job.location}
                   </p>
-                  <p className="text-body-sm text-gray-300 mt-2">
+                  <p className="text-sm text-gray-400 mt-2 line-clamp-2">
                     {job.reason}
                   </p>
                 </a>

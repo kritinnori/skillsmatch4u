@@ -19,7 +19,7 @@ import as from "./as";
  * (translation[i] corresponds to question with id i+1).
  *
  * English is intentionally NOT included here — the canonical English text
- * already lives in the `question` field of each Mongo document.
+ * already lives in the `question` field of each DynamoDB item.
  */
 export const QUESTION_TRANSLATIONS: Record<string, string[]> = {
   hi,

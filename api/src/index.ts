@@ -1,7 +1,13 @@
 import express from "express";
 import cors from "cors";
 import OpenAI from "openai";
-import { getQuestionsCollection } from "./db";
+import jwt from "jsonwebtoken";
+import jwksClient from "jwks-rsa";
+import {
+  CognitoIdentityProviderClient,
+  AdminDeleteUserCommand,
+} from "@aws-sdk/client-cognito-identity-provider";
+import { getAllQuestions, deleteUserProgress, getUserProgress, updateUserProgress } from "./db";
 import {
   DEFAULT_LANGUAGE,
   getLanguageName,
@@ -22,6 +28,42 @@ const openai = new OpenAI({
   fetch: globalThis.fetch,
 });
 
+// --- Cognito setup ---
+const COGNITO_USER_POOL_ID = process.env.COGNITO_USER_POOL_ID || "";
+const AWS_REGION = process.env.AWS_REGION || "us-east-1";
+
+const cognito = new CognitoIdentityProviderClient({ region: AWS_REGION });
+
+// JWKS client for verifying Cognito JWTs
+const jwks = jwksClient({
+  jwksUri: `https://cognito-idp.${AWS_REGION}.amazonaws.com/${COGNITO_USER_POOL_ID}/.well-known/jwks.json`,
+  cache: true,
+  cacheMaxEntries: 5,
+  cacheMaxAge: 600000, // 10 minutes
+});
+
+function getSigningKey(header: jwt.JwtHeader): Promise<string> {
+  return new Promise((resolve, reject) => {
+    jwks.getSigningKey(header.kid, (err, key) => {
+      if (err) return reject(err);
+      resolve(key!.getPublicKey());
+    });
+  });
+}
+
+async function verifyCognitoToken(token: string): Promise<jwt.JwtPayload> {
+  const decoded = jwt.decode(token, { complete: true });
+  if (!decoded || !decoded.header) {
+    throw new Error("Invalid token");
+  }
+  const publicKey = await getSigningKey(decoded.header);
+  return jwt.verify(token, publicKey, {
+    issuer: `https://cognito-idp.${AWS_REGION}.amazonaws.com/${COGNITO_USER_POOL_ID}`,
+  }) as jwt.JwtPayload;
+}
+
+// --- Types ---
+
 type AnswerQuestion = { id: number; question: string };
 
 interface QuestionRow {
@@ -30,6 +72,8 @@ interface QuestionRow {
   category: string;
   translations?: Record<string, string>;
 }
+
+// --- Helpers ---
 
 function answerLabel(answer: number): string {
   if (answer === 1) return "Strongly Disagree";
@@ -220,11 +264,7 @@ async function runJsonCompletion<T>(
 async function getQuestionsInLanguage(
   language: string
 ): Promise<Array<Pick<QuestionRow, "id" | "question" | "category">>> {
-  const collection = await getQuestionsCollection();
-  const rows = (await collection
-    .find({}, { projection: { _id: 0 } })
-    .sort({ id: 1 })
-    .toArray()) as unknown as QuestionRow[];
+  const rows = await getAllQuestions();
 
   if (language === DEFAULT_LANGUAGE) {
     return rows.map(({ id, question, category }) => ({ id, question, category }));
@@ -243,14 +283,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- Account deletion (requires SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY env vars) ---
-// The frontend cannot delete auth users with the public anon key; this endpoint
-// verifies the caller's own JWT, then deletes their data and auth record.
+// --- Account deletion (Cognito + DynamoDB cleanup) ---
 app.post("/account/delete", async (req, res) => {
   try {
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !serviceRoleKey) {
+    if (!COGNITO_USER_POOL_ID) {
       res.status(500).json({ error: "Account deletion is not configured on the server" });
       return;
     }
@@ -262,35 +298,38 @@ app.post("/account/delete", async (req, res) => {
       return;
     }
 
-    const { createClient } = await import("@supabase/supabase-js");
-    const admin = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
-    // Verify the token belongs to a real user — callers can only delete themselves.
-    const { data: userData, error: userError } = await admin.auth.getUser(token);
-    if (userError || !userData?.user) {
+    // Verify the Cognito JWT
+    let payload: jwt.JwtPayload;
+    try {
+      payload = await verifyCognitoToken(token);
+    } catch (err) {
+      console.error("JWT verification failed:", err);
       res.status(401).json({ error: "Invalid or expired session" });
       return;
     }
-    const userId = userData.user.id;
 
-    // Delete the user's saved progress first, then the auth record.
-    const { error: progressError } = await admin
-      .from("user_progress")
-      .delete()
-      .eq("user_id", userId);
-    if (progressError) {
-      console.error("Failed to delete user_progress:", progressError);
-      // Continue anyway — the auth deletion is the critical part.
-    }
-
-    const { error: deleteError } = await admin.auth.admin.deleteUser(userId);
-    if (deleteError) {
-      console.error("Failed to delete auth user:", deleteError);
-      res.status(500).json({ error: "Failed to delete account" });
+    // The 'sub' claim is the Cognito user ID; 'email' claim has their email
+    const userId = payload.sub;
+    if (!userId) {
+      res.status(401).json({ error: "Invalid token: no user ID" });
       return;
     }
+
+    // Delete user progress from DynamoDB
+    try {
+      await deleteUserProgress(userId);
+    } catch (progressError) {
+      console.error("Failed to delete user_progress:", progressError);
+      // Continue — auth deletion is the critical part
+    }
+
+    // Delete the Cognito user
+    await cognito.send(
+      new AdminDeleteUserCommand({
+        UserPoolId: COGNITO_USER_POOL_ID,
+        Username: userId,
+      })
+    );
 
     res.json({ success: true });
   } catch (err) {
@@ -812,6 +851,182 @@ Always return valid JSON only.`;
 });
 
 
-app.listen(PORT, () => {
-  console.log(`Quiz API running at http://localhost:${PORT}`);
+// --- User Progress endpoints (DynamoDB, authenticated via Cognito JWT) ---
+
+// Middleware to extract userId and email from Cognito JWT
+interface AuthResult {
+  userId: string;
+  email?: string;
+}
+
+async function authenticateRequest(req: express.Request, res: express.Response): Promise<AuthResult | null> {
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  if (!token) {
+    res.status(401).json({ error: "Missing authorization token" });
+    return null;
+  }
+  try {
+    const payload = await verifyCognitoToken(token);
+    if (!payload.sub) {
+      res.status(401).json({ error: "Invalid token" });
+      return null;
+    }
+    return {
+      userId: payload.sub,
+      email: payload.email as string | undefined,
+    };
+  } catch {
+    res.status(401).json({ error: "Invalid or expired session" });
+    return null;
+  }
+}
+
+// GET /user-progress — fetch current user's dashboard data
+app.get("/user-progress", async (req, res) => {
+  const auth = await authenticateRequest(req, res);
+  if (!auth) return;
+
+  try {
+    const progress = await getUserProgress(auth.userId);
+    if (!progress) {
+      res.json({});
+      return;
+    }
+    res.json(progress);
+  } catch (error) {
+    console.error("Error fetching user progress:", error);
+    res.status(500).json({ error: "Failed to fetch user progress" });
+  }
 });
+
+// PUT /user-progress — update fields on the user's progress record
+app.put("/user-progress", async (req, res) => {
+  const auth = await authenticateRequest(req, res);
+  if (!auth) return;
+
+  try {
+    const fields = req.body;
+    if (!fields || typeof fields !== "object") {
+      res.status(400).json({ error: "Request body must be an object" });
+      return;
+    }
+    // Don't allow overwriting user_id
+    delete fields.user_id;
+    // Always store the user's email for admin visibility
+    if (auth.email) {
+      fields.email = auth.email;
+    }
+    await updateUserProgress(auth.userId, fields);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error updating user progress:", error);
+    res.status(500).json({ error: "Failed to update user progress" });
+  }
+});
+
+// POST /user-progress/click — append a course or job click
+app.post("/user-progress/click", async (req, res) => {
+  const auth = await authenticateRequest(req, res);
+  if (!auth) return;
+
+  try {
+    const { type, item } = req.body as {
+      type: "course" | "job";
+      item: { title: string; provider?: string; company?: string; url: string };
+    };
+
+    if (!type || !item?.title || !item?.url) {
+      res.status(400).json({ error: "type and item (with title, url) required" });
+      return;
+    }
+
+    const progress = await getUserProgress(auth.userId);
+    const clickedItem = { ...item, clickedAt: new Date().toISOString() };
+
+    if (type === "course") {
+      const existing = progress?.courses_clicked ?? [];
+      const alreadyLogged = existing.some((c) => c.title === item.title && c.url === item.url);
+      if (!alreadyLogged) {
+        await updateUserProgress(auth.userId, { courses_clicked: [...existing, clickedItem] });
+      }
+    } else {
+      const existing = progress?.jobs_clicked ?? [];
+      const alreadyLogged = existing.some((j) => j.title === item.title && j.url === item.url);
+      if (!alreadyLogged) {
+        await updateUserProgress(auth.userId, { jobs_clicked: [...existing, clickedItem] });
+      }
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error logging click:", error);
+    res.status(500).json({ error: "Failed to log click" });
+  }
+});
+
+// POST /user-progress/complete-course — mark a course as completed
+app.post("/user-progress/complete-course", async (req, res) => {
+  const auth = await authenticateRequest(req, res);
+  if (!auth) return;
+
+  try {
+    const { item } = req.body as {
+      item: { title: string; provider?: string; url: string };
+    };
+
+    if (!item?.title || !item?.url) {
+      res.status(400).json({ error: "item with title and url required" });
+      return;
+    }
+
+    const progress = await getUserProgress(auth.userId);
+    const existing = progress?.courses_completed ?? [];
+    const alreadyLogged = existing.some((c) => c.title === item.title && c.url === item.url);
+    if (!alreadyLogged) {
+      const completedItem = { ...item, clickedAt: new Date().toISOString() };
+      await updateUserProgress(auth.userId, { courses_completed: [...existing, completedItem] });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error marking course complete:", error);
+    res.status(500).json({ error: "Failed to mark course complete" });
+  }
+});
+
+// POST /user-progress/uncomplete-course — remove a course completion mark
+app.post("/user-progress/uncomplete-course", async (req, res) => {
+  const auth = await authenticateRequest(req, res);
+  if (!auth) return;
+
+  try {
+    const { title } = req.body as { title: string };
+
+    if (!title) {
+      res.status(400).json({ error: "title required" });
+      return;
+    }
+
+    const progress = await getUserProgress(auth.userId);
+    const existing = progress?.courses_completed ?? [];
+    const updated = existing.filter((c) => c.title !== title);
+    await updateUserProgress(auth.userId, { courses_completed: updated });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error unmarking course complete:", error);
+    res.status(500).json({ error: "Failed to unmark course complete" });
+  }
+});
+
+
+// Export the Express app for Lambda handler
+export { app };
+
+// Start local server only when run directly (not imported by Lambda)
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Quiz API running at http://localhost:${PORT}`);
+  });
+}

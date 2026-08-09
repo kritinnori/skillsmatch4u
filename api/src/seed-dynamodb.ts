@@ -1,4 +1,26 @@
-import { closeDb, getQuestionsCollection, type QuestionDoc } from "./db";
+import "dotenv/config";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import {
+  DynamoDBDocumentClient,
+  PutCommand,
+  ScanCommand,
+  DeleteCommand,
+} from "@aws-sdk/lib-dynamodb";
+import { QUESTION_TRANSLATIONS } from "./translations";
+
+// --- DynamoDB setup ---
+
+const client = new DynamoDBClient({
+  region: process.env.AWS_REGION || "us-east-1",
+});
+const docClient = DynamoDBDocumentClient.from(client, {
+  marshallOptions: { removeUndefinedValues: true },
+});
+
+const TABLE_NAME =
+  process.env.DYNAMODB_QUESTIONS_TABLE || "skillsmatch4u-questions";
+
+// --- Questions data (same as seed-auto.ts) ---
 
 const questions = [
   // Interests
@@ -38,50 +60,87 @@ const questions = [
   { question: "I often come up with original solutions to problems.", category: "Personality" },
 ];
 
-async function seedQuestions() {
-  console.log("Starting to seed questions...");
+// --- Seed logic ---
 
-  try {
-    const collection = await getQuestionsCollection();
+async function clearTable() {
+  console.log("Scanning for existing items to clear...");
+  const result = await docClient.send(
+    new ScanCommand({
+      TableName: TABLE_NAME,
+      ProjectionExpression: "id",
+    })
+  );
 
-    // Ensure a unique index on the numeric `id` field
-    await collection.createIndex({ id: 1 }, { unique: true });
-
-    const existingCount = await collection.countDocuments();
-
-    if (existingCount > 0) {
-      console.log(`Found ${existingCount} existing questions. Deleting them...`);
-      await collection.deleteMany({});
-      console.log("Deleted existing questions.");
-    }
-
-    const now = new Date();
-    const docs: QuestionDoc[] = questions.map((q, index) => ({
-      id: index + 1,
-      question: q.question,
-      category: q.category,
-      created_at: now,
-    }));
-
-    const result = await collection.insertMany(docs);
-
-    console.log(`✅ Successfully seeded ${result.insertedCount} questions!`);
-    console.log("\nSample questions inserted:");
-    docs.slice(0, 3).forEach((q, i) => {
-      console.log(`  ${i + 1}. ${q.question}`);
-    });
-    if (docs.length > 3) {
-      console.log(`  ... and ${docs.length - 3} more`);
-    }
-  } catch (error) {
-    console.error("Failed to seed questions:", error);
-    await closeDb();
-    process.exit(1);
+  const items = result.Items || [];
+  if (items.length === 0) {
+    console.log("Table is already empty.");
+    return;
   }
 
-  await closeDb();
+  console.log(`Deleting ${items.length} existing item(s)...`);
+  for (const item of items) {
+    await docClient.send(
+      new DeleteCommand({
+        TableName: TABLE_NAME,
+        Key: { id: item.id },
+      })
+    );
+  }
+  console.log("Cleared.");
 }
 
-seedQuestions().then(() => {
-  process.exit(0);
-});
+async function seedQuestions() {
+  console.log(`Seeding ${questions.length} questions into ${TABLE_NAME}...\n`);
+
+  await clearTable();
+
+  let seeded = 0;
+
+  for (let i = 0; i < questions.length; i++) {
+    const q = questions[i];
+    const id = i + 1;
+
+    // Build translations map for this question
+    const translations: Record<string, string> = {};
+    for (const [lang, langTranslations] of Object.entries(QUESTION_TRANSLATIONS)) {
+      const text = langTranslations[i];
+      if (text && text.trim().length > 0) {
+        translations[lang] = text;
+      }
+    }
+
+    await docClient.send(
+      new PutCommand({
+        TableName: TABLE_NAME,
+        Item: {
+          id,
+          question: q.question,
+          category: q.category,
+          translations: Object.keys(translations).length > 0 ? translations : undefined,
+        },
+      })
+    );
+
+    seeded++;
+  }
+
+  console.log(`✅ Successfully seeded ${seeded} questions with translations!`);
+  console.log(`\nLanguages included: en (base), ${Object.keys(QUESTION_TRANSLATIONS).join(", ")}`);
+  console.log("\nSample (id=1):");
+  console.log(`  EN: ${questions[0].question}`);
+  const sampleLangs = Object.keys(QUESTION_TRANSLATIONS).slice(0, 3);
+  for (const lang of sampleLangs) {
+    console.log(`  ${lang.toUpperCase()}: ${QUESTION_TRANSLATIONS[lang][0]}`);
+  }
+  console.log("  ...");
+}
+
+seedQuestions()
+  .then(() => {
+    console.log("\nDone.");
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error("Seed failed:", err);
+    process.exit(1);
+  });

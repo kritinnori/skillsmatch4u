@@ -4,7 +4,7 @@ import { Lock } from "lucide-react";
 import { Button } from "./ui/button";
 import { BrandLogo } from "./layout/BrandLogo";
 import { LanguageSwitcher } from "./LanguageSwitcher";
-import { supabase } from "../lib/supabase";
+import { confirmNewPassword } from "../lib/auth";
 
 interface ResetPasswordPageProps {
   onDone: () => void;
@@ -12,6 +12,8 @@ interface ResetPasswordPageProps {
 
 export function ResetPasswordPage({ onDone }: ResetPasswordPageProps) {
   const { t } = useTranslation();
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,10 +33,14 @@ export function ResetPasswordPage({ onDone }: ResetPasswordPageProps) {
       return;
     }
 
+    if (!email || !code) {
+      setError(tr("login.emailAndCodeRequired", "Email and verification code are required."));
+      return;
+    }
+
     setLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
+      await confirmNewPassword(email, code, password);
       setMessage(tr("login.passwordUpdated", "Password updated! Taking you home..."));
       setTimeout(onDone, 1200);
     } catch {
@@ -65,6 +71,39 @@ export function ResetPasswordPage({ onDone }: ResetPasswordPageProps) {
             </p>
 
             <form className="space-y-4" onSubmit={handleSubmit}>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-300">
+                  {tr("login.email", "Email")}
+                </span>
+                <div className="mt-2 flex items-center gap-3 rounded-lg border border-purple-900/50 bg-[#080808] px-4 py-3 focus-within:border-purple-500">
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="w-full bg-transparent text-white placeholder:text-gray-500 outline-none"
+                  />
+                </div>
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-medium text-gray-300">
+                  {tr("login.verificationCode", "Verification code")}
+                </span>
+                <div className="mt-2 flex items-center gap-3 rounded-lg border border-purple-900/50 bg-[#080808] px-4 py-3 focus-within:border-purple-500">
+                  <input
+                    type="text"
+                    required
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    placeholder="123456"
+                    maxLength={6}
+                    className="w-full bg-transparent text-white placeholder:text-gray-500 outline-none tracking-widest"
+                  />
+                </div>
+              </label>
+
               <label className="block">
                 <span className="text-sm font-medium text-gray-300">
                   {tr("login.newPassword", "New password")}

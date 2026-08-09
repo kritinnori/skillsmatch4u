@@ -1,11 +1,11 @@
-# Quiz App Setup Guide
+# SkillsMatch4U Setup Guide
 
-This guide will help you set up the quiz app with MongoDB and OpenAI integrations.
+This guide will help you set up the SkillsMatch4U app with AWS (DynamoDB, Cognito) and OpenAI integrations.
 
 ## Prerequisites
 
 - Node.js 18+ installed
-- A MongoDB instance (local, Docker, or MongoDB Atlas free tier)
+- AWS account with DynamoDB and Cognito configured
 - OpenAI API key
 
 ## Backend Setup
@@ -21,48 +21,26 @@ npm install
 
 Create a `.env` file in the `api` directory:
 
-```bash
-cp .env.example .env
 ```
-
-Edit `.env` and add your credentials:
-
-```
-MONGODB_URI=mongodb://localhost:27017
-MONGODB_DB=quiz_app
+PORT=3000
+AWS_REGION=us-east-1
+DYNAMODB_QUESTIONS_TABLE=skillsmatch4u-questions
+DYNAMODB_USER_PROGRESS_TABLE=skillsmatch4u-user-progress
+COGNITO_USER_POOL_ID=us-east-1_XXXXXXXXX
 OPENAI_API_KEY=your_openai_api_key
 ```
 
-If you're using MongoDB Atlas, `MONGODB_URI` will look like:
-
-```
-MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority
-```
-
-### 3. Set Up the MongoDB Database
-
-MongoDB is schemaless, so no SQL migration is required. Run the setup script to
-create the `questions` collection and a unique index on the numeric `id` field:
-
-```bash
-cd api
-npm run setup-db
-```
-
-Then seed the questions:
+### 3. Seed the DynamoDB Questions Table
 
 ```bash
 npm run seed
 ```
 
-This will insert all 30 questions into your `quiz_app.questions` collection.
-The script automatically clears any existing questions before inserting the
-new ones.
+This will insert all 30 questions into your DynamoDB questions table.
 
 ### 4. Run the Backend Server
 
 ```bash
-cd api
 npm run dev
 ```
 
@@ -74,30 +52,48 @@ The API will be available at `http://localhost:3000`
 
 ```bash
 cd app
-yarn install
+npm install
 ```
 
 ### 2. Set Up Environment Variables
 
-Create a `.env` file in the `app` directory:
+Create a `.env.local` file in the `app` directory:
 
 ```
 VITE_API_URL=http://localhost:3000
+VITE_COGNITO_USER_POOL_ID=us-east-1_XXXXXXXXX
+VITE_COGNITO_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 ### 3. Run the Frontend
 
 ```bash
-cd app
-yarn dev
+npm run dev
 ```
 
-The app will be available at `http://localhost:5173` (or the port Vite assigns)
+The app will be available at `http://localhost:5173`
+
+## AWS Infrastructure
+
+### DynamoDB Tables
+
+1. **Questions Table** (`skillsmatch4u-questions`)
+   - Partition key: `id` (Number)
+   - Stores quiz questions with translations
+
+2. **User Progress Table** (`skillsmatch4u-user-progress`)
+   - Partition key: `user_id` (String)
+   - Stores user career results and progress
+
+### Cognito User Pool
+
+- Handles user authentication (sign up, sign in, password reset)
+- Configure app client with appropriate OAuth flows
 
 ## API Endpoints
 
 ### GET `/questions`
-Fetches all questions from MongoDB.
+Fetches all questions from DynamoDB.
 
 **Response:**
 ```json
@@ -108,7 +104,8 @@ Fetches all questions from MongoDB.
       "question": "I prefer working independently...",
       "category": "Personality"
     }
-  ]
+  ],
+  "language": "en"
 }
 ```
 
@@ -118,11 +115,10 @@ Analyzes user answers and returns AI-powered career recommendation.
 **Request Body:**
 ```json
 {
-  "answers": [1, 2, 3, 4, 5],
-  "questions": [
-    { "id": 1, "question": "..." }
-  ],
-  "additionalInfo": "Optional additional information"
+  "answers": [1, 2, 3, 4, 5, ...],
+  "questions": [{ "id": 1, "question": "..." }],
+  "additionalInfo": "Optional additional information",
+  "language": "en"
 }
 ```
 
@@ -130,25 +126,34 @@ Analyzes user answers and returns AI-powered career recommendation.
 ```json
 {
   "recommendation": {
-    "title": "Software Engineer",
+    "title": "Data Analyst",
     "description": "...",
     "matchScore": 92,
     "skills": ["Problem Solving", "..."],
-    "salary": "$100,000 - $150,000",
-    "growth": "22% growth expected"
+    "salary": "₹6 LPA - ₹12 LPA",
+    "growth": "Strong demand in Indian tech sector"
   }
 }
 ```
 
+### POST `/courses`
+Returns course recommendations for a career.
+
+### POST `/jobs`
+Returns job recommendations for a career.
+
+### POST `/local-industries`
+Returns thriving industries near a location.
+
+### POST `/jobs-by-distance`
+Returns jobs sorted by distance from user's location.
+
+### POST `/account/delete`
+Deletes user account from Cognito and DynamoDB (requires auth token).
+
 ## Notes
 
-- Questions use a 1-5 scale where:
-  - 1 = Strongly Disagree
-  - 2 = Disagree
-  - 3 = Neutral
-  - 4 = Agree
-  - 5 = Strongly Agree
-
-- After completing all questions, users can optionally add additional information
-- The AI analysis uses OpenAI's GPT model configured via `OPENAI_MODEL` (defaults to `gpt-4.1-mini`)
-- Make sure your OpenAI API key has sufficient credits
+- Questions use a 1-5 scale (Strongly Disagree to Strongly Agree)
+- Supports 13 Indian languages (Hindi, Tamil, Telugu, etc.)
+- 3-tier caching: sessionStorage → DynamoDB → LLM fallback
+- AI analysis uses OpenAI GPT model (configurable via `OPENAI_MODEL`)
