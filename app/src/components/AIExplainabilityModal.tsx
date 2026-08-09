@@ -11,40 +11,42 @@ export function AIExplainabilityModal({ onClose }: AIExplainabilityModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl border border-purple-900/40 bg-[#111111] p-6 shadow-2xl"
+        className="relative w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl border border-purple-900/30 bg-[#0c0c0c] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-white"
-          aria-label={tr("ai.close", "Close")}
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        <div className="space-y-5">
-          {/* Header */}
+        {/* Header */}
+        <div className="sticky top-0 bg-[#0c0c0c] border-b border-purple-900/20 px-5 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-900/30 rounded-lg">
-              <Brain className="w-6 h-6 text-purple-300" />
+            <div className="p-2 bg-purple-600/15 rounded-xl">
+              <Brain className="w-5 h-5 text-purple-400" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">
+              <h2 className="text-base font-semibold text-white">
                 {tr("ai.title", "How AI is Used")}
               </h2>
-              <p className="text-body-xs text-gray-400">
+              <p className="text-xs text-gray-500">
                 {tr("common.brand", "skillsmatch4u")}
               </p>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            aria-label={tr("ai.close", "Close")}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
 
+        {/* Content */}
+        <div className="px-5 py-5 space-y-5">
           {/* Description */}
-          <p className="text-body-sm text-gray-300">
+          <p className="text-sm text-gray-400 leading-relaxed">
             {tr(
               "ai.description",
               "SkillsMatch4U uses artificial intelligence to provide personalized career guidance for students based on their interests, aptitudes, and preferences."
@@ -52,58 +54,58 @@ export function AIExplainabilityModal({ onClose }: AIExplainabilityModalProps) {
           </p>
 
           {/* How it works */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-white">
-              {tr("ai.howItWorksTitle", "How it works:")}
+          <div>
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
+              {tr("ai.howItWorksTitle", "How it works")}
             </h3>
 
-            <div className="space-y-3">
-              <div className="flex gap-3 items-start">
-                <div className="p-1.5 bg-purple-900/20 rounded-md shrink-0 mt-0.5">
-                  <Brain className="w-4 h-4 text-purple-300" />
+            <div className="space-y-4">
+              <div className="flex gap-3">
+                <div className="w-8 h-8 bg-purple-600/10 rounded-lg flex items-center justify-center shrink-0">
+                  <Brain className="w-4 h-4 text-purple-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">
+                  <p className="text-sm font-medium text-white mb-0.5">
                     {tr("ai.feature1Title", "Quiz Analysis")}
                   </p>
-                  <p className="text-body-xs text-gray-400">
+                  <p className="text-xs text-gray-500 leading-relaxed">
                     {tr(
                       "ai.feature1Body",
-                      "Your quiz responses (interest and aptitude ratings on a 1–5 scale) are processed by an AI language model to identify a career path that matches your strengths and preferences."
+                      "Your quiz responses are processed by AI to identify a career path that matches your strengths and preferences."
                     )}
                   </p>
                 </div>
               </div>
 
-              <div className="flex gap-3 items-start">
-                <div className="p-1.5 bg-purple-900/20 rounded-md shrink-0 mt-0.5">
-                  <BookOpen className="w-4 h-4 text-purple-300" />
+              <div className="flex gap-3">
+                <div className="w-8 h-8 bg-purple-600/10 rounded-lg flex items-center justify-center shrink-0">
+                  <BookOpen className="w-4 h-4 text-purple-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">
+                  <p className="text-sm font-medium text-white mb-0.5">
                     {tr("ai.feature2Title", "Course & Job Matching")}
                   </p>
-                  <p className="text-body-xs text-gray-400">
+                  <p className="text-xs text-gray-500 leading-relaxed">
                     {tr(
                       "ai.feature2Body",
-                      "Based on your career match, the AI generates relevant course recommendations from vocational and online learning platforms, along with entry-level job opportunities."
+                      "Based on your career match, AI recommends relevant courses and entry-level job opportunities."
                     )}
                   </p>
                 </div>
               </div>
 
-              <div className="flex gap-3 items-start">
-                <div className="p-1.5 bg-purple-900/20 rounded-md shrink-0 mt-0.5">
-                  <MapPin className="w-4 h-4 text-purple-300" />
+              <div className="flex gap-3">
+                <div className="w-8 h-8 bg-purple-600/10 rounded-lg flex items-center justify-center shrink-0">
+                  <MapPin className="w-4 h-4 text-purple-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">
+                  <p className="text-sm font-medium text-white mb-0.5">
                     {tr("ai.feature3Title", "Location-Aware Suggestions")}
                   </p>
-                  <p className="text-body-xs text-gray-400">
+                  <p className="text-xs text-gray-500 leading-relaxed">
                     {tr(
                       "ai.feature3Body",
-                      "When you provide your location, the AI identifies local industries and nearby job opportunities relevant to your career match."
+                      "When you share your location, AI identifies nearby industries and job opportunities."
                     )}
                   </p>
                 </div>
@@ -112,27 +114,18 @@ export function AIExplainabilityModal({ onClose }: AIExplainabilityModalProps) {
           </div>
 
           {/* Disclaimer */}
-          <div className="rounded-lg border border-purple-900/30 bg-purple-950/20 p-4">
-            <div className="flex gap-2 items-start">
-              <ShieldCheck className="w-4 h-4 text-purple-300 shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <p className="text-body-xs text-gray-300">
-                  {tr(
-                    "ai.disclaimer1",
-                    "AI provides suggestions only — it does not make decisions for you."
-                  )}
+          <div className="rounded-xl bg-[#111] border border-gray-800/50 p-4">
+            <div className="flex gap-3">
+              <ShieldCheck className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+              <div className="space-y-2">
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  <span className="text-gray-300 font-medium">AI provides suggestions only</span> — it does not make decisions for you.
                 </p>
-                <p className="text-body-xs text-gray-300">
-                  {tr(
-                    "ai.disclaimer2",
-                    "Your quiz responses are processed in real-time and are not stored by the AI service or used to train any AI model."
-                  )}
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Your responses are processed in real-time and <span className="text-gray-300 font-medium">not stored</span> by the AI service.
                 </p>
-                <p className="text-body-xs text-gray-300">
-                  {tr(
-                    "ai.disclaimer3",
-                    "Recommendations are generated based on patterns in your responses, not on personal identity data."
-                  )}
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Recommendations are based on <span className="text-gray-300 font-medium">response patterns</span>, not personal identity data.
                 </p>
               </div>
             </div>

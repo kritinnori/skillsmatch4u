@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ExternalLink, BookOpen, Briefcase, RefreshCw, CheckCircle2, Circle, MapPin } from "lucide-react";
+import { ExternalLink, BookOpen, Briefcase, RefreshCw, CheckCircle2, Circle, MapPin, ArrowLeft } from "lucide-react";
 import type { AuthUser } from "../lib/auth";
 import { PageHeader } from "./layout/PageHeader";
 import { Button } from "./ui/button";
@@ -20,7 +20,6 @@ interface DashboardPageProps {
   onHome?: () => void;
   onRetakeQuiz: () => void;
   onShowOpportunities?: () => void;
-  onLoginRequired?: () => void;
   onGoToCourses?: () => void;
   onChangeLocation?: () => void;
 }
@@ -32,7 +31,6 @@ export function DashboardPage({
   onHome,
   onRetakeQuiz,
   onShowOpportunities,
-  onLoginRequired,
   onGoToCourses,
   onChangeLocation,
 }: DashboardPageProps) {
@@ -106,30 +104,36 @@ export function DashboardPage({
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white">
+    <div className="min-h-screen bg-[#050505] text-white overflow-x-hidden">
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_bottom_left,rgba(126,34,206,0.28),transparent_42%)]" />
       <div className="relative z-10">
         <PageHeader
           brand={brand}
-          onBack={onBack}
-          backLabel={t("common.goBack", { defaultValue: "Go back" })}
-          title={t("dashboard.title", { defaultValue: "My Dashboard" })}
           user={user}
           onSignOut={onSignOut}
           onHome={onHome}
           onShowOpportunities={onShowOpportunities}
-          onLoginRequired={onLoginRequired}
+          onDashboard={undefined}
           sticky
         />
 
-        <main className="max-w-6xl mx-auto px-4 md:px-8 py-8 pb-16 space-y-8">
+        <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+          {/* Back link */}
+          <button
+            onClick={onBack}
+            className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            {t("common.goBack", { defaultValue: "Go back" })}
+          </button>
+
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <div className="w-8 h-8 border-4 border-purple-900/40 border-t-purple-500 rounded-full animate-spin" />
             </div>
           ) : !progress || !progress.career_title ? (
-            <div className="text-center bg-[#111111] rounded-xl border border-purple-900/40 p-10 shadow-sm">
-              <p className="text-lg text-gray-300 mb-6">
+            <div className="text-center bg-[#111111] rounded-2xl border border-purple-900/40 p-8 sm:p-10">
+              <p className="text-base text-gray-300 mb-6">
                 {t("dashboard.noResultsYet", {
                   defaultValue: "You haven't completed a career assessment yet.",
                 })}
@@ -143,45 +147,52 @@ export function DashboardPage({
             </div>
           ) : (
             <>
-              <div className="bg-[#111111] rounded-xl overflow-hidden shadow-lg border border-purple-900/40">
-                <div className="bg-gradient-to-r from-purple-800 to-purple-950 px-6 md:px-10 py-8 text-white">
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                      <p className="text-body-sm font-semibold opacity-90 mb-2 uppercase tracking-wide">
-                        {t("dashboard.currentMatch", { defaultValue: "Your Current Career Match" })}
+              {/* Career Match Card */}
+              <div className="bg-[#111111] rounded-2xl overflow-hidden border border-purple-900/40">
+                <div className="bg-gradient-to-r from-purple-800 to-purple-950 px-5 sm:px-6 py-5 sm:py-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-purple-200 uppercase tracking-wide mb-1">
+                        {t("dashboard.currentMatch", { defaultValue: "Your Career Match" })}
                       </p>
-                      <h2 className="text-2xl md:text-3xl font-bold">{progress.career_title}</h2>
+                      <h1 className="text-xl sm:text-2xl font-bold text-white">{progress.career_title}</h1>
                     </div>
-                    <div className="text-right">
-                      <span className="text-3xl md:text-4xl font-bold">
+                    <div className="text-right shrink-0">
+                      <span className="text-3xl sm:text-4xl font-bold text-white">
                         {progress.career_match_score}%
                       </span>
                     </div>
                   </div>
                 </div>
-                <div className="px-6 md:px-10 py-6 space-y-4">
-                  <p className="text-body-sm text-gray-300 leading-relaxed">
+                
+                <div className="p-5 sm:p-6 space-y-4">
+                  <p className="text-sm text-gray-300 leading-relaxed">
                     {progress.career_description}
                   </p>
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="rounded-lg border border-purple-900/40 bg-[#1a1a1a] p-4">
-                      <p className="text-body-xs font-semibold text-gray-400 uppercase mb-1">
+                  
+                  {/* Salary & Growth */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="rounded-xl bg-[#0a0a0a] border border-purple-900/30 p-4">
+                      <p className="text-xs font-medium text-gray-500 uppercase mb-1">
                         {t("results.salaryRange", { defaultValue: "Salary Range" })}
                       </p>
-                      <p className="font-bold text-white">{progress.career_salary}</p>
+                      <p className="text-base font-semibold text-white">{progress.career_salary}</p>
                     </div>
-                    <div className="rounded-lg border border-purple-900/40 bg-[#1a1a1a] p-4">
-                      <p className="text-body-xs font-semibold text-gray-400 uppercase mb-1">
+                    <div className="rounded-xl bg-[#0a0a0a] border border-purple-900/30 p-4">
+                      <p className="text-xs font-medium text-gray-500 uppercase mb-1">
                         {t("results.jobGrowth", { defaultValue: "Job Growth" })}
                       </p>
-                      <p className="font-bold text-white">{progress.career_growth}</p>
+                      <p className="text-sm font-semibold text-white">{progress.career_growth}</p>
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-3">
+                  
+                  {/* Action buttons */}
+                  <div className="flex flex-wrap gap-2 pt-2">
                     <Button
                       onClick={onRetakeQuiz}
                       variant="outline"
-                      className="border-purple-900/50 bg-[#0b0b0b] text-white hover:bg-purple-950/50"
+                      size="sm"
+                      className="border-purple-900/50 bg-transparent text-gray-300 hover:bg-purple-950/50 hover:text-white"
                     >
                       <RefreshCw className="w-4 h-4" />
                       {t("dashboard.retakeQuiz", { defaultValue: "Retake Assessment" })}
@@ -190,7 +201,8 @@ export function DashboardPage({
                       <Button
                         onClick={onChangeLocation}
                         variant="outline"
-                        className="border-purple-900/50 bg-[#0b0b0b] text-white hover:bg-purple-950/50"
+                        size="sm"
+                        className="border-purple-900/50 bg-transparent text-gray-300 hover:bg-purple-950/50 hover:text-white"
                       >
                         <MapPin className="w-4 h-4" />
                         {t("dashboard.changeLocation", { defaultValue: "Change Location" })}
@@ -200,214 +212,146 @@ export function DashboardPage({
                 </div>
               </div>
 
-              <div className="grid sm:grid-cols-3 gap-4">
-                <div className="bg-[#111111] rounded-xl p-5 border border-purple-900/40 flex items-center gap-4">
-                  <div className="p-3 bg-green-900/30 rounded-lg">
-                    <CheckCircle2 className="w-6 h-6 text-green-400" />
+              {/* Progress Stats */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-[#111111] rounded-xl p-4 border border-purple-900/40 text-center">
+                  <div className="w-10 h-10 mx-auto mb-2 bg-green-900/30 rounded-full flex items-center justify-center">
+                    <CheckCircle2 className="w-5 h-5 text-green-400" />
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold text-white">{completedCourses.length}</p>
-                    <p className="text-body-sm text-gray-400">
-                      {t("dashboard.coursesFinished", { defaultValue: "Courses Finished" })}
-                    </p>
-                  </div>
+                  <p className="text-2xl font-bold text-white">{completedCourses.length}</p>
+                  <p className="text-xs text-gray-400">{t("dashboard.coursesFinished", { defaultValue: "Finished" })}</p>
                 </div>
-                <div className="bg-[#111111] rounded-xl p-5 border border-purple-900/40 flex items-center gap-4">
-                  <div className="p-3 bg-purple-900/30 rounded-lg">
-                    <BookOpen className="w-6 h-6 text-purple-300" />
+                <div className="bg-[#111111] rounded-xl p-4 border border-purple-900/40 text-center">
+                  <div className="w-10 h-10 mx-auto mb-2 bg-purple-900/30 rounded-full flex items-center justify-center">
+                    <BookOpen className="w-5 h-5 text-purple-300" />
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold text-white">{inProgressCourses.length}</p>
-                    <p className="text-body-sm text-gray-400">
-                      {t("dashboard.coursesInProgress", { defaultValue: "In Progress" })}
-                    </p>
-                  </div>
+                  <p className="text-2xl font-bold text-white">{inProgressCourses.length}</p>
+                  <p className="text-xs text-gray-400">{t("dashboard.coursesInProgress", { defaultValue: "In Progress" })}</p>
                 </div>
-                <div className="bg-[#111111] rounded-xl p-5 border border-purple-900/40 flex items-center gap-4">
-                  <div className="p-3 bg-purple-900/30 rounded-lg">
-                    <Briefcase className="w-6 h-6 text-purple-300" />
+                <div className="bg-[#111111] rounded-xl p-4 border border-purple-900/40 text-center">
+                  <div className="w-10 h-10 mx-auto mb-2 bg-purple-900/30 rounded-full flex items-center justify-center">
+                    <Briefcase className="w-5 h-5 text-purple-300" />
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold text-white">{exploredJobs.length}</p>
-                    <p className="text-body-sm text-gray-400">
-                      {t("dashboard.jobsSaved", { defaultValue: "Jobs Explored" })}
-                    </p>
-                  </div>
+                  <p className="text-2xl font-bold text-white">{exploredJobs.length}</p>
+                  <p className="text-xs text-gray-400">{t("dashboard.jobsSaved", { defaultValue: "Jobs Explored" })}</p>
                 </div>
               </div>
 
+              {/* Recommended Courses */}
               <section className="space-y-4">
-                <h3 className="text-h4 font-bold text-white">
-                  {t("dashboard.yourCoursesSection", { defaultValue: "Your Courses" })}
-                </h3>
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-green-400" />
-                      <h4 className="text-sm font-bold text-green-400 uppercase tracking-wide">
-                        {t("dashboard.finished", { defaultValue: "Finished" })}
-                      </h4>
-                    </div>
-                    {completedCourses.length === 0 ? (
-                      <p className="text-body-xs text-gray-500">
-                        {t("dashboard.noFinished", { defaultValue: "Nothing finished yet." })}
-                      </p>
-                    ) : (
-                      completedCourses.map((course, i) => (
-                        <div key={i} className="rounded-lg border border-green-900/40 bg-green-950/20 p-3">
-                          <a
-                            href={course.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-semibold text-white hover:text-green-300 text-sm flex items-center justify-between gap-2"
-                          >
-                            {course.title}
-                            <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                          </a>
-                          {course.provider && (
-                            <p className="text-body-xs text-gray-400 mt-0.5">{course.provider}</p>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => handleUnmarkComplete(course.title)}
-                            className="text-body-xs text-gray-500 hover:text-gray-300 mt-2 underline"
-                          >
-                            {t("dashboard.undoComplete", { defaultValue: "Undo" })}
-                          </button>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-white">
+                    {t("dashboard.recommendedCourses", { defaultValue: "Recommended Courses" })}
+                  </h2>
+                  {onGoToCourses && (
+                    <Button
+                      onClick={onGoToCourses}
+                      size="sm"
+                      className="bg-purple-700 hover:bg-purple-600 text-white font-semibold"
+                    >
+                      {t("dashboard.goToCourses", { defaultValue: "Browse All Courses" })}
+                    </Button>
+                  )}
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {completedCourses.length === 0 && inProgressCourses.length === 0 && notStartedCourses.length === 0 ? (
+                    <p className="text-sm text-gray-500 col-span-full">
+                      {t("dashboard.noRecommendedCourses", { defaultValue: "No course recommendations yet." })}
+                    </p>
+                  ) : (
+                    <>
+                      {completedCourses.map((course, i) => (
+                        <div key={`done-${i}`} className="flex items-center gap-3 p-4 rounded-xl bg-green-950/20 border border-green-900/40">
+                          <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <a href={course.url} target="_blank" rel="noopener noreferrer" className="font-medium text-white hover:text-green-300 text-sm flex items-center gap-2">
+                              <span className="truncate">{course.title}</span>
+                              <ExternalLink className="w-3.5 h-3.5 shrink-0 opacity-60" />
+                            </a>
+                            {course.provider && <p className="text-xs text-gray-500 truncate">{course.provider}</p>}
+                          </div>
+                          <button type="button" onClick={() => handleUnmarkComplete(course.title)} className="text-xs text-gray-500 hover:text-gray-300 shrink-0">Undo</button>
                         </div>
-                      ))
-                    )}
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <BookOpen className="w-4 h-4 text-purple-300" />
-                      <h4 className="text-sm font-bold text-purple-300 uppercase tracking-wide">
-                        {t("dashboard.inProgress", { defaultValue: "In Progress" })}
-                      </h4>
-                    </div>
-                    {inProgressCourses.length === 0 ? (
-                      <p className="text-body-xs text-gray-500">
-                        {t("dashboard.noInProgress", { defaultValue: "Nothing in progress." })}
-                      </p>
-                    ) : (
-                      inProgressCourses.map((course, i) => (
-                        <div key={i} className="rounded-lg border border-purple-900/40 bg-[#111111] p-3">
-                          <a
-                            href={course.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-semibold text-white hover:text-purple-300 text-sm flex items-center justify-between gap-2"
-                          >
-                            {course.title}
-                            <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                          </a>
-                          {course.provider && (
-                            <p className="text-body-xs text-gray-400 mt-0.5">{course.provider}</p>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => handleMarkComplete(course)}
-                            className="flex items-center gap-1 text-body-xs text-purple-300 hover:text-purple-200 mt-2"
-                          >
-                            <Circle className="w-3 h-3" />
-                            {t("dashboard.markComplete", { defaultValue: "Mark as Complete" })}
-                          </button>
+                      ))}
+                      
+                      {inProgressCourses.map((course, i) => (
+                        <div key={`prog-${i}`} className="flex items-center gap-3 p-4 rounded-xl bg-[#111111] border border-purple-900/40">
+                          <div className="w-5 h-5 rounded-full border-2 border-purple-400 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <a href={course.url} target="_blank" rel="noopener noreferrer" className="font-medium text-white hover:text-purple-300 text-sm flex items-center gap-2">
+                              <span className="truncate">{course.title}</span>
+                              <ExternalLink className="w-3.5 h-3.5 shrink-0 opacity-60" />
+                            </a>
+                            {course.provider && <p className="text-xs text-gray-500 truncate">{course.provider}</p>}
+                          </div>
+                          <button type="button" onClick={() => handleMarkComplete(course)} className="text-xs text-purple-400 hover:text-purple-300 shrink-0">Mark done</button>
                         </div>
-                      ))
-                    )}
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Circle className="w-4 h-4 text-gray-500" />
-                      <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wide">
-                        {t("dashboard.notStarted", { defaultValue: "Not Started" })}
-                      </h4>
-                    </div>
-                    {notStartedCourses.length === 0 ? (
-                      <p className="text-body-xs text-gray-500">
-                        {t("dashboard.noRecommendedCourses", { defaultValue: "No course recommendations yet." })}
-                      </p>
-                    ) : (
-                      notStartedCourses.map((course, i) => (
-                        <div key={i} className="rounded-lg border border-purple-900/40 bg-[#0b0b0b] p-3">
-                          <a
-                            href={course.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={() => handleStartCourse(course)}
-                            className="font-semibold text-gray-300 hover:text-white text-sm flex items-center justify-between gap-2"
-                          >
-                            {course.title}
-                            <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                          </a>
-                          <p className="text-body-xs text-gray-500 mt-0.5">{course.provider}</p>
+                      ))}
+                      
+                      {notStartedCourses.map((course, i) => (
+                        <div key={`new-${i}`} className="flex items-center gap-3 p-4 rounded-xl bg-[#0a0a0a] border border-purple-900/30">
+                          <Circle className="w-5 h-5 text-gray-600 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <a href={course.url} target="_blank" rel="noopener noreferrer" onClick={() => handleStartCourse(course)} className="font-medium text-gray-300 hover:text-white text-sm flex items-center gap-2">
+                              <span className="truncate">{course.title}</span>
+                              <ExternalLink className="w-3.5 h-3.5 shrink-0 opacity-60" />
+                            </a>
+                            {course.provider && <p className="text-xs text-gray-500 truncate">{course.provider}</p>}
+                          </div>
                         </div>
-                      ))
-                    )}
-                  </div>
+                      ))}
+                    </>
+                  )}
                 </div>
               </section>
 
+              {/* Job Opportunities */}
               <section className="space-y-4">
-                <h3 className="text-h4 font-bold text-white">
-                  {t("dashboard.bestJobOpportunities", { defaultValue: "Best Job Opportunities for This Career" })}
-                </h3>
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[
-                    ...exploredJobs.map((j) => ({ ...j, explored: true })),
-                    ...notExploredJobs.map((j) => ({ ...j, explored: false })),
-                  ]
-                    .slice(0, 6)
-                    .map((job, i) => (
-                      <a
-                        key={i}
-                        href={job.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => !job.explored && handleExploreJob(job)}
-                        className={`group rounded-xl border p-4 transition-colors ${
-                          job.explored
-                            ? "border-purple-500 bg-purple-950/20"
-                            : "border-purple-900/40 bg-[#111111] hover:border-purple-500"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <p className="font-semibold text-white group-hover:text-purple-300 text-sm">
-                            {job.title}
-                          </p>
-                          <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-purple-300 shrink-0" />
-                        </div>
-                        {job.company && (
-                          <p className="text-body-xs text-gray-400 mt-1">{job.company}</p>
-                        )}
-                        {job.explored && (
-                          <span className="text-body-xs text-purple-300 mt-2 inline-block">
-                            {t("dashboard.explored", { defaultValue: "Explored" })}
-                          </span>
-                        )}
-                      </a>
-                    ))}
-                </div>
-                {exploredJobs.length === 0 && notExploredJobs.length === 0 && (
-                  <p className="text-body-sm text-gray-400">
+                <h2 className="text-lg font-bold text-white">
+                  {t("dashboard.bestJobOpportunities", { defaultValue: "Job Opportunities for This Career" })}
+                </h2>
+                
+                {exploredJobs.length === 0 && notExploredJobs.length === 0 ? (
+                  <p className="text-sm text-gray-500">
                     {t("dashboard.noRecommendedJobs", { defaultValue: "No job recommendations yet." })}
                   </p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {[
+                      ...exploredJobs.map((j) => ({ ...j, explored: true })),
+                      ...notExploredJobs.map((j) => ({ ...j, explored: false })),
+                    ]
+                      .slice(0, 6)
+                      .map((job, i) => (
+                        <a
+                          key={i}
+                          href={job.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => !job.explored && handleExploreJob(job)}
+                          className={`group rounded-xl border p-4 transition-colors ${
+                            job.explored
+                              ? "border-purple-500/50 bg-purple-950/20"
+                              : "border-purple-900/40 bg-[#111111] hover:border-purple-500/50"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium text-white group-hover:text-purple-300 text-sm truncate">
+                                {job.title}
+                              </p>
+                              {job.company && (
+                                <p className="text-xs text-gray-500 mt-0.5 truncate">{job.company}</p>
+                              )}
+                            </div>
+                            <ExternalLink className="w-4 h-4 text-gray-500 group-hover:text-purple-300 shrink-0" />
+                          </div>
+                        </a>
+                      ))}
+                  </div>
                 )}
               </section>
-
-              {onGoToCourses && (
-                <div className="flex justify-center pt-4">
-                  <Button
-                    onClick={onGoToCourses}
-                    size="lg"
-                    className="bg-purple-700 hover:bg-purple-600 text-white font-bold px-10 py-6 text-lg shadow-lg"
-                  >
-                    {t("dashboard.goToCourses", { defaultValue: "Go to Courses" })}
-                  </Button>
-                </div>
-              )}
             </>
           )}
         </main>

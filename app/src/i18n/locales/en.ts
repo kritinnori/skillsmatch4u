@@ -115,7 +115,7 @@ const translations = {
     hasAccount: "Already have an account?",
     signedIn: "Signed in successfully.",
     accountCreated: "Success! Account created. Please sign in.",
-    accountDoesNotExist: "Sorry, account does not exist. Please create an account.",
+    accountDoesNotExist: "Sorry, account does not exist or incorrect password. Please check your credentials.",
     accountAlreadyExists: "Account already exists. Please sign in.",
     genericError: "Something went wrong. Please try again.",
   },
