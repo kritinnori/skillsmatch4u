@@ -17,6 +17,7 @@ export interface UserProgress {
   career_growth: string | null;
   career_description: string | null;
   career_skills: string[];
+  career_it_domain: string | null;
   courses_clicked: ClickedItem[];
   jobs_clicked: ClickedItem[];
   courses_completed: ClickedItem[];
@@ -52,6 +53,7 @@ export async function saveCareerResult(_userId: string, career: CareerCore) {
         career_growth: career.growth,
         career_description: career.description,
         career_skills: career.skills,
+        career_it_domain: career.itDomain || null,
         quiz_completed_at: new Date().toISOString(),
       }),
     });
@@ -146,6 +148,7 @@ export async function fetchUserProgress(_userId: string): Promise<UserProgress |
       career_growth: data.career_growth ?? null,
       career_description: data.career_description ?? null,
       career_skills: data.career_skills ?? [],
+      career_it_domain: data.career_it_domain ?? null,
       courses_clicked: data.courses_clicked ?? [],
       jobs_clicked: data.jobs_clicked ?? [],
       courses_completed: data.courses_completed ?? [],

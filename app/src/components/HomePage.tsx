@@ -191,6 +191,16 @@ export function HomePage({ onStartQuiz, onLogin, onDashboard, onShowOpportunitie
 
           {/* Mobile actions */}
           <div className="flex md:hidden items-center gap-2 shrink-0">
+            {/* AI badge - always visible */}
+            <button
+              type="button"
+              onClick={() => setShowAIModal(true)}
+              className="flex w-8 h-8 items-center justify-center text-purple-300 hover:bg-purple-900/30 active:bg-purple-900/50 rounded-lg transition-colors border border-purple-700/60 text-[10px] font-bold"
+              aria-label={t("ai.title", { defaultValue: "How AI is Used" })}
+            >
+              AI
+            </button>
+
             {/* Sign in (when not logged in) */}
             {!user && (
               <Button
@@ -440,7 +450,7 @@ export function HomePage({ onStartQuiz, onLogin, onDashboard, onShowOpportunitie
                 {t("home.faq3Q", { defaultValue: "What happens after I complete the assessment?" })}
               </h3>
               <p className="text-sm sm:text-base text-gray-400">
-                {t("home.faq3A", { defaultValue: "You'll get your top career match with a compatibility score, recommended courses from platforms like Coursera and IBM SkillsBuild, and relevant job opportunities." })}
+                {t("home.faq3A", { defaultValue: "You'll get your top career match with a compatibility score, recommended courses from top platforms, and relevant job opportunities." })}
               </p>
             </div>
 

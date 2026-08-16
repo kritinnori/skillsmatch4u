@@ -76,11 +76,14 @@ interface QuestionRow {
 // --- Helpers ---
 
 function answerLabel(answer: number): string {
-  if (answer === 1) return "Strongly Disagree";
-  if (answer === 2) return "Disagree";
-  if (answer === 3) return "Neutral";
-  if (answer === 4) return "Agree";
-  if (answer === 5) return "Strongly Agree";
+  // 7-point curiosity/interest scale
+  if (answer === 1) return "Not at all interested";
+  if (answer === 2) return "Not really interested";
+  if (answer === 3) return "A little interested";
+  if (answer === 4) return "Neutral";
+  if (answer === 5) return "Interested";
+  if (answer === 6) return "Very curious";
+  if (answer === 7) return "Would love to know more";
   return "Unknown";
 }
 
@@ -89,18 +92,22 @@ function formatQuizResponses(
   questions: AnswerQuestion[],
   additionalInfo?: string
 ): string {
-  let section = `The user answered questions on a scale of 1-5 where:
-- 1 = Strongly Disagree
-- 2 = Disagree
-- 3 = Neutral
-- 4 = Agree
-- 5 = Strongly Agree
+  let section = `The user answered questions on a 7-point INTEREST/CURIOSITY scale where:
+- 1 = Not at all interested (no interest in this area)
+- 2 = Not really interested (minimal interest)
+- 3 = A little interested (slight curiosity)
+- 4 = Neutral (undecided)
+- 5 = Interested (some genuine interest)
+- 6 = Very curious (strong interest)
+- 7 = Would love to know more (highest interest/passion)
 
-Here are the questions and answers:\n\n`;
+IMPORTANT: Higher scores (5, 6, 7) indicate STRONG INTEREST in that topic area. Use these to determine which IT domain aligns with the student's passions.
+
+Here are the questions and the student's interest level in each topic:\n\n`;
 
   questions.forEach((q, index) => {
     const answer = answers[index];
-    section += `Q${index + 1}: ${q.question}\nAnswer: ${answerLabel(answer)} (${answer}/5)\n\n`;
+    section += `Q${index + 1}: ${q.question}\nInterest Level: ${answerLabel(answer)} (${answer}/7)\n\n`;
   });
 
   if (additionalInfo && additionalInfo.trim()) {
@@ -376,26 +383,52 @@ app.post("/analyze", async (req, res) => {
     const lang = normalizeLanguage(language);
     const responses = formatQuizResponses(answers, questions, additionalInfo);
 
-    const prompt = `You are a career counselor in India analyzing a personality and career assessment quiz. Based on the user's responses, recommend the most suitable job profile for the Indian job market.
+    const prompt = `You are an IT career counselor analyzing an IT Domain Assessment for Indian high school students. Based on the user's interest levels in various topics, recommend the MOST SUITABLE IT domain.
+
+The 10 IT Domains to choose from (you MUST recommend one of these):
+1. AI & Data Science - For students interested in: machine learning, artificial intelligence, data patterns, predictions, automation, statistics
+2. Data Analytics - For students interested in: data interpretation, business insights, charts/reports, Excel/dashboards, trends analysis  
+3. Software Development - For students interested in: coding, building applications, programming languages, creating software solutions
+4. Mobile Development - For students interested in: smartphone apps, mobile technology, Android/iOS development
+5. Testing & QA - For students interested in: finding bugs, quality assurance, systematic testing, attention to detail
+6. Cybersecurity - For students interested in: security, hacking prevention, protecting systems, network security, privacy
+7. Cloud & DevOps - For students interested in: servers, deployment, automation, infrastructure, cloud platforms (AWS/Azure)
+8. IT Management - For students interested in: leading teams, project management, coordination, business strategy, communication
+9. UI/UX Design - For students interested in: design, user experience, visual aesthetics, user interfaces, creativity, Figma/Photoshop
+10. IT Support - For students interested in: helping others with tech, troubleshooting, system maintenance, technical assistance
 
 ${responses}
-Based on these responses, provide a career recommendation in JSON format with the following structure:
+
+ANALYSIS INSTRUCTIONS:
+1. Look at which questions got the HIGHEST interest scores (6 or 7)
+2. Map those high-interest topics to the relevant IT domain
+3. If ALL answers are similar (like all 6s or all 7s), look for subtle differences or recommend the domain most aligned with the question topics
+4. DO NOT default to UI/UX Design - only recommend it if the student shows strong interest in design/creativity questions
+
+Provide your recommendation in JSON format:
 {
-  "title": "Job Title",
-  "description": "Detailed description explaining why this career matches the user's personality and preferences (2-3 sentences)",
+  "itDomain": "EXACT name from the 10 domains above",
+  "title": "Specific entry-level job title in that domain",
+  "description": "2-3 sentences explaining WHY this domain matches their interests - reference specific questions where they showed high interest",
   "matchScore": 85,
   "skills": ["Skill 1", "Skill 2", "Skill 3", "Skill 4"],
-  "salary": "Typical annual salary range in India in INR (e.g., '₹6 LPA - ₹12 LPA' or '₹8,00,000 - ₹15,00,000 per year')",
-  "growth": "Job growth outlook in India (e.g., 'Strong demand in Indian tech and services sectors')"
+  "salary": "Salary range in INR (e.g., '₹6 LPA - ₹12 LPA')",
+  "growth": "Job growth outlook in India"
 }
 
-Keep the career recommendation thoughtful and based on the response patterns. The matchScore should be between 75-98. Provide 4-6 key skills.
+CRITICAL RULES:
+- The "itDomain" must be EXACTLY one of the 10 domain names listed (e.g., "AI & Data Science", "Software Development", etc.)
+- Base your recommendation on the ACTUAL interest levels shown in the responses
+- Do NOT default to any single domain - genuinely analyze the responses
+- Reference specific high-interest answers in your description
+- Match score should be 75-98 based on how strongly responses align with the recommended domain
 
-CURRENCY RULE (strict): The "salary" value must always be in Indian Rupees, using the ₹ symbol and Indian conventions such as "LPA" (lakhs per annum) — e.g. "₹6 LPA - ₹12 LPA" or "₹8,00,000 - ₹15,00,000 per year". Never use US dollars, the "$" symbol, "USD", or any non-Indian currency anywhere in the response.
+CURRENCY: Always use Indian Rupees with ₹ symbol and LPA format.
 ${languageInstruction(lang)}
-Always return valid JSON only. Do not include courses or jobs fields in this response.`;
+Return valid JSON only.`;
 
     const recommendation = await runJsonCompletion<{
+      itDomain: string;
       title: string;
       description: string;
       matchScore: number;
@@ -404,7 +437,25 @@ Always return valid JSON only. Do not include courses or jobs fields in this res
       growth: string;
     }>(
       "POST /analyze",
-      "You are an expert career counselor in India who analyzes personality assessments and provides thoughtful, personalized career recommendations for the Indian job market. Always respond with valid JSON only.",
+      `You are an expert IT career counselor in India who analyzes interest assessments for high school students.
+
+CRITICAL: You must analyze the student's responses carefully and recommend the IT domain that BEST matches their highest interest scores. Each question corresponds to a specific IT domain category.
+
+Question-to-Domain mapping:
+- Questions about AI/ML/recommendations → AI & Data Science
+- Questions about data/patterns/analytics → Data Analytics  
+- Questions about coding/building apps → Software Development
+- Questions about mobile apps → Mobile Development
+- Questions about finding bugs/mistakes → Testing & QA
+- Questions about hacking/security → Cybersecurity
+- Questions about servers/scaling → Cloud & DevOps
+- Questions about leadership/organizing → IT Management
+- Questions about design/UI → UI/UX Design
+- Questions about fixing tech/helping → IT Support
+
+DO NOT default to UI/UX Design. Recommend based on which category questions received the HIGHEST interest scores (6 or 7 on the scale).
+
+Always respond with valid JSON only.`,
       prompt
     );
 

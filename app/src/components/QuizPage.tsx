@@ -1,10 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
-import {
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import type { Question } from "../types/question";
 import { PageHeader } from "./layout/PageHeader";
 
@@ -19,7 +16,6 @@ interface QuizPageProps {
   onBack: () => void;
 }
 
-// --- sessionStorage helpers for quiz progress ---
 function readQuizSession<T>(key: string, fallback: T): T {
   try {
     const raw = sessionStorage.getItem(key);
@@ -32,18 +28,20 @@ function readQuizSession<T>(key: string, fallback: T): T {
 export function QuizPage({ questions, onComplete, onBack, user, onSignOut, onDashboard, onShowOpportunities, onLoginRequired }: QuizPageProps) {
   const { t } = useTranslation();
 
+  // 7-point scale - "How interested/curious are you?"
   const SCALE_OPTIONS = useMemo(
     () => [
-      { value: 1, label: t("quiz.scale.stronglyDisagree") },
-      { value: 2, label: t("quiz.scale.disagree") },
-      { value: 3, label: t("quiz.scale.neutral") },
-      { value: 4, label: t("quiz.scale.agree") },
-      { value: 5, label: t("quiz.scale.stronglyAgree") },
+      { value: 1, color: "from-red-500 to-red-600", hoverBg: "hover:bg-red-500/20", activeBg: "bg-red-500", label: t("quiz.scale.notAtAll", { defaultValue: "Not at all" }) },
+      { value: 2, color: "from-orange-500 to-orange-600", hoverBg: "hover:bg-orange-500/20", activeBg: "bg-orange-500", label: t("quiz.scale.notReally", { defaultValue: "Not really" }) },
+      { value: 3, color: "from-amber-500 to-amber-600", hoverBg: "hover:bg-amber-500/20", activeBg: "bg-amber-400", label: t("quiz.scale.aLittle", { defaultValue: "A little" }) },
+      { value: 4, color: "from-gray-400 to-gray-500", hoverBg: "hover:bg-gray-500/20", activeBg: "bg-gray-400", label: t("quiz.scale.neutral") },
+      { value: 5, color: "from-lime-500 to-lime-600", hoverBg: "hover:bg-lime-500/20", activeBg: "bg-lime-500", label: t("quiz.scale.interested", { defaultValue: "Interested" }) },
+      { value: 6, color: "from-emerald-500 to-emerald-600", hoverBg: "hover:bg-emerald-500/20", activeBg: "bg-emerald-500", label: t("quiz.scale.veryCurious", { defaultValue: "Very curious" }) },
+      { value: 7, color: "from-green-500 to-green-600", hoverBg: "hover:bg-green-500/20", activeBg: "bg-green-500", label: t("quiz.scale.loveToKnow", { defaultValue: "Would love to know!" }) },
     ],
     [t]
   );
 
-  // All state initializes from sessionStorage so language changes don't wipe progress
   const [currentQuestionIndex, setCurrentQuestionIndexRaw] = useState(() =>
     readQuizSession<number>("sm_qIndex", 0)
   );
@@ -60,7 +58,6 @@ export function QuizPage({ questions, onComplete, onBack, user, onSignOut, onDas
     readQuizSession<boolean>("sm_qShowAdditional", false)
   );
 
-  // Synced setters — every write also goes to sessionStorage
   const setCurrentQuestionIndex = (i: number) => {
     sessionStorage.setItem("sm_qIndex", JSON.stringify(i));
     setCurrentQuestionIndexRaw(i);
@@ -87,7 +84,7 @@ export function QuizPage({ questions, onComplete, onBack, user, onSignOut, onDas
   const isFirstQuestion = currentQuestionIndex === 0;
   const progress = showAdditionalInfo
     ? 100
-    : ((currentQuestionIndex + 1) / questions.length) * 100;
+    : ((currentQuestionIndex) / questions.length) * 100;
 
   const handleBack = () => {
     if (showAdditionalInfo) {
@@ -105,8 +102,6 @@ export function QuizPage({ questions, onComplete, onBack, user, onSignOut, onDas
 
   const handleNext = () => {
     if (selectedAnswer === null) return;
-
-    // Write answer at current index, preserving any answers beyond it
     const newAnswers = [...answers];
     newAnswers[currentQuestionIndex] = selectedAnswer;
     setAnswers(newAnswers);
@@ -120,160 +115,164 @@ export function QuizPage({ questions, onComplete, onBack, user, onSignOut, onDas
   };
 
   const handleFinish = () => {
-    // Clear quiz session storage on finish
     ["sm_qIndex","sm_qSelected","sm_qAnswers","sm_qAdditionalInfo","sm_qShowAdditional"].forEach(k =>
       sessionStorage.removeItem(k)
     );
     onComplete(answers, additionalInfo.trim() || undefined);
   };
 
+  // Get selected option for styling
+  const selectedOption = SCALE_OPTIONS.find(o => o.value === selectedAnswer);
+
   return (
-    <div className="min-h-screen bg-[#050505] text-white overflow-x-hidden">
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_bottom_left,rgba(126,34,206,0.28),transparent_42%)]" />
+    <div className="min-h-screen bg-gradient-to-b from-[#0f0a1a] via-[#0a0a0a] to-[#0a0a0a] text-white">
+      <PageHeader 
+        user={user} 
+        onSignOut={onSignOut} 
+        onHome={onBack} 
+        onDashboard={onDashboard} 
+        onShowOpportunities={onShowOpportunities}
+        onLoginRequired={onLoginRequired}
+        brand={t("common.brand")}
+        sticky
+      />
 
-      <div className="relative z-10">
-        <PageHeader user={user} onSignOut={onSignOut} onHome={onBack} onDashboard={onDashboard} onShowOpportunities={onShowOpportunities}
-          onLoginRequired={onLoginRequired}
-          brand={t("common.brand")}
-          sticky
-        />
+      <main className="max-w-3xl mx-auto px-4 flex flex-col" style={{ minHeight: 'calc(100vh - 56px)' }}>
+        {/* Progress Bar - Thin line at top like Typeform */}
+        <div className="h-1 bg-[#1a1a2e] w-full mt-4 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-700 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
 
-        <main className="max-w-2xl mx-auto px-4 sm:px-6 py-4 md:py-8">
-          {/* Back link below header */}
+        {/* Navigation Row */}
+        <div className="flex items-center justify-between py-4">
           <button
-            onClick={onBack}
-            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors mb-4"
+            onClick={handleBack}
+            className="flex items-center gap-1 text-sm text-gray-400 hover:text-white transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
             <span>{t("common.goBack")}</span>
           </button>
+          <span className="text-sm font-medium text-purple-400">
+            {showAdditionalInfo ? questions.length : currentQuestionIndex + 1} / {questions.length}
+          </span>
+        </div>
 
-          {/* Progress bar */}
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex-1 bg-[#1a1a1a] rounded-full h-2 overflow-hidden">
-              <div
-                className="bg-purple-500 h-full transition-all duration-500 ease-out rounded-full"
-                style={{ width: `${progress}%` }}
-              />
+        {!showAdditionalInfo ? (
+          <div className="flex-1 flex flex-col justify-center py-4">
+            {/* Question - Centered */}
+            <div className="text-center px-2 mb-10 md:mb-12">
+              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white leading-snug">
+                {currentQuestion?.question}
+              </h1>
             </div>
-            <span className="text-sm font-medium text-gray-400 whitespace-nowrap">
-              {showAdditionalInfo ? questions.length : currentQuestionIndex + 1}/{questions.length}
-            </span>
-          </div>
-          <div className="bg-[#0d0d0d] rounded-2xl p-5 md:p-8 border border-purple-900/20">
-            {!showAdditionalInfo ? (
-              <div className="space-y-5 md:space-y-8">
-                <div>
-                  <h2 className="text-lg md:text-xl lg:text-2xl font-semibold text-white leading-snug">
-                    {currentQuestion.question}
-                  </h2>
-                  <p className="text-sm text-gray-500 mt-2">
-                    {t("quiz.selectHint")}
-                  </p>
-                </div>
 
-                <div className="space-y-2.5">
-                  {SCALE_OPTIONS.map((option) => (
+            {/* 7-Point Scale */}
+            <div className="space-y-4">
+              {/* Scale Labels */}
+              <div className="flex justify-between text-xs text-gray-400 px-1">
+                <span>{t("quiz.notInterested", { defaultValue: "Not interested" })}</span>
+                <span>{t("quiz.veryCurious", { defaultValue: "Very curious" })}</span>
+              </div>
+              
+              {/* Scale Buttons - Touch friendly sizes */}
+              <div className="flex items-center justify-center gap-2.5 sm:gap-3 md:gap-4">
+                {SCALE_OPTIONS.map((option, index) => {
+                  const isSelected = selectedAnswer === option.value;
+                  // Larger touch targets
+                  const sizes = [
+                    "w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16",
+                    "w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14",
+                    "w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12",
+                    "w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10",
+                    "w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12",
+                    "w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14",
+                    "w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16",
+                  ];
+                  const sizeClass = sizes[index];
+                  
+                  return (
                     <button
                       key={option.value}
                       type="button"
-                      onClick={() => setSelectedAnswer(option.value)}
-                      className={`w-full text-left px-4 py-3.5 rounded-xl border transition-all duration-200 ${
-                        selectedAnswer === option.value
-                          ? "border-purple-500 bg-purple-900/30"
-                          : "border-gray-800 bg-[#0a0a0a] hover:border-gray-600"
+                      onClick={() => setSelectedAnswer(isSelected ? null : option.value)}
+                      className={`${sizeClass} rounded-full border-2 transition-all duration-200 ${
+                        isSelected
+                          ? "bg-purple-500 border-purple-400 scale-110 shadow-lg shadow-purple-500/40"
+                          : "bg-transparent border-purple-500/50 active:scale-95 active:bg-purple-500/30"
                       }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-                            selectedAnswer === option.value
-                              ? "border-purple-500 bg-purple-600"
-                              : "border-gray-600"
-                          }`}
-                        >
-                          {selectedAnswer === option.value && (
-                            <span className="w-2 h-2 bg-white rounded-full" />
-                          )}
-                        </div>
-
-                        <span
-                          className={`text-[15px] font-medium ${
-                            selectedAnswer === option.value
-                              ? "text-white"
-                              : "text-gray-300"
-                          }`}
-                        >
-                          {option.label}
-                        </span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  {!isFirstQuestion && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleBack}
-                      className="border-gray-700 bg-transparent text-gray-300 hover:bg-gray-800 hover:text-white px-4"
-                    >
-                      <ChevronLeft className="w-4 h-4 mr-1" />
-                      {t("quiz.previous")}
-                    </Button>
-                  )}
-
-                  <Button
-                    onClick={handleNext}
-                    disabled={selectedAnswer === null}
-                    className="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-semibold py-3 disabled:opacity-40"
-                  >
-                    {t("quiz.next")}
-                    <ChevronRight className="w-4 h-4 ml-1" />
-                  </Button>
-                </div>
+                      title={option.label}
+                    />
+                  );
+                })}
               </div>
-            ) : (
-              <div className="space-y-5">
-                <div>
-                  <h2 className="text-lg md:text-xl lg:text-2xl font-semibold text-white">
-                    {t("quiz.additionalInfoTitle")}
-                  </h2>
-                  <p className="text-sm text-gray-500 mt-2">
-                    {t("quiz.additionalInfoSubtitle")}
-                  </p>
-                </div>
 
-                <textarea
-                  value={additionalInfo}
-                  onChange={(e) => setAdditionalInfo(e.target.value)}
-                  placeholder={t("quiz.additionalInfoPlaceholder")}
-                  className="w-full px-4 py-3 border border-gray-800 rounded-xl bg-[#0a0a0a] text-white text-sm placeholder:text-gray-600 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 min-h-[140px] resize-y"
-                />
-
-                <div className="flex gap-3 pt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleBack}
-                    className="border-gray-700 bg-transparent text-gray-300 hover:bg-gray-800 hover:text-white px-4"
-                  >
-                    <ChevronLeft className="w-4 h-4 mr-1" />
-                    {t("quiz.previous")}
-                  </Button>
-                  <Button
-                    onClick={handleFinish}
-                    className="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-semibold"
-                  >
-                    {t("quiz.finish")}
-                  </Button>
-                </div>
+              {/* Selected Label */}
+              <div className="h-6 text-center">
+                {selectedOption && (
+                  <span className="text-sm font-medium text-purple-400">
+                    {selectedOption.label}
+                  </span>
+                )}
               </div>
-            )}
+            </div>
+
+            {/* Next Button */}
+            <div className="flex justify-center mt-10 md:mt-12">
+              <Button
+                onClick={handleNext}
+                disabled={selectedAnswer === null}
+                className={`px-10 py-3 text-base font-semibold rounded-full transition-all duration-200 ${
+                  selectedAnswer !== null
+                    ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/25 active:scale-95"
+                    : "bg-[#2a2a3e] text-gray-400 border border-gray-600 cursor-not-allowed"
+                }`}
+              >
+                {isLastQuestion ? t("quiz.finish", { defaultValue: "Finish" }) : t("quiz.next")}
+                <ChevronRight className="w-5 h-5 ml-2" />
+              </Button>
+            </div>
           </div>
-        </main>
-      </div>
+        ) : (
+          /* Final Step */
+          <div className="max-w-xl mx-auto space-y-8">
+            <div className="text-center">
+              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                <span className="text-3xl">🎯</span>
+              </div>
+              <h1 className="text-2xl md:text-3xl font-bold text-white">
+                {t("quiz.almostThere", { defaultValue: "Almost there!" })}
+              </h1>
+              <p className="text-gray-400 mt-3 text-lg">
+                {t("quiz.additionalInfoSubtitle")}
+              </p>
+            </div>
+
+            <textarea
+              value={additionalInfo}
+              onChange={(e) => setAdditionalInfo(e.target.value)}
+              placeholder={t("quiz.additionalInfoPlaceholder")}
+              className="w-full px-5 py-4 border-2 border-[#2a2a3e] rounded-2xl bg-[#111118] text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500 min-h-[140px] resize-none text-base transition-colors"
+            />
+
+            <p className="text-sm text-gray-500 text-center">
+              {t("quiz.optionalSkip", { defaultValue: "This is optional - feel free to skip" })}
+            </p>
+
+            <div className="flex justify-center">
+              <Button
+                onClick={handleFinish}
+                className="px-12 py-4 text-base font-semibold rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/25"
+              >
+                {t("quiz.seeResults", { defaultValue: "See My Results" })}
+                <Sparkles className="w-5 h-5 ml-2" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 }

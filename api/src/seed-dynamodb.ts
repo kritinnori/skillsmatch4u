@@ -20,44 +20,73 @@ const docClient = DynamoDBDocumentClient.from(client, {
 const TABLE_NAME =
   process.env.DYNAMODB_QUESTIONS_TABLE || "skillsmatch4u-questions";
 
-// --- Questions data (same as seed-auto.ts) ---
+// --- IT Domain Assessment Questions (12 questions) ---
+// Professional SaaS-style interest inventory format
+// Based on Holland RIASEC methodology with Likert scale
+// Covers 10 IT domains: AI, Data Analytics, Software Dev, Mobile, Testing, 
+// Cybersecurity, Cloud/DevOps, Management, UI/UX Design, IT Support
 
 const questions = [
-  // Interests
-  { question: "I enjoy figuring out how things work.", category: "Interests" },
-  { question: "I like working with numbers, data, or logical problems.", category: "Interests" },
-  { question: "I enjoy creative activities like writing, art, music, or design.", category: "Interests" },
-  { question: "I like helping people solve personal or emotional problems.", category: "Interests" },
-  { question: "I enjoy leading group activities or influencing others.", category: "Interests" },
-  { question: "I like organizing information, schedules, or systems.", category: "Interests" },
-  { question: "I enjoy building, fixing, or working with physical objects.", category: "Interests" },
-  { question: "I like researching topics deeply before forming opinions.", category: "Interests" },
-  { question: "I enjoy presenting ideas or speaking in front of others.", category: "Interests" },
-  { question: "I prefer structured tasks over open-ended creative ones", category: "Interests" },
-
-  // Strengths
-  { question: "I learn new technologies or tools quickly.", category: "Strengths" },
-  { question: "I am good at explaining complex ideas in simple ways.", category: "Strengths" },
-  { question: "I can stay focused on difficult tasks for long periods of time.", category: "Strengths" },
-  { question: "I usually notice patterns or trends that others miss.", category: "Strengths" },
-
-  // Personality
-  { question: "I prefer working independently rather than in groups.", category: "Personality" },
-  { question: "I feel energized after interacting with many people.", category: "Personality" },
-  { question: "I like having clear instructions rather than vague goals.", category: "Personality" },
-  { question: "I am comfortable taking risks if the reward is meaningful.", category: "Personality" },
-  { question: "I get stressed when things are unorganized.", category: "Personality" },
-  { question: "I prefer stability over frequent change.", category: "Personality" },
-  { question: "I enjoy competing with others to be the best.", category: "Personality" },
-  { question: "I value work that feels meaningful more than high salary alone.", category: "Personality" },
-  { question: "I stay calm even when deadlines are tight.", category: "Personality" },
-  { question: "I like having freedom to choose how I complete tasks.", category: "Personality" },
-  { question: "I am good at planning ahead rather than improvising.", category: "Personality" },
-  { question: "I feel confident solving unfamiliar problems.", category: "Personality" },
-  { question: "People often rely on me when something needs to be done correctly.", category: "Personality" },
-  { question: "I adapt quickly when situations change.", category: "Personality" },
-  { question: "I tend to think carefully before making decisions.", category: "Personality" },
-  { question: "I often come up with original solutions to problems.", category: "Personality" },
+  // Q1: AI & Data Science
+  {
+    question: "How interested are you in building intelligent systems that can learn and make predictions?",
+    category: "AI & Data Science",
+  },
+  // Q2: Data & Analytics
+  {
+    question: "How interested are you in analyzing data to discover trends and business insights?",
+    category: "Data Analytics",
+  },
+  // Q3: Software Development
+  {
+    question: "How interested are you in writing code to build applications and solve problems?",
+    category: "Software Development",
+  },
+  // Q4: Mobile Development
+  {
+    question: "How interested are you in creating mobile apps that people use daily?",
+    category: "Mobile Development",
+  },
+  // Q5: Testing & QA
+  {
+    question: "How interested are you in finding bugs and ensuring software quality?",
+    category: "Testing & QA",
+  },
+  // Q6: Cybersecurity
+  {
+    question: "How interested are you in protecting systems from hackers and security threats?",
+    category: "Cybersecurity",
+  },
+  // Q7: Cloud & DevOps
+  {
+    question: "How interested are you in managing servers and deploying applications to the cloud?",
+    category: "Cloud & DevOps",
+  },
+  // Q8: IT Management
+  {
+    question: "How interested are you in leading teams and coordinating technology projects?",
+    category: "IT Management",
+  },
+  // Q9: UI/UX Design
+  {
+    question: "How interested are you in designing beautiful and easy-to-use interfaces?",
+    category: "UI/UX Design",
+  },
+  // Q10: IT Support & Systems
+  {
+    question: "How interested are you in troubleshooting issues and helping users solve problems?",
+    category: "IT Support",
+  },
+  // Q11: Problem-Solving Style (Tiebreaker)
+  {
+    question: "How interested are you in breaking down complex problems into smaller parts?",
+    category: "Problem Solving",
+  },
+  // Q12: Work Preference (Tiebreaker)
+  {
+    question: "How interested are you in creating new solutions rather than maintaining existing ones?",
+    category: "Work Style",
+  },
 ];
 
 // --- Seed logic ---

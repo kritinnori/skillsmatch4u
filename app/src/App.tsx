@@ -315,6 +315,7 @@ function AppRoutes() {
               questions={questions}
               additionalInfo={additionalInfo}
               onBack={() => navigate(-1)}
+              onHome={() => navigate("/")}
               user={user}
               onSignOut={handleSignOut}
               onDashboard={() => navigate("/dashboard")}
@@ -323,6 +324,12 @@ function AppRoutes() {
               onViewLocalEcosystem={() => navigate("/local-ecosystem")}
               onAddLocation={() => handleAddLocation("/results")}
               hasLocation={!!userState && !!userDistrict}
+              userState={userState}
+              userDistrict={userDistrict}
+              onLocationChange={(state, city) => {
+                setUserState(state);
+                setUserDistrict(city);
+              }}
             />
           }
         />
@@ -349,6 +356,9 @@ function AppRoutes() {
             <LocationPage
               onContinue={handleLocationContinue}
               onSkip={handleLocationSkip}
+              onBack={() => navigate(-1)}
+              initialState={userState}
+              initialDistrict={userDistrict}
             />
           }
         />

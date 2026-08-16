@@ -1,136 +1,281 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { MapPin, ArrowLeft } from "lucide-react";
-import { Button } from "./ui/button";
+import { MapPin, Navigation, Loader2, X } from "lucide-react";
 import { PageHeader } from "./layout/PageHeader";
-import { INDIAN_STATES } from "../lib/indianStates";
+
+// Major Indian cities for autocomplete
+const INDIAN_CITIES = [
+  { city: "Hyderabad", state: "Telangana" },
+  { city: "Bengaluru", state: "Karnataka" },
+  { city: "Chennai", state: "Tamil Nadu" },
+  { city: "Mumbai", state: "Maharashtra" },
+  { city: "Pune", state: "Maharashtra" },
+  { city: "Delhi", state: "Delhi" },
+  { city: "New Delhi", state: "Delhi" },
+  { city: "Gurugram", state: "Haryana" },
+  { city: "Noida", state: "Uttar Pradesh" },
+  { city: "Kolkata", state: "West Bengal" },
+  { city: "Ahmedabad", state: "Gujarat" },
+  { city: "Jaipur", state: "Rajasthan" },
+  { city: "Lucknow", state: "Uttar Pradesh" },
+  { city: "Visakhapatnam", state: "Andhra Pradesh" },
+  { city: "Vijayawada", state: "Andhra Pradesh" },
+  { city: "Coimbatore", state: "Tamil Nadu" },
+  { city: "Kochi", state: "Kerala" },
+  { city: "Thiruvananthapuram", state: "Kerala" },
+  { city: "Indore", state: "Madhya Pradesh" },
+  { city: "Bhopal", state: "Madhya Pradesh" },
+  { city: "Nagpur", state: "Maharashtra" },
+  { city: "Chandigarh", state: "Chandigarh" },
+  { city: "Surat", state: "Gujarat" },
+  { city: "Vadodara", state: "Gujarat" },
+  { city: "Mysuru", state: "Karnataka" },
+  { city: "Mangaluru", state: "Karnataka" },
+  { city: "Warangal", state: "Telangana" },
+  { city: "Guntur", state: "Andhra Pradesh" },
+  { city: "Tirupati", state: "Andhra Pradesh" },
+  { city: "Madurai", state: "Tamil Nadu" },
+  { city: "Tiruchirappalli", state: "Tamil Nadu" },
+  { city: "Patna", state: "Bihar" },
+  { city: "Ranchi", state: "Jharkhand" },
+  { city: "Bhubaneswar", state: "Odisha" },
+  { city: "Guwahati", state: "Assam" },
+  { city: "Dehradun", state: "Uttarakhand" },
+  { city: "Raipur", state: "Chhattisgarh" },
+  { city: "Goa", state: "Goa" },
+];
 
 interface LocationPageProps {
   onContinue: (state: string, district: string) => void;
   onSkip: () => void;
   onBack?: () => void;
+  initialState?: string;
+  initialDistrict?: string;
 }
 
-export function LocationPage({ onContinue, onSkip, onBack }: LocationPageProps) {
+export function LocationPage({ onContinue, onSkip, onBack, initialState = "", initialDistrict = "" }: LocationPageProps) {
   const { t } = useTranslation();
-  const [state, setState] = useState("");
-  const [district, setDistrict] = useState("");
+  const [inputValue, setInputValue] = useState(
+    initialState && initialDistrict ? `${initialDistrict}, ${initialState}` : ""
+  );
+  const [selectedCity, setSelectedCity] = useState<{ city: string; state: string } | null>(
+    initialState && initialDistrict ? { city: initialDistrict, state: initialState } : null
+  );
+  const [isOpen, setIsOpen] = useState(false);
+  const [isDetecting, setIsDetecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const tr = (key: string, fallback: string) => t(key, { defaultValue: fallback });
+  const isEditing = initialState.length > 0;
 
-  const canContinue = state.trim().length > 0 && district.trim().length > 0;
+  // Filter cities
+  const filteredCities = inputValue.length > 0
+    ? INDIAN_CITIES.filter(c => 
+        c.city.toLowerCase().includes(inputValue.toLowerCase()) ||
+        c.state.toLowerCase().includes(inputValue.toLowerCase())
+      ).slice(0, 6)
+    : [];
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node) &&
+          inputRef.current && !inputRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Detect location
+  const detectLocation = async () => {
+    if (!navigator.geolocation) {
+      setError(tr("location.geoNotSupported", "Location not supported"));
+      return;
+    }
+
+    setIsDetecting(true);
+    setError(null);
+
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: false,
+          timeout: 10000,
+          maximumAge: 300000,
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1`,
+        { headers: { "Accept-Language": "en" } }
+      );
+
+      if (!response.ok) throw new Error("Failed");
+
+      const data = await response.json();
+      const address = data.address || {};
+      const city = address.city || address.town || address.village || address.state_district || "";
+      const state = address.state || "";
+
+      if (city && state) {
+        setSelectedCity({ city, state });
+        setInputValue(`${city}, ${state}`);
+      } else {
+        setError(tr("location.couldNotDetect", "Couldn't detect. Please type manually."));
+      }
+    } catch {
+      setError(tr("location.detectionFailed", "Detection failed. Please type manually."));
+    } finally {
+      setIsDetecting(false);
+    }
+  };
+
+  const handleSelect = (city: typeof INDIAN_CITIES[0]) => {
+    setSelectedCity(city);
+    setInputValue(`${city.city}, ${city.state}`);
+    setIsOpen(false);
+  };
+
+  const handleClear = () => {
+    setInputValue("");
+    setSelectedCity(null);
+    setError(null);
+    inputRef.current?.focus();
+  };
+
+  const handleContinue = () => {
+    if (selectedCity) {
+      onContinue(selectedCity.state, selectedCity.city);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white overflow-x-hidden">
-      {/* Background decoration */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-purple-600/8 rounded-full blur-[100px]" />
-        <div className="absolute bottom-1/4 left-0 w-[300px] h-[300px] bg-purple-500/6 rounded-full blur-[80px]" />
-      </div>
+    <div className="min-h-screen bg-[#050505] text-white">
+      <PageHeader brand={t("common.brand")} onHome={onBack} sticky />
 
-      {/* Content */}
-      <div className="relative z-10 flex flex-col min-h-screen">
-        <PageHeader
-          brand={t("common.brand")}
-          onHome={onBack}
-          sticky
-        />
-
-        <main className="flex-1 flex flex-col px-4 py-6 sm:py-10 md:py-16">
-          {/* Back link - mobile */}
-          {onBack && (
-            <div className="w-full max-w-md mx-auto mb-6 md:hidden">
-              <button
-                type="button"
-                onClick={onBack}
-                className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-purple-300 transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                {t("common.goBack", { defaultValue: "Back" })}
-              </button>
-            </div>
-          )}
-
-          <div className="flex-1 flex items-center justify-center">
-            <section className="w-full max-w-md bg-[#0c0c0c] border border-purple-900/30 rounded-2xl p-6 sm:p-8 shadow-2xl">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2.5 bg-purple-600/15 rounded-xl">
-                  <MapPin className="w-5 h-5 text-purple-400" />
-                </div>
-                <h1 className="text-xl font-bold">
-                  {tr("location.title", "Where are you located?")}
-                </h1>
+      <main className="flex items-center justify-center min-h-[calc(100vh-80px)] px-4 py-8">
+        <div className="w-full max-w-sm">
+          {/* Card */}
+          <div className="rounded-2xl border border-purple-900/30 bg-[#0c0c0c] p-6 sm:p-8">
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-600/15 flex items-center justify-center">
+                <MapPin className="w-5 h-5 text-purple-400" />
               </div>
-              <p className="text-gray-400 text-sm mb-6 leading-relaxed">
-                {tr(
-                  "location.subtitle",
-                  "We'll use this to show you industries and opportunities thriving near you. This isn't saved to your profile."
-                )}
-              </p>
+              <h1 className="text-xl font-bold">
+                {isEditing ? tr("location.updateTitle", "Update location") : tr("location.title", "Your location")}
+              </h1>
+            </div>
+            
+            <p className="text-sm text-gray-400 mb-6">
+              {tr("location.subtitle", "We'll show you jobs near you.")}
+            </p>
 
-              <div className="space-y-5">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    {tr("location.state", "State")}
-                  </label>
-                  <select
-                    value={state}
-                    onChange={(e) => setState(e.target.value)}
-                    className="w-full rounded-lg border border-purple-900/40 bg-[#050505] px-4 py-3 text-white outline-none focus:border-purple-500 transition-colors"
-                  >
-                    <option value="" disabled>
-                      {tr("location.selectState", "Select your state")}
-                    </option>
-                    {INDIAN_STATES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            {/* Detect Button */}
+            <button
+              type="button"
+              onClick={detectLocation}
+              disabled={isDetecting}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg border border-purple-700/50 bg-purple-900/20 hover:bg-purple-900/30 text-purple-300 font-medium transition-colors disabled:opacity-50 mb-4"
+            >
+              {isDetecting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {tr("location.detecting", "Detecting...")}
+                </>
+              ) : (
+                <>
+                  <Navigation className="w-4 h-4" />
+                  {tr("location.useCurrentLocation", "Use current location")}
+                </>
+              )}
+            </button>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    {tr("location.district", "District or town")}
-                  </label>
-                  <input
-                    type="text"
-                    value={district}
-                    onChange={(e) => setDistrict(e.target.value)}
-                    placeholder={tr("location.districtPlaceholder", "e.g. Krishna, Dindi")}
-                    className="w-full rounded-lg border border-purple-900/40 bg-[#050505] px-4 py-3 text-white placeholder:text-gray-500 outline-none focus:border-purple-500 transition-colors"
-                  />
-                </div>
+            {/* Divider */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-1 h-px bg-purple-900/30" />
+              <span className="text-xs text-gray-500">{tr("location.or", "or")}</span>
+              <div className="flex-1 h-px bg-purple-900/30" />
+            </div>
 
-                <Button
-                  onClick={() => canContinue && onContinue(state, district)}
-                  disabled={!canContinue}
-                  className="w-full bg-purple-700 hover:bg-purple-600 text-white font-semibold py-3 text-sm disabled:opacity-50 transition-colors"
-                >
-                  {tr("location.continue", "Continue")}
-                </Button>
-
+            {/* Input */}
+            <div className="relative mb-4">
+              <input
+                ref={inputRef}
+                type="text"
+                value={inputValue}
+                onChange={(e) => {
+                  setInputValue(e.target.value);
+                  setSelectedCity(null);
+                  setIsOpen(true);
+                  setError(null);
+                }}
+                onFocus={() => setIsOpen(true)}
+                placeholder={tr("location.placeholder", "Type city name...")}
+                className="w-full px-4 py-3 pr-10 rounded-lg border border-purple-900/40 bg-[#050505] text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+              />
+              {inputValue && (
                 <button
                   type="button"
-                  onClick={onSkip}
-                  className="w-full text-center text-sm text-gray-400 hover:text-purple-300 transition-colors"
+                  onClick={handleClear}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
                 >
-                  {tr("location.skip", "Skip for now")}
+                  <X className="w-4 h-4" />
                 </button>
-              </div>
-            </section>
-          </div>
-        </main>
+              )}
 
-        {/* Footer */}
-        <footer className="border-t border-gray-800/50 py-4">
-          <div className="max-w-7xl mx-auto px-4 md:px-8">
-            <p className="text-xs text-gray-600 text-center sm:text-left">
-              &copy; {new Date().getFullYear()} {t("common.brand")}
-            </p>
+              {/* Dropdown */}
+              {isOpen && filteredCities.length > 0 && (
+                <div
+                  ref={dropdownRef}
+                  className="absolute z-50 w-full mt-1 rounded-lg border border-purple-900/40 bg-[#111] shadow-xl overflow-hidden"
+                >
+                  {filteredCities.map((city, i) => (
+                    <button
+                      key={`${city.city}-${i}`}
+                      type="button"
+                      onClick={() => handleSelect(city)}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-purple-900/20 transition-colors"
+                    >
+                      <MapPin className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm">
+                        <span className="text-white">{city.city}</span>
+                        <span className="text-gray-500">, {city.state}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Error */}
+            {error && <p className="text-sm text-amber-400 mb-4">{error}</p>}
+
+            {/* Continue Button */}
+            <button
+              onClick={handleContinue}
+              disabled={!selectedCity}
+              className="w-full py-3 rounded-lg bg-purple-700 hover:bg-purple-600 text-white font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              {tr("location.continue", "Continue")}
+            </button>
+
+            {/* Skip */}
+            <button
+              type="button"
+              onClick={onSkip}
+              className="w-full py-2 mt-3 text-center text-sm text-gray-500 hover:text-purple-300 transition-colors"
+            >
+              {isEditing ? tr("location.cancel", "Cancel") : tr("location.skip", "Skip for now")}
+            </button>
           </div>
-        </footer>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

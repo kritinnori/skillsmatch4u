@@ -33,6 +33,7 @@ export interface CareerCore {
   skills: string[];
   salary: string;
   growth: string;
+  itDomain?: string;
 }
 
 export interface CourseRecommendation {
