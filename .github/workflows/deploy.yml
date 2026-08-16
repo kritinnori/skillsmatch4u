@@ -88,10 +88,10 @@ jobs:
 
       - name: Package Lambda
         run: |
-          # Create deployment package
+          # Create deployment package with production dependencies
           mkdir -p lambda-package
           cp -r dist/* lambda-package/
-          cp package.json lambda-package/
+          cp package.json package-lock.json lambda-package/
           cd lambda-package
           npm ci --omit=dev
           zip -r ../lambda-deployment.zip .
