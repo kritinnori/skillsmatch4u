@@ -118,7 +118,6 @@ jobs:
           aws lambda update-function-configuration \
             --function-name ${{ secrets.LAMBDA_FUNCTION_NAME }} \
             --environment "Variables={
-              AWS_REGION=${{ env.AWS_REGION }},
               DYNAMODB_QUESTIONS_TABLE=${{ secrets.DYNAMODB_QUESTIONS_TABLE }},
               DYNAMODB_USER_PROGRESS_TABLE=${{ secrets.DYNAMODB_USER_PROGRESS_TABLE }},
               COGNITO_USER_POOL_ID=${{ secrets.COGNITO_USER_POOL_ID }},
