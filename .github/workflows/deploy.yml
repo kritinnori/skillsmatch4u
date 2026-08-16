@@ -108,6 +108,10 @@ jobs:
           aws lambda update-function-code \
             --function-name ${{ secrets.LAMBDA_FUNCTION_NAME }} \
             --zip-file fileb://lambda-deployment.zip
+          
+          # Wait for the update to complete
+          aws lambda wait function-updated \
+            --function-name ${{ secrets.LAMBDA_FUNCTION_NAME }}
 
       - name: Update Lambda environment variables
         run: |
