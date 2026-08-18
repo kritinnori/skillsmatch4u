@@ -1,7 +1,13 @@
 import express from "express";
 import cors from "cors";
 import OpenAI from "openai";
-import { getQuestionsCollection } from "./db";
+import jwt from "jsonwebtoken";
+import jwksClient from "jwks-rsa";
+import {
+  CognitoIdentityProviderClient,
+  AdminDeleteUserCommand,
+} from "@aws-sdk/client-cognito-identity-provider";
+import { getAllQuestions, deleteUserProgress, getUserProgress, updateUserProgress } from "./db";
 import {
   DEFAULT_LANGUAGE,
   getLanguageName,
@@ -22,6 +28,42 @@ const openai = new OpenAI({
   fetch: globalThis.fetch,
 });
 
+// --- Cognito setup ---
+const COGNITO_USER_POOL_ID = process.env.COGNITO_USER_POOL_ID || "";
+const AWS_REGION = process.env.AWS_REGION || "us-east-1";
+
+const cognito = new CognitoIdentityProviderClient({ region: AWS_REGION });
+
+// JWKS client for verifying Cognito JWTs
+const jwks = jwksClient({
+  jwksUri: `https://cognito-idp.${AWS_REGION}.amazonaws.com/${COGNITO_USER_POOL_ID}/.well-known/jwks.json`,
+  cache: true,
+  cacheMaxEntries: 5,
+  cacheMaxAge: 600000, // 10 minutes
+});
+
+function getSigningKey(header: jwt.JwtHeader): Promise<string> {
+  return new Promise((resolve, reject) => {
+    jwks.getSigningKey(header.kid, (err, key) => {
+      if (err) return reject(err);
+      resolve(key!.getPublicKey());
+    });
+  });
+}
+
+async function verifyCognitoToken(token: string): Promise<jwt.JwtPayload> {
+  const decoded = jwt.decode(token, { complete: true });
+  if (!decoded || !decoded.header) {
+    throw new Error("Invalid token");
+  }
+  const publicKey = await getSigningKey(decoded.header);
+  return jwt.verify(token, publicKey, {
+    issuer: `https://cognito-idp.${AWS_REGION}.amazonaws.com/${COGNITO_USER_POOL_ID}`,
+  }) as jwt.JwtPayload;
+}
+
+// --- Types ---
+
 type AnswerQuestion = { id: number; question: string };
 
 interface QuestionRow {
@@ -31,12 +73,17 @@ interface QuestionRow {
   translations?: Record<string, string>;
 }
 
+// --- Helpers ---
+
 function answerLabel(answer: number): string {
-  if (answer === 1) return "Strongly Disagree";
-  if (answer === 2) return "Disagree";
-  if (answer === 3) return "Neutral";
-  if (answer === 4) return "Agree";
-  if (answer === 5) return "Strongly Agree";
+  // 7-point curiosity/interest scale
+  if (answer === 1) return "Not at all interested";
+  if (answer === 2) return "Not really interested";
+  if (answer === 3) return "A little interested";
+  if (answer === 4) return "Neutral";
+  if (answer === 5) return "Interested";
+  if (answer === 6) return "Very curious";
+  if (answer === 7) return "Would love to know more";
   return "Unknown";
 }
 
@@ -45,18 +92,22 @@ function formatQuizResponses(
   questions: AnswerQuestion[],
   additionalInfo?: string
 ): string {
-  let section = `The user answered questions on a scale of 1-5 where:
-- 1 = Strongly Disagree
-- 2 = Disagree
-- 3 = Neutral
-- 4 = Agree
-- 5 = Strongly Agree
+  let section = `The user answered questions on a 7-point INTEREST/CURIOSITY scale where:
+- 1 = Not at all interested (no interest in this area)
+- 2 = Not really interested (minimal interest)
+- 3 = A little interested (slight curiosity)
+- 4 = Neutral (undecided)
+- 5 = Interested (some genuine interest)
+- 6 = Very curious (strong interest)
+- 7 = Would love to know more (highest interest/passion)
 
-Here are the questions and answers:\n\n`;
+IMPORTANT: Higher scores (5, 6, 7) indicate STRONG INTEREST in that topic area. Use these to determine which IT domain aligns with the student's passions.
+
+Here are the questions and the student's interest level in each topic:\n\n`;
 
   questions.forEach((q, index) => {
     const answer = answers[index];
-    section += `Q${index + 1}: ${q.question}\nAnswer: ${answerLabel(answer)} (${answer}/5)\n\n`;
+    section += `Q${index + 1}: ${q.question}\nInterest Level: ${answerLabel(answer)} (${answer}/7)\n\n`;
   });
 
   if (additionalInfo && additionalInfo.trim()) {
@@ -220,11 +271,7 @@ async function runJsonCompletion<T>(
 async function getQuestionsInLanguage(
   language: string
 ): Promise<Array<Pick<QuestionRow, "id" | "question" | "category">>> {
-  const collection = await getQuestionsCollection();
-  const rows = (await collection
-    .find({}, { projection: { _id: 0 } })
-    .sort({ id: 1 })
-    .toArray()) as unknown as QuestionRow[];
+  const rows = await getAllQuestions();
 
   if (language === DEFAULT_LANGUAGE) {
     return rows.map(({ id, question, category }) => ({ id, question, category }));
@@ -243,14 +290,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- Account deletion (requires SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY env vars) ---
-// The frontend cannot delete auth users with the public anon key; this endpoint
-// verifies the caller's own JWT, then deletes their data and auth record.
+// --- Account deletion (Cognito + DynamoDB cleanup) ---
 app.post("/account/delete", async (req, res) => {
   try {
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !serviceRoleKey) {
+    if (!COGNITO_USER_POOL_ID) {
       res.status(500).json({ error: "Account deletion is not configured on the server" });
       return;
     }
@@ -262,35 +305,38 @@ app.post("/account/delete", async (req, res) => {
       return;
     }
 
-    const { createClient } = await import("@supabase/supabase-js");
-    const admin = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
-    // Verify the token belongs to a real user — callers can only delete themselves.
-    const { data: userData, error: userError } = await admin.auth.getUser(token);
-    if (userError || !userData?.user) {
+    // Verify the Cognito JWT
+    let payload: jwt.JwtPayload;
+    try {
+      payload = await verifyCognitoToken(token);
+    } catch (err) {
+      console.error("JWT verification failed:", err);
       res.status(401).json({ error: "Invalid or expired session" });
       return;
     }
-    const userId = userData.user.id;
 
-    // Delete the user's saved progress first, then the auth record.
-    const { error: progressError } = await admin
-      .from("user_progress")
-      .delete()
-      .eq("user_id", userId);
-    if (progressError) {
-      console.error("Failed to delete user_progress:", progressError);
-      // Continue anyway — the auth deletion is the critical part.
-    }
-
-    const { error: deleteError } = await admin.auth.admin.deleteUser(userId);
-    if (deleteError) {
-      console.error("Failed to delete auth user:", deleteError);
-      res.status(500).json({ error: "Failed to delete account" });
+    // The 'sub' claim is the Cognito user ID; 'email' claim has their email
+    const userId = payload.sub;
+    if (!userId) {
+      res.status(401).json({ error: "Invalid token: no user ID" });
       return;
     }
+
+    // Delete user progress from DynamoDB
+    try {
+      await deleteUserProgress(userId);
+    } catch (progressError) {
+      console.error("Failed to delete user_progress:", progressError);
+      // Continue — auth deletion is the critical part
+    }
+
+    // Delete the Cognito user
+    await cognito.send(
+      new AdminDeleteUserCommand({
+        UserPoolId: COGNITO_USER_POOL_ID,
+        Username: userId,
+      })
+    );
 
     res.json({ success: true });
   } catch (err) {
@@ -337,26 +383,52 @@ app.post("/analyze", async (req, res) => {
     const lang = normalizeLanguage(language);
     const responses = formatQuizResponses(answers, questions, additionalInfo);
 
-    const prompt = `You are a career counselor in India analyzing a personality and career assessment quiz. Based on the user's responses, recommend the most suitable job profile for the Indian job market.
+    const prompt = `You are an IT career counselor analyzing an IT Domain Assessment for Indian high school students. Based on the user's interest levels in various topics, recommend the MOST SUITABLE IT domain.
+
+The 10 IT Domains to choose from (you MUST recommend one of these):
+1. AI & Data Science - For students interested in: machine learning, artificial intelligence, data patterns, predictions, automation, statistics
+2. Data Analytics - For students interested in: data interpretation, business insights, charts/reports, Excel/dashboards, trends analysis  
+3. Software Development - For students interested in: coding, building applications, programming languages, creating software solutions
+4. Mobile Development - For students interested in: smartphone apps, mobile technology, Android/iOS development
+5. Testing & QA - For students interested in: finding bugs, quality assurance, systematic testing, attention to detail
+6. Cybersecurity - For students interested in: security, hacking prevention, protecting systems, network security, privacy
+7. Cloud & DevOps - For students interested in: servers, deployment, automation, infrastructure, cloud platforms (AWS/Azure)
+8. IT Management - For students interested in: leading teams, project management, coordination, business strategy, communication
+9. UI/UX Design - For students interested in: design, user experience, visual aesthetics, user interfaces, creativity, Figma/Photoshop
+10. IT Support - For students interested in: helping others with tech, troubleshooting, system maintenance, technical assistance
 
 ${responses}
-Based on these responses, provide a career recommendation in JSON format with the following structure:
+
+ANALYSIS INSTRUCTIONS:
+1. Look at which questions got the HIGHEST interest scores (6 or 7)
+2. Map those high-interest topics to the relevant IT domain
+3. If ALL answers are similar (like all 6s or all 7s), look for subtle differences or recommend the domain most aligned with the question topics
+4. DO NOT default to UI/UX Design - only recommend it if the student shows strong interest in design/creativity questions
+
+Provide your recommendation in JSON format:
 {
-  "title": "Job Title",
-  "description": "Detailed description explaining why this career matches the user's personality and preferences (2-3 sentences)",
+  "itDomain": "EXACT name from the 10 domains above",
+  "title": "Specific entry-level job title in that domain",
+  "description": "2-3 sentences explaining WHY this domain matches their interests - reference specific questions where they showed high interest",
   "matchScore": 85,
   "skills": ["Skill 1", "Skill 2", "Skill 3", "Skill 4"],
-  "salary": "Typical annual salary range in India in INR (e.g., '₹6 LPA - ₹12 LPA' or '₹8,00,000 - ₹15,00,000 per year')",
-  "growth": "Job growth outlook in India (e.g., 'Strong demand in Indian tech and services sectors')"
+  "salary": "Salary range in INR (e.g., '₹6 LPA - ₹12 LPA')",
+  "growth": "Job growth outlook in India"
 }
 
-Keep the career recommendation thoughtful and based on the response patterns. The matchScore should be between 75-98. Provide 4-6 key skills.
+CRITICAL RULES:
+- The "itDomain" must be EXACTLY one of the 10 domain names listed (e.g., "AI & Data Science", "Software Development", etc.)
+- Base your recommendation on the ACTUAL interest levels shown in the responses
+- Do NOT default to any single domain - genuinely analyze the responses
+- Reference specific high-interest answers in your description
+- Match score should be 75-98 based on how strongly responses align with the recommended domain
 
-CURRENCY RULE (strict): The "salary" value must always be in Indian Rupees, using the ₹ symbol and Indian conventions such as "LPA" (lakhs per annum) — e.g. "₹6 LPA - ₹12 LPA" or "₹8,00,000 - ₹15,00,000 per year". Never use US dollars, the "$" symbol, "USD", or any non-Indian currency anywhere in the response.
+CURRENCY: Always use Indian Rupees with ₹ symbol and LPA format.
 ${languageInstruction(lang)}
-Always return valid JSON only. Do not include courses or jobs fields in this response.`;
+Return valid JSON only.`;
 
     const recommendation = await runJsonCompletion<{
+      itDomain: string;
       title: string;
       description: string;
       matchScore: number;
@@ -365,7 +437,25 @@ Always return valid JSON only. Do not include courses or jobs fields in this res
       growth: string;
     }>(
       "POST /analyze",
-      "You are an expert career counselor in India who analyzes personality assessments and provides thoughtful, personalized career recommendations for the Indian job market. Always respond with valid JSON only.",
+      `You are an expert IT career counselor in India who analyzes interest assessments for high school students.
+
+CRITICAL: You must analyze the student's responses carefully and recommend the IT domain that BEST matches their highest interest scores. Each question corresponds to a specific IT domain category.
+
+Question-to-Domain mapping:
+- Questions about AI/ML/recommendations → AI & Data Science
+- Questions about data/patterns/analytics → Data Analytics  
+- Questions about coding/building apps → Software Development
+- Questions about mobile apps → Mobile Development
+- Questions about finding bugs/mistakes → Testing & QA
+- Questions about hacking/security → Cybersecurity
+- Questions about servers/scaling → Cloud & DevOps
+- Questions about leadership/organizing → IT Management
+- Questions about design/UI → UI/UX Design
+- Questions about fixing tech/helping → IT Support
+
+DO NOT default to UI/UX Design. Recommend based on which category questions received the HIGHEST interest scores (6 or 7 on the scale).
+
+Always respond with valid JSON only.`,
       prompt
     );
 
@@ -812,6 +902,182 @@ Always return valid JSON only.`;
 });
 
 
-app.listen(PORT, () => {
-  console.log(`Quiz API running at http://localhost:${PORT}`);
+// --- User Progress endpoints (DynamoDB, authenticated via Cognito JWT) ---
+
+// Middleware to extract userId and email from Cognito JWT
+interface AuthResult {
+  userId: string;
+  email?: string;
+}
+
+async function authenticateRequest(req: express.Request, res: express.Response): Promise<AuthResult | null> {
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  if (!token) {
+    res.status(401).json({ error: "Missing authorization token" });
+    return null;
+  }
+  try {
+    const payload = await verifyCognitoToken(token);
+    if (!payload.sub) {
+      res.status(401).json({ error: "Invalid token" });
+      return null;
+    }
+    return {
+      userId: payload.sub,
+      email: payload.email as string | undefined,
+    };
+  } catch {
+    res.status(401).json({ error: "Invalid or expired session" });
+    return null;
+  }
+}
+
+// GET /user-progress — fetch current user's dashboard data
+app.get("/user-progress", async (req, res) => {
+  const auth = await authenticateRequest(req, res);
+  if (!auth) return;
+
+  try {
+    const progress = await getUserProgress(auth.userId);
+    if (!progress) {
+      res.json({});
+      return;
+    }
+    res.json(progress);
+  } catch (error) {
+    console.error("Error fetching user progress:", error);
+    res.status(500).json({ error: "Failed to fetch user progress" });
+  }
 });
+
+// PUT /user-progress — update fields on the user's progress record
+app.put("/user-progress", async (req, res) => {
+  const auth = await authenticateRequest(req, res);
+  if (!auth) return;
+
+  try {
+    const fields = req.body;
+    if (!fields || typeof fields !== "object") {
+      res.status(400).json({ error: "Request body must be an object" });
+      return;
+    }
+    // Don't allow overwriting user_id
+    delete fields.user_id;
+    // Always store the user's email for admin visibility
+    if (auth.email) {
+      fields.email = auth.email;
+    }
+    await updateUserProgress(auth.userId, fields);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error updating user progress:", error);
+    res.status(500).json({ error: "Failed to update user progress" });
+  }
+});
+
+// POST /user-progress/click — append a course or job click
+app.post("/user-progress/click", async (req, res) => {
+  const auth = await authenticateRequest(req, res);
+  if (!auth) return;
+
+  try {
+    const { type, item } = req.body as {
+      type: "course" | "job";
+      item: { title: string; provider?: string; company?: string; url: string };
+    };
+
+    if (!type || !item?.title || !item?.url) {
+      res.status(400).json({ error: "type and item (with title, url) required" });
+      return;
+    }
+
+    const progress = await getUserProgress(auth.userId);
+    const clickedItem = { ...item, clickedAt: new Date().toISOString() };
+
+    if (type === "course") {
+      const existing = progress?.courses_clicked ?? [];
+      const alreadyLogged = existing.some((c) => c.title === item.title && c.url === item.url);
+      if (!alreadyLogged) {
+        await updateUserProgress(auth.userId, { courses_clicked: [...existing, clickedItem] });
+      }
+    } else {
+      const existing = progress?.jobs_clicked ?? [];
+      const alreadyLogged = existing.some((j) => j.title === item.title && j.url === item.url);
+      if (!alreadyLogged) {
+        await updateUserProgress(auth.userId, { jobs_clicked: [...existing, clickedItem] });
+      }
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error logging click:", error);
+    res.status(500).json({ error: "Failed to log click" });
+  }
+});
+
+// POST /user-progress/complete-course — mark a course as completed
+app.post("/user-progress/complete-course", async (req, res) => {
+  const auth = await authenticateRequest(req, res);
+  if (!auth) return;
+
+  try {
+    const { item } = req.body as {
+      item: { title: string; provider?: string; url: string };
+    };
+
+    if (!item?.title || !item?.url) {
+      res.status(400).json({ error: "item with title and url required" });
+      return;
+    }
+
+    const progress = await getUserProgress(auth.userId);
+    const existing = progress?.courses_completed ?? [];
+    const alreadyLogged = existing.some((c) => c.title === item.title && c.url === item.url);
+    if (!alreadyLogged) {
+      const completedItem = { ...item, clickedAt: new Date().toISOString() };
+      await updateUserProgress(auth.userId, { courses_completed: [...existing, completedItem] });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error marking course complete:", error);
+    res.status(500).json({ error: "Failed to mark course complete" });
+  }
+});
+
+// POST /user-progress/uncomplete-course — remove a course completion mark
+app.post("/user-progress/uncomplete-course", async (req, res) => {
+  const auth = await authenticateRequest(req, res);
+  if (!auth) return;
+
+  try {
+    const { title } = req.body as { title: string };
+
+    if (!title) {
+      res.status(400).json({ error: "title required" });
+      return;
+    }
+
+    const progress = await getUserProgress(auth.userId);
+    const existing = progress?.courses_completed ?? [];
+    const updated = existing.filter((c) => c.title !== title);
+    await updateUserProgress(auth.userId, { courses_completed: updated });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error unmarking course complete:", error);
+    res.status(500).json({ error: "Failed to unmark course complete" });
+  }
+});
+
+
+// Export the Express app for Lambda handler
+export { app };
+
+// Start local server only when run directly (not imported by Lambda)
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Quiz API running at http://localhost:${PORT}`);
+  });
+}

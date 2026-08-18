@@ -1,6 +1,6 @@
 import type { Question } from "../types/question";
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL || "https://skillsmatch4u.onrender.com";
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 
 function withLanguageQuery(path: string, language?: string) {
   if (!language) return path;
@@ -33,6 +33,7 @@ export interface CareerCore {
   skills: string[];
   salary: string;
   growth: string;
+  itDomain?: string;
 }
 
 export interface CourseRecommendation {

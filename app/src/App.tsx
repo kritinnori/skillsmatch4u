@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import type { User } from "@supabase/supabase-js";
+import { Routes, Route, useNavigate } from "react-router-dom";
 import { HomePage } from "./components/HomePage";
 import { QuizPage } from "./components/QuizPage";
 import { ResultsPage } from "./components/ResultsPage";
@@ -10,10 +10,10 @@ import { LocalEcosystemPage } from "./components/LocalEcosystemPage";
 import { OpportunitiesModal } from "./components/OpportunitiesModal";
 import { LoginPage } from "./components/LoginPage";
 import { fetchQuestions } from "./lib/api";
-import { supabase } from "./lib/supabase";
+import { getAuthUser, signOut as cognitoSignOut, onAuthStateChange } from "./lib/auth";
+import { fetchUserProgress } from "./lib/dashboard";
+import type { AuthUser } from "./lib/auth";
 import type { Question } from "./types/question";
-
-type Page = "home" | "quiz" | "results" | "login" | "dashboard" | "location" | "localEcosystem";
 
 function readSession<T>(key: string, fallback: T): T {
   try {
@@ -24,11 +24,10 @@ function readSession<T>(key: string, fallback: T): T {
   }
 }
 
-function App() {
+function AppRoutes() {
   const { t, i18n } = useTranslation();
-  const [currentPage, setCurrentPageState] = useState<Page>(() =>
-    readSession<Page>("sm_page", "home")
-  );
+  const navigate = useNavigate();
+  
   const [answers, setAnswersState] = useState<number[]>(() =>
     readSession<number[]>("sm_answers", [])
   );
@@ -38,17 +37,14 @@ function App() {
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loginIntent, setLoginIntent] = useState<"startQuiz" | "normal">("normal");
   const [userState, setUserState] = useState<string>(() => localStorage.getItem("sm_state") || "");
   const [userDistrict, setUserDistrict] = useState<string>(() => localStorage.getItem("sm_district") || "");
   const [showOpportunitiesModal, setShowOpportunitiesModal] = useState(false);
-  const [locationReturnTo, setLocationReturnTo] = useState<Page>("home");
+  const [locationReturnTo, setLocationReturnTo] = useState<string>("/");
+  const [hasCompletedQuiz, setHasCompletedQuiz] = useState(false);
 
-  const setCurrentPage = (page: Page) => {
-    sessionStorage.setItem("sm_page", JSON.stringify(page));
-    setCurrentPageState(page);
-  };
   const setAnswers = (a: number[]) => {
     sessionStorage.setItem("sm_answers", JSON.stringify(a));
     setAnswersState(a);
@@ -60,19 +56,29 @@ function App() {
 
   const language = i18n.resolvedLanguage || i18n.language || "en";
 
+  // --- Auth state listener ---
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-    });
-
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+    const unsubscribe = onAuthStateChange((authUser) => {
+      setUser(authUser);
     });
 
     return () => {
-      data.subscription.unsubscribe();
+      unsubscribe();
     };
   }, []);
+
+  // --- Check if user has already completed a quiz ---
+  useEffect(() => {
+    if (!user) {
+      setHasCompletedQuiz(false);
+      return;
+    }
+    fetchUserProgress(user.id).then((progress) => {
+      setHasCompletedQuiz(!!progress?.quiz_completed_at);
+    }).catch(() => {
+      setHasCompletedQuiz(false);
+    });
+  }, [user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -104,28 +110,29 @@ function App() {
     setAnswers([]);
     setAdditionalInfo("");
     setError(null);
-    setCurrentPage("quiz");
+    navigate("/quiz");
   };
 
   const handleStartQuiz = () => {
     if (!user) {
       setLoginIntent("startQuiz");
-      setCurrentPage("login");
+      navigate("/login");
       return;
     }
     actuallyStartQuiz();
   };
 
   const handleLoginSuccess = () => {
-    const hasSavedLocation = !!localStorage.getItem("sm_state") && !!localStorage.getItem("sm_district");
-    if (!hasSavedLocation) {
-      setCurrentPage("location");
-      return;
-    }
+    // Re-fetch user after login
+    getAuthUser().then((authUser) => {
+      setUser(authUser);
+    });
+
+    // Don't force location prompt - let users discover it when they need it
     if (loginIntent === "startQuiz") {
       actuallyStartQuiz();
     } else {
-      setCurrentPage("home");
+      navigate("/");
     }
     setLoginIntent("normal");
   };
@@ -138,27 +145,23 @@ function App() {
     if (loginIntent === "startQuiz") {
       actuallyStartQuiz();
     } else {
-      setCurrentPage(locationReturnTo);
+      navigate(locationReturnTo);
     }
     setLoginIntent("normal");
   };
 
   const handleLocationSkip = () => {
-    // No flag set on skip — they'll be asked again on next sign-in until they provide it
     if (loginIntent === "startQuiz") {
       actuallyStartQuiz();
     } else {
-      setCurrentPage(locationReturnTo);
+      navigate(locationReturnTo);
     }
     setLoginIntent("normal");
   };
 
-  // Lets a user revisit/change the location prompt anytime (e.g. from Results
-  // "Add Your Location" or Dashboard "Change Location") without resetting their
-  // "already asked" status globally. Returns to whichever page triggered it.
-  const handleAddLocation = (returnTo: Page = "results") => {
+  const handleAddLocation = (returnTo: string = "/results") => {
     setLocationReturnTo(returnTo);
-    setCurrentPage("location");
+    navigate("/location");
   };
 
   const handleContinueWithoutAccount = () => {
@@ -169,7 +172,8 @@ function App() {
   const handleQuizComplete = (quizAnswers: number[], info?: string) => {
     setAnswers(quizAnswers);
     setAdditionalInfo(info || "");
-    setCurrentPage("results");
+    navigate("/results");
+    setHasCompletedQuiz(true);
     // Auto-prompt opportunities popup right after results, only if location is known
     if (userState && userDistrict) {
       setShowOpportunitiesModal(true);
@@ -177,168 +181,234 @@ function App() {
   };
 
   const handleRestart = () => {
-    sessionStorage.removeItem("sm_page");
     sessionStorage.removeItem("sm_answers");
     sessionStorage.removeItem("sm_additionalInfo");
     sessionStorage.removeItem("sm_career");
     sessionStorage.removeItem("sm_career_score");
-    // Clear all per-language career caches
-    ["en","hi","bn","te","mr","ta","ur","gu","kn","or","ml","pa","as"].forEach(lang => 
-      sessionStorage.removeItem(`sm_career_${lang}`)
-    );
-    setCurrentPage("home");
+    // Clear all per-language career, courses, and jobs caches
+    ["en","hi","bn","te","mr","ta","ur","gu","kn","or","ml","pa","as"].forEach(lang => {
+      sessionStorage.removeItem(`sm_career_${lang}`);
+      sessionStorage.removeItem(`sm_courses_${lang}`);
+      sessionStorage.removeItem(`sm_jobs_${lang}`);
+    });
+    navigate("/");
     setAnswers([]);
     setAdditionalInfo("");
     setError(null);
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    cognitoSignOut();
+    setUser(null);
     handleRestart();
   };
 
-  // Header profile buttons (rendered inside deeply nested page components)
-  // navigate here via a global event to avoid threading a prop through every page.
+  // Header profile buttons navigation
   useEffect(() => {
     const openProfile = () => { window.location.href = '/profile'; };
     window.addEventListener("sm4u:openProfile", openProfile);
     return () => window.removeEventListener("sm4u:openProfile", openProfile);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Quiz page content (handles loading/error states)
+  const renderQuizContent = () => {
+    if (loading) {
+      return (
+        <div className="page-shell flex items-center justify-center">
+          <div className="text-center bg-[#111111] rounded-xl border border-purple-900/40 px-10 py-8 shadow-sm">
+            <div className="w-10 h-10 border-4 border-purple-900/40 border-t-purple-500 rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-lg font-medium text-white">{t("quiz.loading")}</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="page-shell flex items-center justify-center px-4">
+          <div className="text-center bg-[#111111] rounded-xl border border-purple-900/40 p-10 shadow-sm max-w-md">
+            <p className="text-lg mb-4 text-red-400 font-medium">
+              {t("common.errorPrefix")}: {error}
+            </p>
+            <button
+              onClick={() => {
+                setError(null);
+                navigate("/");
+              }}
+              className="px-6 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-semibold rounded-lg transition-colors"
+            >
+              {t("common.goBackButton")}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (questions.length > 0) {
+      return (
+        <QuizPage
+          questions={questions}
+          onComplete={handleQuizComplete}
+          onBack={() => navigate("/")}
+          user={user}
+          onSignOut={handleSignOut}
+          onDashboard={() => navigate("/dashboard")}
+          onShowOpportunities={() => setShowOpportunitiesModal(true)}
+          onLoginRequired={() => { setLoginIntent("normal"); navigate("/login"); }}
+        />
+      );
+    }
+
+    return null;
+  };
 
   return (
     <>
-      {currentPage === "home" && (
-        <HomePage
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <HomePage
+              user={user}
+              hasCompletedQuiz={hasCompletedQuiz}
+              onStartQuiz={handleStartQuiz}
+              onLogin={() => {
+                setLoginIntent("normal");
+                navigate("/login");
+              }}
+              onDashboard={() => navigate("/dashboard")}
+              onShowOpportunities={() => {
+                if (!userState || !userDistrict) {
+                  setLocationReturnTo("/");
+                  navigate("/location");
+                } else {
+                  setShowOpportunitiesModal(true);
+                }
+              }}
+            />
+          }
+        />
+
+        <Route
+          path="/login"
+          element={
+            <LoginPage
+              onBack={() => {
+                setLoginIntent("normal");
+                navigate("/");
+              }}
+              onAuthSuccess={handleLoginSuccess}
+              onContinueWithoutAccount={
+                loginIntent === "startQuiz" ? handleContinueWithoutAccount : undefined
+              }
+            />
+          }
+        />
+
+        <Route path="/quiz" element={renderQuizContent()} />
+
+        <Route
+          path="/results"
+          element={
+            <ResultsPage
+              answers={answers}
+              questions={questions}
+              additionalInfo={additionalInfo}
+              onBack={() => navigate(-1)}
+              onHome={() => navigate("/")}
+              user={user}
+              onSignOut={handleSignOut}
+              onDashboard={() => navigate("/dashboard")}
+              onShowOpportunities={() => setShowOpportunitiesModal(true)}
+              onLoginRequired={() => { setLoginIntent("normal"); navigate("/login"); }}
+              onViewLocalEcosystem={() => navigate("/local-ecosystem")}
+              onAddLocation={() => handleAddLocation("/results")}
+              hasLocation={!!userState && !!userDistrict}
+              userState={userState}
+              userDistrict={userDistrict}
+              onLocationChange={(state, city) => {
+                setUserState(state);
+                setUserDistrict(city);
+              }}
+            />
+          }
+        />
+
+        <Route
+          path="/dashboard"
+          element={
+            <DashboardPage
+              user={user}
+              onBack={() => navigate(-1)}
+              onHome={() => navigate("/")}
+              onSignOut={handleSignOut}
+              onRetakeQuiz={handleStartQuiz}
+              onShowOpportunities={() => setShowOpportunitiesModal(true)}
+              onGoToCourses={() => navigate("/results")}
+              onChangeLocation={() => handleAddLocation("/dashboard")}
+            />
+          }
+        />
+
+        <Route
+          path="/location"
+          element={
+            <LocationPage
+              onContinue={handleLocationContinue}
+              onSkip={handleLocationSkip}
+              onBack={() => navigate(-1)}
+              initialState={userState}
+              initialDistrict={userDistrict}
+            />
+          }
+        />
+
+        <Route
+          path="/local-ecosystem"
+          element={
+            <LocalEcosystemPage
+              state={userState}
+              district={userDistrict}
+              currentCareerTitle={(() => {
+                try {
+                  const lang = i18n.resolvedLanguage || i18n.language || "en";
+                  const cached = sessionStorage.getItem(`sm_career_${lang}`);
+                  return cached ? JSON.parse(cached).title : undefined;
+                } catch {
+                  return undefined;
+                }
+              })()}
+              user={user}
+              onSignOut={handleSignOut}
+              onBack={() => navigate(-1)}
+              onHome={() => navigate("/")}
+              onDashboard={() => navigate("/dashboard")}
+              onShowOpportunities={() => setShowOpportunitiesModal(true)}
+              onLoginRequired={() => { setLoginIntent("normal"); navigate("/login"); }}
+            />
+          }
+        />
+
+        {/* Catch-all redirect to home */}
+        <Route path="*" element={<HomePage
           user={user}
+          hasCompletedQuiz={hasCompletedQuiz}
           onStartQuiz={handleStartQuiz}
           onLogin={() => {
             setLoginIntent("normal");
-            setCurrentPage("login");
+            navigate("/login");
           }}
-          onDashboard={() => setCurrentPage("dashboard")}
+          onDashboard={() => navigate("/dashboard")}
           onShowOpportunities={() => {
             if (!userState || !userDistrict) {
-              setLocationReturnTo("home");
-              setCurrentPage("location");
+              setLocationReturnTo("/");
+              navigate("/location");
             } else {
               setShowOpportunitiesModal(true);
             }
           }}
-        />
-      )}
-
-      {currentPage === "login" && (
-        <LoginPage
-          onBack={() => {
-            setLoginIntent("normal");
-            setCurrentPage("home");
-          }}
-          onAuthSuccess={handleLoginSuccess}
-          onContinueWithoutAccount={
-            loginIntent === "startQuiz" ? handleContinueWithoutAccount : undefined
-          }
-        />
-      )}
-
-      {currentPage === "quiz" && (
-        <>
-          {loading && (
-            <div className="page-shell flex items-center justify-center">
-              <div className="text-center bg-[#111111] rounded-xl border border-purple-900/40 px-10 py-8 shadow-sm">
-                <div className="w-10 h-10 border-4 border-purple-900/40 border-t-purple-500 rounded-full animate-spin mx-auto mb-4" />
-                <p className="text-lg font-medium text-white">{t("quiz.loading")}</p>
-              </div>
-            </div>
-          )}
-
-          {!loading && error && (
-            <div className="page-shell flex items-center justify-center px-4">
-              <div className="text-center bg-[#111111] rounded-xl border border-purple-900/40 p-10 shadow-sm max-w-md">
-                <p className="text-lg mb-4 text-red-400 font-medium">
-                  {t("common.errorPrefix")}: {error}
-                </p>
-                <button
-                  onClick={() => {
-                    setError(null);
-                    setCurrentPage("home");
-                  }}
-                  className="px-6 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-semibold rounded-lg transition-colors"
-                >
-                  {t("common.goBackButton")}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {!loading && !error && questions.length > 0 && (
-            <QuizPage
-              questions={questions}
-              onComplete={handleQuizComplete}
-              onBack={() => setCurrentPage("home")}
-              user={user}
-              onSignOut={handleSignOut}
-              onDashboard={() => setCurrentPage("dashboard")}
-              onShowOpportunities={() => setShowOpportunitiesModal(true)}
-          onLoginRequired={() => { setLoginIntent("normal"); setCurrentPage("login"); }}
-            />
-          )}
-        </>
-      )}
-
-      {currentPage === "results" && (
-        <ResultsPage
-          answers={answers}
-          questions={questions}
-          additionalInfo={additionalInfo}
-          onRestart={handleRestart}
-          onBack={() => setCurrentPage("home")}
-          user={user}
-          onSignOut={handleSignOut}
-          onDashboard={() => setCurrentPage("dashboard")}
-          onShowOpportunities={() => setShowOpportunitiesModal(true)}
-          onLoginRequired={() => { setLoginIntent("normal"); setCurrentPage("login"); }}
-          onViewLocalEcosystem={() => setCurrentPage("localEcosystem")}
-          onAddLocation={handleAddLocation}
-          hasLocation={!!userState && !!userDistrict}
-        />
-      )}
-
-      {currentPage === "dashboard" && (
-        <DashboardPage
-          user={user}
-          onBack={() => setCurrentPage("home")}
-          onHome={() => setCurrentPage("home")}
-          onSignOut={handleSignOut}
-          onRetakeQuiz={handleStartQuiz}
-          onShowOpportunities={() => setShowOpportunitiesModal(true)}
-          onLoginRequired={() => { setLoginIntent("normal"); setCurrentPage("login"); }}
-          onGoToCourses={() => setCurrentPage("results")}
-          onChangeLocation={() => handleAddLocation("dashboard")}
-        />
-      )}
-
-      {currentPage === "location" && (
-        <LocationPage
-          onContinue={handleLocationContinue}
-          onSkip={handleLocationSkip}
-        />
-      )}
-
-      {currentPage === "localEcosystem" && (
-        <LocalEcosystemPage
-          state={userState}
-          district={userDistrict}
-          currentCareerTitle={(() => { try { const lang = i18n.resolvedLanguage || i18n.language || "en"; const cached = sessionStorage.getItem(`sm_career_${lang}`); return cached ? JSON.parse(cached).title : undefined; } catch { return undefined; } })()}
-          user={user}
-          onSignOut={handleSignOut}
-          onBack={() => setCurrentPage("results")}
-          onHome={() => setCurrentPage("home")}
-          onDashboard={() => setCurrentPage("dashboard")}
-          onShowOpportunities={() => setShowOpportunitiesModal(true)}
-          onLoginRequired={() => { setLoginIntent("normal"); setCurrentPage("login"); }}
-        />
-      )}
+        />} />
+      </Routes>
 
       {showOpportunitiesModal && userState && userDistrict && (
         <OpportunitiesModal
@@ -358,6 +428,10 @@ function App() {
       )}
     </>
   );
+}
+
+function App() {
+  return <AppRoutes />;
 }
 
 export default App;

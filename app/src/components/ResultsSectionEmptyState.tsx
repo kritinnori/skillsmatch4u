@@ -14,14 +14,17 @@ export function ResultsSectionEmptyState({
   description,
 }: ResultsSectionEmptyStateProps) {
   const Icon = kind === "jobs" ? Briefcase : BookOpen;
+  const iconBgColor = kind === "jobs" ? "bg-emerald-600/15" : "bg-blue-600/15";
+  const iconColor = kind === "jobs" ? "text-emerald-400" : "text-blue-400";
+  const borderColor = kind === "jobs" ? "border-emerald-900/30" : "border-blue-900/30";
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white px-6 py-10 text-center shadow-sm">
-      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary-50 border border-primary-100">
-        <Icon className="h-5 w-5 text-primary-700" aria-hidden />
+    <div className={`rounded-xl border ${borderColor} bg-[#0d0d0d] px-6 py-10 text-center`}>
+      <div className={`mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full ${iconBgColor}`}>
+        <Icon className={`h-5 w-5 ${iconColor}`} aria-hidden />
       </div>
-      <p className="text-base font-semibold text-gray-900">{title}</p>
-      <p className="mt-2 text-body-sm text-gray-600 leading-relaxed max-w-md mx-auto">
+      <p className="text-base font-semibold text-white">{title}</p>
+      <p className="mt-2 text-sm text-gray-400 leading-relaxed max-w-md mx-auto">
         {description}
       </p>
     </div>
