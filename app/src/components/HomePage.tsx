@@ -96,11 +96,20 @@ export function HomePage({ onStartQuiz, onLogin, onDashboard, onShowOpportunitie
 
   return (
     <div className="w-full min-h-screen bg-[#050505] text-white overflow-x-hidden">
-      {/* Background decoration - subtle gradient orbs */}
+      {/* Background decoration - gradient orbs using radial-gradient for Mobile Safari performance */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-1/4 right-0 w-[400px] h-[400px] bg-purple-500/8 rounded-full blur-[100px]" />
-        <div className="absolute top-1/2 left-0 w-[300px] h-[300px] bg-indigo-600/6 rounded-full blur-[80px]" />
+        <div 
+          className="absolute top-0 left-1/4 w-[500px] h-[500px]" 
+          style={{ background: 'radial-gradient(circle, rgba(147, 51, 234, 0.10) 0%, transparent 70%)' }}
+        />
+        <div 
+          className="absolute bottom-1/4 right-0 w-[400px] h-[400px]" 
+          style={{ background: 'radial-gradient(circle, rgba(168, 85, 247, 0.08) 0%, transparent 70%)' }}
+        />
+        <div 
+          className="absolute top-1/2 left-0 w-[300px] h-[300px]" 
+          style={{ background: 'radial-gradient(circle, rgba(99, 102, 241, 0.06) 0%, transparent 70%)' }}
+        />
       </div>
 
       {/* Content */}
