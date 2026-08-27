@@ -81,12 +81,67 @@ export interface UserProgressDoc {
 
 // --- Questions ---
 
-export async function getAllQuestions(): Promise<QuestionDoc[]> {
+// The questions table holds a small, static set of rows that only changes when
+// the seed script runs. Scanning it on every /questions request cost 5 RCU per
+// call and put a DynamoDB Scan in the hottest path in the API — at a few hundred
+// requests/sec that saturates the table's single-partition 3,000 RCU/sec read
+// ceiling, which is a hard limit that cannot be raised.
+//
+// We cache the result in memory per task. Tasks are replaced on every deploy,
+// and the TTL bounds staleness for out-of-band re-seeds.
+const QUESTIONS_CACHE_TTL_MS = 5 * 60 * 1000;
+
+let questionsCache: QuestionDoc[] | null = null;
+let questionsCachedAt = 0;
+let questionsInFlight: Promise<QuestionDoc[]> | null = null;
+
+async function scanAllQuestions(): Promise<QuestionDoc[]> {
   const result = await docClient.send(
     new ScanCommand({ TableName: QUESTIONS_TABLE })
   );
   const items = (result.Items || []) as QuestionDoc[];
   return items.sort((a, b) => a.id - b.id);
+}
+
+export async function getAllQuestions(): Promise<QuestionDoc[]> {
+  const fresh =
+    questionsCache !== null &&
+    Date.now() - questionsCachedAt < QUESTIONS_CACHE_TTL_MS;
+
+  if (fresh) return questionsCache as QuestionDoc[];
+
+  // Collapse concurrent misses onto one Scan. Without this, a cold task hit by
+  // N simultaneous requests would fire N Scans — the exact stampede that breaks
+  // under load.
+  if (questionsInFlight) return questionsInFlight;
+
+  questionsInFlight = scanAllQuestions()
+    .then((items) => {
+      // Never cache an empty result; a transient empty Scan would otherwise be
+      // served for the whole TTL.
+      if (items.length > 0) {
+        questionsCache = items;
+        questionsCachedAt = Date.now();
+      }
+      return items;
+    })
+    .catch((error) => {
+      // Serve stale data rather than failing the request if DynamoDB is briefly
+      // unavailable. Only rethrow when we have nothing at all to serve.
+      if (questionsCache !== null) return questionsCache as QuestionDoc[];
+      throw error;
+    })
+    .finally(() => {
+      questionsInFlight = null;
+    });
+
+  return questionsInFlight;
+}
+
+// Exposed for tests and for any future admin/cache-bust endpoint.
+export function clearQuestionsCache(): void {
+  questionsCache = null;
+  questionsCachedAt = 0;
 }
 
 // --- User Progress ---
