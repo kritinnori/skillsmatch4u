@@ -1,2 +1,8 @@
 **.env**
 design-system/
+
+# macOS
+.DS_Store
+
+# Generated load-test artifacts (large HTML/PDF/JSON) - regenerate locally
+load-tests/reports/

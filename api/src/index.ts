@@ -349,6 +349,11 @@ app.get("/", (_req, res) => {
   res.json({ message: "Quiz API is running" });
 });
 
+// Health check endpoint for ALB
+app.get("/health", (_req, res) => {
+  res.status(200).json({ status: "healthy" });
+});
+
 app.get("/questions", async (req, res) => {
   try {
     const language = normalizeLanguage(

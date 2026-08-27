@@ -32,3 +32,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# ECS task definition — contains a plaintext OPENAI_API_KEY.
+# Never commit. Move the key to Secrets Manager and reference it via `secrets`.
+task-definition.json

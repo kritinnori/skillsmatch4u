@@ -9,6 +9,11 @@ on:
 env:
   AWS_REGION: us-east-1
   NODE_VERSION: '20'
+  ECR_REPOSITORY: skillsmatch4u-api
+  ECS_CLUSTER: skillsmatch4u-cluster
+  ECS_SERVICE: skillsmatch4u-api
+  ECS_TASK_FAMILY: skillsmatch4u-api
+  ECS_CONTAINER_NAME: skillsmatch4u-api
 
 jobs:
   # ============================================
@@ -60,10 +65,114 @@ jobs:
             --paths "/*"
 
   # ============================================
-  # Deploy API to AWS Lambda
+  # Deploy API to ECS Fargate  (PRIMARY - serves api.skillsmatch4u.com)
   # ============================================
-  deploy-api:
-    name: Deploy API
+  deploy-api-ecs:
+    name: Deploy API (ECS)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./api
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: './api/package-lock.json'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push image
+        id: image
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          IMAGE="$REGISTRY/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"
+          docker build -t "$IMAGE" -t "$REGISTRY/${{ env.ECR_REPOSITORY }}:latest" .
+          docker push "$IMAGE"
+          docker push "$REGISTRY/${{ env.ECR_REPOSITORY }}:latest"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+      # The live task definition pins its image by digest, so a plain
+      # force-new-deployment would redeploy the OLD image. We register a new
+      # revision carrying the image we just pushed.
+      - name: Register new task definition revision
+        id: taskdef
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ env.ECS_TASK_FAMILY }} \
+            --query taskDefinition > current.json
+
+          jq --arg IMAGE "${{ steps.image.outputs.image }}" \
+             --arg NAME "${{ env.ECS_CONTAINER_NAME }}" '
+            (.containerDefinitions[] | select(.name == $NAME) | .image) = $IMAGE
+            | del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
+                  .compatibilities, .registeredAt, .registeredBy,
+                  .deregisteredAt)
+          ' current.json > new.json
+
+          REV=$(aws ecs register-task-definition \
+                  --cli-input-json file://new.json \
+                  --query 'taskDefinition.taskDefinitionArn' --output text)
+          echo "Registered $REV"
+          echo "revision=$REV" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy to ECS
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE }} \
+            --task-definition ${{ steps.taskdef.outputs.revision }} \
+            --no-cli-pager
+
+      - name: Wait for service to stabilize
+        run: |
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }}
+
+      - name: Smoke test
+        run: |
+          for i in $(seq 1 10); do
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 \
+                     https://api.skillsmatch4u.com/health || true)
+            echo "attempt $i: HTTP $CODE"
+            if [ "$CODE" = "200" ]; then
+              curl -s --max-time 20 https://api.skillsmatch4u.com/health
+              echo "Smoke test passed."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Smoke test FAILED - /health did not return 200"
+          exit 1
+
+  # ============================================
+  # Deploy API to AWS Lambda  (FALLBACK - kept warm for rollback only)
+  # Nothing routes here while api.skillsmatch4u.com points at the ALB.
+  # ============================================
+  deploy-api-lambda:
+    name: Deploy API (Lambda fallback)
     runs-on: ubuntu-latest
     defaults:
       run:
