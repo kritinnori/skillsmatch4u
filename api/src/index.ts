@@ -1082,7 +1082,24 @@ export { app };
 
 // Start local server only when run directly (not imported by Lambda)
 if (require.main === module) {
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`Quiz API running at http://localhost:${PORT}`);
   });
+
+  // Behind an ALB these MUST exceed the load balancer's idle timeout.
+  //
+  // Node closes an idle keep-alive connection after keepAliveTimeout (default
+  // 5s). The ALB keeps reusing connections up to its own idle timeout (120s).
+  // When the ALB sends a request on a connection Node is closing at that exact
+  // moment, the client gets an unexplained 502 — visible as HTTPCode_ELB_5XX
+  // with HTTPCode_Target_5XX at zero, because the app never saw the request.
+  //
+  // Load testing at 1,000 concurrent users produced 15-38 such 502s per
+  // ~427,000 requests (~0.005%). Making Node outlive the ALB means the ALB is
+  // always the side that decides to close, which removes the race.
+  //
+  // headersTimeout must be greater than keepAliveTimeout.
+  const ALB_IDLE_TIMEOUT_MS = 120_000;
+  server.keepAliveTimeout = ALB_IDLE_TIMEOUT_MS + 5_000;
+  server.headersTimeout = ALB_IDLE_TIMEOUT_MS + 10_000;
 }
