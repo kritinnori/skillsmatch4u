@@ -14,6 +14,7 @@ import or from "./locales/or";
 import ml from "./locales/ml";
 import pa from "./locales/pa";
 import as from "./locales/as";
+import supplement from "./locales/supplement";
 
 import {
   DEFAULT_LANGUAGE,
@@ -64,6 +65,11 @@ i18n.use(initReactI18next).init({
     escapeValue: false,
   },
 });
+
+// Fill keys the base locale files are missing (deep merge, supplement wins).
+for (const [lng, bundle] of Object.entries(supplement)) {
+  i18n.addResourceBundle(lng, "translation", bundle, true, true);
+}
 
 function applyLanguageAttributes(lang: string) {
   if (typeof document === "undefined") return;
