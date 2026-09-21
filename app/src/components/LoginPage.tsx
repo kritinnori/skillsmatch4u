@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Mail, Lock, ArrowLeft, CheckCircle2, Shield, Zap } from "lucide-react";
 import { Button } from "./ui/button";
@@ -33,6 +33,10 @@ export function LoginPage({
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [fieldError, setFieldError] = useState<"email" | "password" | "confirmPassword" | "code" | null>(null);
+  // Seconds remaining before "Resend code" can be pressed again. Each resend
+  // sends a real email, so an un-throttled button lets one user burn the
+  // sending quota for everybody.
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const isLogin = mode === "login";
   const isForgot = mode === "forgot";
@@ -40,6 +44,34 @@ export function LoginPage({
 
   const tr = (key: string, fallback: string) =>
     t(key, { defaultValue: fallback });
+
+  // Mirrors the Cognito user pool password policy exactly (minimum 8
+  // characters, upper + lower + number, symbols not required). Validating here
+  // means a weak password never reaches Cognito, which previously produced a
+  // rejected call and sent the user round the retry loop.
+  const PASSWORD_MIN_LENGTH = 8;
+
+  const getPasswordPolicyError = (candidate: string): string | null => {
+    if (
+      candidate.length < PASSWORD_MIN_LENGTH ||
+      !/[A-Z]/.test(candidate) ||
+      !/[a-z]/.test(candidate) ||
+      !/[0-9]/.test(candidate)
+    ) {
+      return tr(
+        "login.passwordPolicy",
+        "Password must be at least 8 characters with uppercase, lowercase, and a number."
+      );
+    }
+    return null;
+  };
+
+  // Tick the resend cooldown down to zero.
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   const getFriendlyError = (rawMessage: string) => {
     const lower = rawMessage.toLowerCase();
@@ -58,6 +90,20 @@ export function LoginPage({
     }
     if (lower.includes("password") && lower.includes("policy")) {
       return tr("login.passwordPolicy", "Password must be at least 8 characters with uppercase, lowercase, and a number.");
+    }
+    // Email sending quota exhausted on the identity provider. The raw AWS text
+    // talks about SES configuration, which means nothing to a student.
+    if (lower.includes("daily email limit") || lower.includes("exceeded daily")) {
+      return tr(
+        "login.emailLimitReached",
+        "We can't send verification emails right now. Please try again in a little while."
+      );
+    }
+    if (lower.includes("attempt limit exceeded") || lower.includes("too many requests")) {
+      return tr(
+        "login.tooManyAttempts",
+        "Too many attempts. Please wait a few minutes and try again."
+      );
     }
     return rawMessage;
   };
@@ -91,6 +137,19 @@ export function LoginPage({
         return;
       }
 
+      // Check the password against the pool policy before calling Cognito, so a
+      // rejected signup never costs a round trip or pushes the user into
+      // retrying (and resending verification emails).
+      if (!isLogin) {
+        const policyError = getPasswordPolicyError(password);
+        if (policyError) {
+          setError(policyError);
+          setFieldError("password");
+          setLoading(false);
+          return;
+        }
+      }
+
       if (isLogin) {
         await signIn(email, password);
         setMessage(tr("login.signedIn", "Signed in successfully."));
@@ -99,6 +158,9 @@ export function LoginPage({
         await signUp(email, password);
         setMode("confirm");
         setMessage(tr("login.verificationSent", "A verification code has been sent to your email. Please enter it below."));
+        // Signing up already sent one email; hold the resend button for a
+        // moment so the code has time to arrive before the user asks again.
+        setResendCooldown(RESEND_COOLDOWN_SECONDS);
       }
     } catch (err) {
       const rawMessage = err instanceof Error ? err.message : "Something went wrong.";
@@ -125,15 +187,22 @@ export function LoginPage({
     }
   };
 
+  const RESEND_COOLDOWN_SECONDS = 60;
+
   const handleResendCode = async () => {
+    if (resendCooldown > 0 || loading) return;
     setLoading(true);
     setError("");
     setMessage("");
     try {
       await resendConfirmationCode(email);
       setMessage(tr("login.codeSent", "A new verification code has been sent to your email."));
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to resend code");
+      setError(getFriendlyError(err instanceof Error ? err.message : "Failed to resend code"));
+      // Start the cooldown even on failure. The common failure is a quota or
+      // rate limit, and letting the user retry immediately makes that worse.
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
     } finally {
       setLoading(false);
     }
@@ -324,8 +393,15 @@ export function LoginPage({
                             className="w-full bg-transparent text-white text-sm placeholder:text-gray-600 outline-none tracking-widest"
                           />
                         </div>
-                        <button type="button" onClick={handleResendCode} disabled={loading} className="text-xs text-purple-400 hover:text-purple-300 font-medium transition-colors mt-2">
-                          {tr("login.resendCode", "Resend code")}
+                        <button
+                          type="button"
+                          onClick={handleResendCode}
+                          disabled={loading || resendCooldown > 0}
+                          className="text-xs text-purple-400 hover:text-purple-300 font-medium transition-colors mt-2 disabled:text-gray-500 disabled:cursor-not-allowed disabled:hover:text-gray-500"
+                        >
+                          {resendCooldown > 0
+                            ? tr("login.resendCodeIn", "Resend code in") + ` ${resendCooldown}s`
+                            : tr("login.resendCode", "Resend code")}
                         </button>
                       </div>
                     )}
@@ -339,7 +415,7 @@ export function LoginPage({
                           <input
                             type="password"
                             required
-                            minLength={6}
+                            minLength={isLogin ? undefined : PASSWORD_MIN_LENGTH}
                             value={password}
                             onChange={(e) => { setPassword(e.target.value); setFieldError(null); }}
                             placeholder="••••••••"
@@ -358,7 +434,7 @@ export function LoginPage({
                           <input
                             type="password"
                             required
-                            minLength={6}
+                            minLength={PASSWORD_MIN_LENGTH}
                             value={confirmPassword}
                             onChange={(e) => { setConfirmPassword(e.target.value); setFieldError(null); }}
                             placeholder="••••••••"
